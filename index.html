@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>St Gabriel — Church Accounts</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue-dark: #042C53; --blue-mid: #0C447C; --blue: #185FA5;
+  --blue-light: #85B7EB; --blue-pale: #E6F1FB;
+  --green-dark: #27500A; --green-mid: #3B6D11; --green-pale: #EAF3DE;
+  --red-dark: #791F1F; --red: #A32D2D; --red-pale: #FCEBEB;
+  --amber: #854F0B; --amber-pale: #FAEEDA;
+  --purple: #534AB7; --purple-pale: #EEEDFE;
+  --gray-50: #F8F8F7; --gray-100: #F1EFE8; --gray-200: #D3D1C7;
+  --gray-400: #888780; --gray-600: #5F5E5A; --gray-900: #2C2C2A;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 16px;
+}
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--gray-100); color: var(--gray-900); min-height: 100vh; font-size: 14px; }
+
+/* ── PASSWORD ── */
+#pw-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; background:linear-gradient(160deg,#E6F1FB,#F1EFE8); }
+.pw-card { background:#fff; border-radius:var(--r-xl); border:1px solid var(--gray-200); padding:40px 36px; width:100%; max-width:360px; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.1); }
+.pw-icon { font-size:42px; color:var(--blue-mid); margin-bottom:14px; }
+.pw-title { font-size:19px; font-weight:700; margin-bottom:4px; }
+.pw-sub { font-size:12px; color:var(--gray-400); margin-bottom:28px; }
+.pw-field { position:relative; text-align:left; margin-bottom:14px; }
+.pw-field label { display:block; font-size:11px; font-weight:600; color:var(--gray-600); margin-bottom:5px; }
+.pw-field input { width:100%; padding:11px 40px 11px 13px; border:1.5px solid var(--gray-200); border-radius:var(--r-md); font-size:15px; color:var(--gray-900); outline:none; transition:border-color .15s; }
+.pw-field input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(24,95,165,.1); }
+.pw-eye { position:absolute; right:12px; bottom:11px; cursor:pointer; color:var(--gray-400); font-size:15px; }
+.pw-err { display:none; font-size:12px; color:var(--red); background:var(--red-pale); border:1px solid #F7C1C1; border-radius:var(--r-md); padding:7px 10px; margin-bottom:12px; text-align:left; }
+.pw-verse { font-size:11px; color:var(--gray-400); font-style:italic; margin-top:18px; line-height:1.6; }
+
+/* ── APP LAYOUT ── */
+.app { display:flex; height:100vh; overflow:hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar { width:230px; flex-shrink:0; background:var(--blue-mid); display:flex; flex-direction:column; }
+.sidebar-brand { padding:22px 16px 18px; border-bottom:1px solid rgba(255,255,255,.1); display:flex; align-items:center; gap:12px; }
+.brand-icon { width:40px; height:40px; border-radius:var(--r-md); background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; font-size:18px; color:var(--blue-light); flex-shrink:0; }
+.brand-name { font-size:15px; font-weight:700; color:#fff; }
+.brand-sub  { font-size:10px; color:rgba(255,255,255,.5); margin-top:1px; }
+.nav { padding:10px 8px; flex:1; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--r-md); color:rgba(255,255,255,.6); font-size:13px; cursor:pointer; margin-bottom:2px; border:none; background:none; width:100%; text-align:left; transition:background .15s,color .15s; }
+.nav-item:hover { background:rgba(255,255,255,.08); color:rgba(255,255,255,.9); }
+.nav-item.active { background:rgba(255,255,255,.15); color:#fff; }
+.nav-item i { width:18px; text-align:center; font-size:15px; }
+.nav-section { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.3); padding:14px 12px 4px; }
+.sidebar-footer { padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-size:10px; color:rgba(255,255,255,.3); line-height:1.6; }
+
+/* ── MAIN ── */
+.main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.topbar { background:#fff; border-bottom:1px solid var(--gray-200); padding:13px 24px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.topbar h1 { font-size:18px; font-weight:700; }
+.topbar-right { display:flex; align-items:center; gap:10px; }
+.content { flex:1; overflow-y:auto; padding:20px 24px; }
+.page { display:none; }
+.page.active { display:block; }
+
+/* ── CARDS ── */
+.card { background:#fff; border:1px solid var(--gray-200); border-radius:var(--r-lg); padding:16px 18px; margin-bottom:14px; }
+.card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-400); margin-bottom:14px; }
+.metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:16px; }
+.metric { background:#fff; border:1px solid var(--gray-200); border-radius:var(--r-lg); padding:14px 16px; }
+.metric-label { font-size:11px; color:var(--gray-400); margin-bottom:5px; }
+.metric-value { font-size:24px; font-weight:700; }
+.metric-value.green  { color:var(--green-mid); }
+.metric-value.red    { color:var(--red); }
+.metric-value.blue   { color:var(--blue); }
+.metric-value.purple { color:var(--purple); }
+
+/* ── BUTTONS ── */
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:var(--r-md); font-size:13px; font-weight:500; cursor:pointer; border:1px solid var(--gray-200); background:#fff; color:var(--gray-900); transition:background .15s; white-space:nowrap; }
+.btn:hover { background:var(--gray-50); }
+.btn-primary { background:var(--blue); color:#fff; border-color:var(--blue); }
+.btn-primary:hover { background:var(--blue-mid); }
+.btn-green { background:var(--green-mid); color:#fff; border-color:var(--green-mid); }
+.btn-green:hover { background:var(--green-dark); }
+.btn-red { background:var(--red); color:#fff; border-color:var(--red); }
+.btn-red:hover { background:var(--red-dark); }
+.btn-sm { padding:5px 10px; font-size:12px; }
+.btn-icon { padding:6px 8px; }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+
+/* ── BADGES ── */
+.badge { display:inline-flex; align-items:center; gap:3px; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:600; }
+.badge-green  { background:var(--green-pale); color:var(--green-mid); }
+.badge-red    { background:var(--red-pale);   color:var(--red); }
+.badge-blue   { background:var(--blue-pale);  color:var(--blue-mid); }
+.badge-amber  { background:var(--amber-pale); color:var(--amber); }
+.badge-purple { background:var(--purple-pale);color:var(--purple); }
+.badge-gray   { background:var(--gray-100);   color:var(--gray-600); }
+
+/* ── FORMS ── */
+.form-group { margin-bottom:13px; }
+.form-label { display:block; font-size:11px; font-weight:600; color:var(--gray-600); margin-bottom:5px; }
+.form-control { width:100%; padding:9px 11px; border:1px solid var(--gray-200); border-radius:var(--r-md); font-size:13px; color:var(--gray-900); background:#fff; transition:border-color .15s,box-shadow .15s; }
+.form-control:focus { outline:none; border-color:var(--blue-light); box-shadow:0 0 0 3px rgba(24,95,165,.1); }
+.form-hint { font-size:11px; color:var(--gray-400); margin-top:4px; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+
+/* ── INLINE SELECT WITH ADD ── */
+.select-wrap { display:flex; gap:6px; }
+.select-wrap select { flex:1; }
+.select-add-btn { flex-shrink:0; padding:9px 10px; background:var(--blue-pale); color:var(--blue-mid); border:1px solid #B5D4F4; border-radius:var(--r-md); cursor:pointer; font-size:14px; transition:background .15s; }
+.select-add-btn:hover { background:#B5D4F4; }
+
+/* ── JOURNAL ENTRY DISPLAY ── */
+.je-box { background:var(--gray-50); border:1px solid var(--gray-200); border-radius:var(--r-md); padding:12px 14px; margin-bottom:12px; font-size:13px; }
+.je-box table { width:100%; border-collapse:collapse; }
+.je-box th { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-400); padding:4px 8px; border-bottom:1px solid var(--gray-200); }
+.je-box td { padding:6px 8px; }
+.je-debit  { color:var(--red); font-weight:600; }
+.je-credit { color:var(--green-mid); font-weight:600; padding-left:24px; }
+
+/* ── TABLE ── */
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead th { text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-400); padding:8px 10px; border-bottom:1px solid var(--gray-200); white-space:nowrap; }
+tbody td { padding:9px 10px; border-bottom:1px solid var(--gray-100); }
+tbody tr:last-child td { border-bottom:none; }
+tbody tr:hover td { background:var(--gray-50); }
+.amount-dr { color:var(--red); font-weight:600; }
+.amount-cr { color:var(--green-mid); font-weight:600; }
+
+/* ── LEDGER ── */
+.ledger-account { background:#fff; border:1px solid var(--gray-200); border-radius:var(--r-lg); margin-bottom:12px; overflow:hidden; }
+.ledger-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--gray-50); border-bottom:1px solid var(--gray-200); cursor:pointer; }
+.ledger-name { font-weight:600; font-size:14px; }
+.ledger-balance { font-size:13px; font-weight:700; }
+.ledger-body { padding:0; }
+
+/* ── MODAL ── */
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; padding:20px; }
+.overlay.show { display:flex; }
+.modal { background:#fff; border-radius:var(--r-xl); padding:22px; width:100%; max-width:440px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.2); }
+.modal-title { font-size:15px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; }
+.modal-close { cursor:pointer; color:var(--gray-400); font-size:18px; }
+.modal-close:hover { color:var(--gray-900); }
+
+/* ── DROPDOWN MANAGER ── */
+.dm-item { display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:var(--r-md); margin-bottom:6px; }
+.dm-item-name { flex:1; font-size:13px; }
+.dm-item-type { font-size:11px; }
+
+/* ── SUMMARY PILL ── */
+.summary-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px; font-size:12px; font-weight:600; margin-bottom:14px; }
+
+/* ── SYNC DOT ── */
+.sync-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+.sync-dot.green { background:var(--green-mid); }
+.sync-dot.red { background:var(--red); }
+.sync-dot.gray { background:var(--gray-400); }
+.sync-dot.spin { background:var(--blue); animation:pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+#sync-status { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gray-400); }
+
+/* ── SPINNER ── */
+.spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── TOAST ── */
+#toast { position:fixed; bottom:22px; right:22px; padding:10px 16px; border-radius:var(--r-md); font-size:13px; font-weight:500; z-index:9999; opacity:0; transform:translateY(6px); transition:opacity .25s,transform .25s; pointer-events:none; }
+#toast.show { opacity:1; transform:translateY(0); }
+#toast.success { background:var(--green-mid); color:#fff; }
+#toast.error   { background:var(--red); color:#fff; }
+#toast.info    { background:var(--blue); color:#fff; }
+
+.empty { text-align:center; padding:40px 20px; color:var(--gray-400); }
+.empty i { font-size:32px; display:block; margin-bottom:10px; }
+
+/* ── DIVIDER LINE ── */
+.section-divider { height:1px; background:var(--gray-200); margin:16px 0; }
+</style>
+</head>
+<body>
+
+<!-- PASSWORD SCREEN -->
+<div id="pw-screen">
+  <div class="pw-card">
+    <div class="pw-icon"><i class="fa-solid fa-book-open"></i></div>
+    <div class="pw-title">St Gabriel Accounts</div>
+    <div class="pw-sub">Ethiopian Orthodox Church · Louisville KY</div>
+    <div class="pw-field">
+      <label>Password</label>
+      <input type="password" id="pw-input" placeholder="Enter password"
+        onkeydown="if(event.key==='Enter')checkPw()">
+      <i class="fa-solid fa-eye pw-eye" id="pw-eye" onclick="togglePwEye()"></i>
+    </div>
+    <div id="pw-err" class="pw-err"><i class="fa-solid fa-circle-exclamation"></i> Incorrect password.</div>
+    <button class="btn btn-primary" onclick="checkPw()" style="width:100%;justify-content:center;padding:11px">
+      <i class="fa-solid fa-unlock"></i> Sign In
+    </button>
+    <div class="pw-verse">"Honour the Lord with your wealth." — Proverbs 3:9</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="app" style="display:none">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fa-solid fa-book-open"></i></div>
+      <div>
+        <div class="brand-name">St Gabriel</div>
+        <div class="brand-sub">Church Accounts</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Transactions</div>
+      <button class="nav-item active" onclick="showPage('collections',this)">
+        <i class="fa-solid fa-arrow-down-to-line"></i> Record Collection
+      </button>
+      <button class="nav-item" onclick="showPage('payments',this)">
+        <i class="fa-solid fa-arrow-up-from-line"></i> Record Payment
+      </button>
+      <div class="nav-section">Reports</div>
+      <button class="nav-item" onclick="showPage('journal',this)">
+        <i class="fa-solid fa-list-ul"></i> Journal
+      </button>
+      <button class="nav-item" onclick="showPage('ledger',this)">
+        <i class="fa-solid fa-table-columns"></i> Ledger
+      </button>
+      <button class="nav-item" onclick="showPage('trial',this)">
+        <i class="fa-solid fa-scale-balanced"></i> Trial Balance
+      </button>
+      <div class="nav-section">Settings</div>
+      <button class="nav-item" onclick="showPage('accounts',this)">
+        <i class="fa-solid fa-sliders"></i> Manage Accounts
+      </button>
+      <button class="nav-item" onclick="showPage('settings',this)">
+        <i class="fa-solid fa-gear"></i> Settings
+      </button>
+    </nav>
+    <div class="sidebar-footer">St Gabriel · Louisville KY</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h1 id="page-title">Record Collection</h1>
+      <div class="topbar-right">
+        <div id="sync-status"><span class="sync-dot gray" id="sync-dot"></span><span id="sync-text">Not synced</span></div>
+        <div id="topbar-btn"></div>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- ══ COLLECTIONS ══ -->
+      <div id="page-collections" class="page active">
+        <div class="card">
+          <div class="card-title">New Collection Entry</div>
+
+          <!-- Journal preview -->
+          <div class="je-box">
+            <table>
+              <thead><tr><th>Account</th><th>Debit (Dr)</th><th>Credit (Cr)</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong id="coll-dr-acct">Cash / Bank</strong></td>
+                  <td class="je-debit" id="coll-dr-amt">—</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td style="padding-left:24px;color:var(--gray-600)" id="coll-cr-acct">&nbsp;&nbsp;Income Type</td>
+                  <td></td>
+                  <td class="je-credit" id="coll-cr-amt">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input type="date" id="c-date" class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Receipt # <span style="color:var(--red)">*</span></label>
+              <input type="text" id="c-ref" class="form-control" placeholder="e.g. 1001">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Debit Account (Cash / Bank) <span style="color:var(--red)">*</span></label>
+            <div class="select-wrap">
+              <select id="c-debit" class="form-control" onchange="updateCollJournal()">
+                <option value="">— Select account —</option>
+              </select>
+              <button class="select-add-btn" title="Add new account" onclick="quickAddAccount('cash')"><i class="fa-solid fa-plus"></i></button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Credit Account (Income Type) <span style="color:var(--red)">*</span></label>
+            <div class="select-wrap">
+              <select id="c-credit" class="form-control" onchange="updateCollJournal()">
+                <option value="">— Select income type —</option>
+              </select>
+              <button class="select-add-btn" title="Add new income type" onclick="quickAddAccount('income')"><i class="fa-solid fa-plus"></i></button>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Amount ($) <span style="color:var(--red)">*</span></label>
+              <input type="number" id="c-amount" class="form-control" placeholder="0.00" min="0" step="0.01" oninput="updateCollJournal()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Received From</label>
+              <input type="text" id="c-from" class="form-control" placeholder="Name or description">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input type="text" id="c-notes" class="form-control" placeholder="Optional notes">
+          </div>
+
+          <button id="c-btn" class="btn btn-green" onclick="postCollection()" style="width:100%;justify-content:center;padding:11px">
+            <i class="fa-solid fa-check"></i> Post Collection Entry
+          </button>
+        </div>
+
+        <!-- Recent collections -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="card-title" style="margin:0">Recent Collections</div>
+            <button class="btn btn-sm" onclick="showPage('journal',document.querySelectorAll('.nav-item')[3])"><i class="fa-solid fa-arrow-right"></i> View All</button>
+          </div>
+          <div id="recent-collections"></div>
+        </div>
+      </div>
+
+      <!-- ══ PAYMENTS ══ -->
+      <div id="page-payments" class="page">
+        <div class="card">
+          <div class="card-title">New Payment Entry</div>
+
+          <div class="je-box">
+            <table>
+              <thead><tr><th>Account</th><th>Debit (Dr)</th><th>Credit (Cr)</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong id="pay-dr-acct">Expense Type</strong></td>
+                  <td class="je-debit" id="pay-dr-amt">—</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td style="padding-left:24px;color:var(--gray-600)" id="pay-cr-acct">&nbsp;&nbsp;Cash / Bank</td>
+                  <td></td>
+                  <td class="je-credit" id="pay-cr-amt">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input type="date" id="p-date" class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reference / Voucher #</label>
+              <input type="text" id="p-ref" class="form-control" placeholder="e.g. PV-001">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Debit Account (Expense Type) <span style="color:var(--red)">*</span></label>
+            <div class="select-wrap">
+              <select id="p-debit" class="form-control" onchange="updatePayJournal()">
+                <option value="">— Select expense type —</option>
+              </select>
+              <button class="select-add-btn" title="Add new expense type" onclick="quickAddAccount('expense')"><i class="fa-solid fa-plus"></i></button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Credit Account (Cash / Bank) <span style="color:var(--red)">*</span></label>
+            <div class="select-wrap">
+              <select id="p-credit" class="form-control" onchange="updatePayJournal()">
+                <option value="">— Select account —</option>
+              </select>
+              <button class="select-add-btn" title="Add new account" onclick="quickAddAccount('cash')"><i class="fa-solid fa-plus"></i></button>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Amount ($) <span style="color:var(--red)">*</span></label>
+              <input type="number" id="p-amount" class="form-control" placeholder="0.00" min="0" step="0.01" oninput="updatePayJournal()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Paid To</label>
+              <input type="text" id="p-to" class="form-control" placeholder="Payee name">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input type="text" id="p-notes" class="form-control" placeholder="Optional notes">
+          </div>
+
+          <button id="p-btn" class="btn btn-red" onclick="postPayment()" style="width:100%;justify-content:center;padding:11px">
+            <i class="fa-solid fa-check"></i> Post Payment Entry
+          </button>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="card-title" style="margin:0">Recent Payments</div>
+            <button class="btn btn-sm" onclick="showPage('journal',document.querySelectorAll('.nav-item')[3])"><i class="fa-solid fa-arrow-right"></i> View All</button>
+          </div>
+          <div id="recent-payments"></div>
+        </div>
+      </div>
+
+      <!-- ══ JOURNAL ══ -->
+      <div id="page-journal" class="page">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Total Collections</div><div class="metric-value green" id="j-total-coll">$0.00</div></div>
+          <div class="metric"><div class="metric-label">Total Payments</div><div class="metric-value red" id="j-total-pay">$0.00</div></div>
+          <div class="metric"><div class="metric-label">Net Balance</div><div class="metric-value blue" id="j-net">$0.00</div></div>
+          <div class="metric"><div class="metric-label">Entries</div><div class="metric-value" id="j-count">0</div></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+            <div class="card-title" style="margin:0">General Journal</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <select id="j-filter" class="form-control" style="width:160px;font-size:12px" onchange="renderJournal()">
+                <option value="all">All Entries</option>
+                <option value="collection">Collections Only</option>
+                <option value="payment">Payments Only</option>
+              </select>
+              <button class="btn btn-sm" onclick="exportCSV()"><i class="fa-solid fa-download"></i> CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap" id="journal-table"></div>
+        </div>
+      </div>
+
+      <!-- ══ LEDGER ══ -->
+      <div id="page-ledger" class="page">
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-title">Account Ledger</div>
+          <div style="font-size:13px;color:var(--gray-600)">Click any account to expand its transactions.</div>
+        </div>
+        <div id="ledger-content"></div>
+      </div>
+
+      <!-- ══ TRIAL BALANCE ══ -->
+      <div id="page-trial" class="page">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div class="card-title" style="margin:0">Trial Balance</div>
+            <span id="trial-balanced" class="badge"></span>
+          </div>
+          <div class="table-wrap" id="trial-table"></div>
+        </div>
+      </div>
+
+      <!-- ══ MANAGE ACCOUNTS ══ -->
+      <div id="page-accounts" class="page">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Cash/Bank Accounts</div><div class="metric-value blue" id="ac-cash">0</div></div>
+          <div class="metric"><div class="metric-label">Income Types</div><div class="metric-value green" id="ac-income">0</div></div>
+          <div class="metric"><div class="metric-label">Expense Types</div><div class="metric-value red" id="ac-expense">0</div></div>
+        </div>
+
+        <!-- Cash/Bank -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="card-title" style="margin:0">Cash &amp; Bank Accounts</div>
+            <button class="btn btn-sm btn-primary" onclick="openAddAccountModal('cash')"><i class="fa-solid fa-plus"></i> Add</button>
+          </div>
+          <div id="list-cash"></div>
+        </div>
+
+        <!-- Income -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="card-title" style="margin:0">Income / Collection Types</div>
+            <button class="btn btn-sm btn-primary" onclick="openAddAccountModal('income')"><i class="fa-solid fa-plus"></i> Add</button>
+          </div>
+          <div id="list-income"></div>
+        </div>
+
+        <!-- Expense -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="card-title" style="margin:0">Expense Types</div>
+            <button class="btn btn-sm btn-primary" onclick="openAddAccountModal('expense')"><i class="fa-solid fa-plus"></i> Add</button>
+          </div>
+          <div id="list-expense"></div>
+        </div>
+      </div>
+
+      <!-- ══ SETTINGS ══ -->
+      <div id="page-settings" class="page">
+        <div class="card">
+          <div class="card-title">Google Sheets Connection</div>
+          <div class="form-group">
+            <label class="form-label">Apps Script Web App URL</label>
+            <input type="text" id="settings-url" class="form-control" placeholder="https://script.google.com/macros/s/…/exec">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="saveSettings()"><i class="fa-solid fa-save"></i> Save</button>
+            <button class="btn" onclick="testConnection()"><i class="fa-solid fa-plug"></i> Test</button>
+            <button class="btn" onclick="syncAll()"><i class="fa-solid fa-rotate"></i> Sync</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">About</div>
+          <p style="font-size:13px;color:var(--gray-600);line-height:1.9">
+            <strong>St Gabriel Ethiopian Orthodox Church</strong><br>
+            Accounts System v1.0<br>
+            Double-entry bookkeeping · Google Sheets backend<br>
+            Collections: Dr Cash/Bank · Cr Income<br>
+            Payments: Dr Expense · Cr Cash/Bank
+          </p>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Overlay -->
+<div class="overlay" id="overlay" onclick="overlayClickHandler(event)">
+  <div class="modal" id="modal-body"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxut1cBq0QgX4m5hUedTp_nR2CNr0hN-5nYoOYFCRytBz3OWRjXNGFz1ywdbDWzt1r3/exec';
+const PASSWORD = 'StGabriel19';
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let entries  = JSON.parse(localStorage.getItem('acct_entries')  || '[]');
+let accounts = JSON.parse(localStorage.getItem('acct_accounts') || 'null');
+
+if (!accounts) {
+  accounts = {
+    cash:    ['Cash on Hand', 'Bank Account'],
+    income:  ['Membership Fee', 'Tithes', 'Christening', 'Gift', 'Seelet', 'Prayer Request', 'Other Income'],
+    expense: ['Salary', 'Insurance', 'Utilities', 'Maintenance', 'Office Supplies', 'Other Expense']
+  };
+  saveAccounts();
+}
+
+function saveAccounts() { localStorage.setItem('acct_accounts', JSON.stringify(accounts)); }
+function saveEntries()  { localStorage.setItem('acct_entries',  JSON.stringify(entries));  }
+
+// ═══════════════════════════════════════════
+//  PASSWORD
+// ═══════════════════════════════════════════
+function checkPw() {
+  if (document.getElementById('pw-input').value === PASSWORD) {
+    sessionStorage.setItem('acct_auth', '1');
+    document.getElementById('pw-screen').style.display = 'none';
+    launchApp();
+  } else {
+    document.getElementById('pw-err').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+function togglePwEye() {
+  const i = document.getElementById('pw-input');
+  const e = document.getElementById('pw-eye');
+  i.type = i.type === 'password' ? 'text' : 'password';
+  e.className = i.type === 'password' ? 'fa-solid fa-eye pw-eye' : 'fa-solid fa-eye-slash pw-eye';
+}
+
+// ═══════════════════════════════════════════
+//  LAUNCH
+// ═══════════════════════════════════════════
+function launchApp() {
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('settings-url').value = GAS_URL;
+  setTodayDates();
+  populateAllSelects();
+  renderAccountsPage();
+  renderRecent();
+  syncAll();
+}
+
+function init() {
+  if (sessionStorage.getItem('acct_auth') === '1') {
+    document.getElementById('pw-screen').style.display = 'none';
+    launchApp();
+  } else {
+    setTimeout(() => document.getElementById('pw-input').focus(), 100);
+  }
+}
+
+function setTodayDates() {
+  const td = new Date().toISOString().split('T')[0];
+  ['c-date','p-date'].forEach(id => { const el = document.getElementById(id); if(el) el.value = td; });
+}
+
+// ═══════════════════════════════════════════
+//  GOOGLE SHEETS SYNC
+// ═══════════════════════════════════════════
+function setSyncStatus(state, text) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  if (dot) dot.className = 'sync-dot ' + state;
+  if (txt) txt.textContent = text;
+}
+
+async function gasRequest(action, data = {}) {
+  const params = new URLSearchParams({ action, ...Object.fromEntries(
+    Object.entries(data).map(([k,v]) => [k, typeof v === 'object' ? JSON.stringify(v) : v])
+  )});
+  const res  = await fetch(GAS_URL + '?' + params.toString());
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Unknown error');
+  return json;
+}
+
+async function syncAll() {
+  setSyncStatus('spin', 'Syncing…');
+  try {
+    const [eRes, aRes] = await Promise.all([
+      gasRequest('getEntries'),
+      gasRequest('getAccounts')
+    ]);
+    if (eRes.data && eRes.data.length) entries  = eRes.data;
+    if (aRes.data) accounts = aRes.data;
+    saveEntries(); saveAccounts();
+    setSyncStatus('green', 'Synced ' + new Date().toLocaleTimeString());
+    populateAllSelects();
+    renderAccountsPage();
+    renderRecent();
+    renderJournal();
+    renderLedger();
+    renderTrialBalance();
+    toast('Synced with Google Sheets', 'success');
+  } catch(e) {
+    setSyncStatus('red', 'Sync failed');
+    toast('Sync failed — working offline', 'error');
+  }
+}
+
+async function pushEntry(entry) {
+  return gasRequest('addEntry', { data: entry });
+}
+async function pushAccounts() {
+  return gasRequest('saveAccounts', { data: accounts });
+}
+
+// ═══════════════════════════════════════════
+//  POPULATE SELECTS
+// ═══════════════════════════════════════════
+function populateSelect(id, list, placeholder) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const cur = el.value;
+  el.innerHTML = `<option value="">${placeholder}</option>` + list.map(a => `<option value="${a}">${a}</option>`).join('');
+  if (cur && list.includes(cur)) el.value = cur;
+}
+
+function populateAllSelects() {
+  populateSelect('c-debit',  accounts.cash,    '— Select cash/bank account —');
+  populateSelect('c-credit', accounts.income,  '— Select income type —');
+  populateSelect('p-debit',  accounts.expense, '— Select expense type —');
+  populateSelect('p-credit', accounts.cash,    '— Select cash/bank account —');
+}
+
+// ═══════════════════════════════════════════
+//  JOURNAL PREVIEW
+// ═══════════════════════════════════════════
+function updateCollJournal() {
+  const dr  = document.getElementById('c-debit')?.value  || 'Cash / Bank';
+  const cr  = document.getElementById('c-credit')?.value || 'Income Type';
+  const amt = parseFloat(document.getElementById('c-amount')?.value || 0);
+  const fmt = amt > 0 ? '$' + amt.toFixed(2) : '—';
+  setText('coll-dr-acct', dr || 'Cash / Bank');
+  setText('coll-cr-acct', '\u00a0\u00a0' + (cr || 'Income Type'));
+  setText('coll-dr-amt', fmt);
+  setText('coll-cr-amt', fmt);
+}
+function updatePayJournal() {
+  const dr  = document.getElementById('p-debit')?.value  || 'Expense Type';
+  const cr  = document.getElementById('p-credit')?.value || 'Cash / Bank';
+  const amt = parseFloat(document.getElementById('p-amount')?.value || 0);
+  const fmt = amt > 0 ? '$' + amt.toFixed(2) : '—';
+  setText('pay-dr-acct', dr || 'Expense Type');
+  setText('pay-cr-acct', '\u00a0\u00a0' + (cr || 'Cash / Bank'));
+  setText('pay-dr-amt', fmt);
+  setText('pay-cr-amt', fmt);
+}
+function setText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val; }
+
+// ═══════════════════════════════════════════
+//  POST ENTRIES
+// ═══════════════════════════════════════════
+async function postCollection() {
+  const date   = document.getElementById('c-date').value;
+  const ref    = document.getElementById('c-ref').value.trim();
+  const debit  = document.getElementById('c-debit').value;
+  const credit = document.getElementById('c-credit').value;
+  const amount = parseFloat(document.getElementById('c-amount').value);
+  const from   = document.getElementById('c-from').value.trim();
+  const notes  = document.getElementById('c-notes').value.trim();
+  if (!date || !ref || !debit || !credit || !amount || isNaN(amount) || amount <= 0) {
+    toast('Please fill in all required fields including Receipt #.', 'error'); return;
+  }
+  // Check for duplicate receipt number
+  if (entries.some(e => e.type === 'collection' && e.ref === ref)) {
+    toast('Receipt # ' + ref + ' already exists. Please use a unique number.', 'error'); return;
+  }
+  const btn = document.getElementById('c-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Posting…';
+  const entry = {
+    id: entries.length ? Math.max(...entries.map(e=>+e.id))+1 : 1,
+    type: 'collection', date, ref: ref,
+    debitAccount: debit, creditAccount: credit,
+    amount, description: from, notes,
+    timestamp: Date.now()
+  };
+  try {
+    await pushEntry(entry);
+    entries.push(entry); saveEntries();
+    resetCollForm();
+    renderRecent(); renderJournal(); renderLedger(); renderTrialBalance();
+    toast('Collection posted!', 'success');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+  btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Post Collection Entry';
+}
+
+async function postPayment() {
+  const date   = document.getElementById('p-date').value;
+  const ref    = document.getElementById('p-ref').value.trim();
+  const debit  = document.getElementById('p-debit').value;
+  const credit = document.getElementById('p-credit').value;
+  const amount = parseFloat(document.getElementById('p-amount').value);
+  const to     = document.getElementById('p-to').value.trim();
+  const notes  = document.getElementById('p-notes').value.trim();
+  if (!date || !ref || !debit || !credit || !amount || isNaN(amount) || amount <= 0) {
+    toast('Please fill in all required fields including Check/Voucher #.', 'error'); return;
+  }
+  // Check for duplicate voucher number
+  if (entries.some(e => e.type === 'payment' && e.ref === ref)) {
+    toast('Check/Voucher # ' + ref + ' already exists. Please use a unique number.', 'error'); return;
+  }
+  const btn = document.getElementById('p-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Posting…';
+  const entry = {
+    id: entries.length ? Math.max(...entries.map(e=>+e.id))+1 : 1,
+    type: 'payment', date, ref: ref,
+    debitAccount: debit, creditAccount: credit,
+    amount, description: to, notes,
+    timestamp: Date.now()
+  };
+  try {
+    await pushEntry(entry);
+    entries.push(entry); saveEntries();
+    resetPayForm();
+    renderRecent(); renderJournal(); renderLedger(); renderTrialBalance();
+    toast('Payment posted!', 'success');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+  btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Post Payment Entry';
+}
+
+function autoRef(prefix) {
+  const count = entries.filter(e => e.ref && e.ref.startsWith(prefix)).length + 1;
+  return `${prefix}-${String(count).padStart(3,'0')}`;
+}
+
+function resetCollForm() {
+  ['c-ref','c-amount','c-from','c-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('c-debit').value  = '';
+  document.getElementById('c-credit').value = '';
+  updateCollJournal();
+}
+function resetPayForm() {
+  ['p-ref','p-amount','p-to','p-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('p-debit').value  = '';
+  document.getElementById('p-credit').value = '';
+  updatePayJournal();
+}
+
+// ═══════════════════════════════════════════
+//  RENDER RECENT
+// ═══════════════════════════════════════════
+function renderRecent() {
+  const colls = entries.filter(e => e.type === 'collection').slice(-5).reverse();
+  const pays  = entries.filter(e => e.type === 'payment').slice(-5).reverse();
+  renderEntryList('recent-collections', colls, 'collection');
+  renderEntryList('recent-payments',    pays,  'payment');
+}
+
+function renderEntryList(elId, list, type) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!list.length) { el.innerHTML = `<div class="empty"><i class="fa-solid fa-inbox"></i><p>No ${type}s yet</p></div>`; return; }
+  el.innerHTML = list.map(e => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--gray-100)">
+      <div>
+        <div style="font-size:13px;font-weight:600">${e.debitAccount} → ${e.creditAccount}</div>
+        <div style="font-size:11px;color:var(--gray-400)">${e.date} · ${e.ref}${e.description ? ' · ' + e.description : ''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="${type==='collection'?'amount-cr':'amount-dr'}">$${parseFloat(e.amount).toFixed(2)}</span>
+        <button class="btn btn-sm btn-icon" onclick="deleteEntry(${e.id})" title="Delete"><i class="fa-solid fa-trash" style="font-size:11px"></i></button>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+//  JOURNAL
+// ═══════════════════════════════════════════
+function renderJournal() {
+  const filter = document.getElementById('j-filter')?.value || 'all';
+  const list   = filter === 'all' ? entries : entries.filter(e => e.type === filter);
+  const sorted = [...list].sort((a,b) => new Date(b.date) - new Date(a.date) || b.id - a.id);
+
+  const totalColl = entries.filter(e=>e.type==='collection').reduce((s,e)=>s+parseFloat(e.amount),0);
+  const totalPay  = entries.filter(e=>e.type==='payment').reduce((s,e)=>s+parseFloat(e.amount),0);
+  const net = totalColl - totalPay;
+
+  const totEl = document.getElementById('j-total-coll');
+  const payEl = document.getElementById('j-total-pay');
+  const netEl = document.getElementById('j-net');
+  const cntEl = document.getElementById('j-count');
+  if (totEl) totEl.textContent = '$' + totalColl.toFixed(2);
+  if (payEl) payEl.textContent = '$' + totalPay.toFixed(2);
+  if (netEl) { netEl.textContent = '$' + Math.abs(net).toFixed(2); netEl.className = 'metric-value ' + (net >= 0 ? 'green' : 'red'); }
+  if (cntEl) cntEl.textContent = entries.length;
+
+  const el = document.getElementById('journal-table');
+  if (!el) return;
+  if (!sorted.length) { el.innerHTML = '<div class="empty"><i class="fa-solid fa-list-ul"></i><p>No entries yet</p></div>'; return; }
+  el.innerHTML = `<table>
+    <thead><tr><th>Date</th><th>Ref</th><th>Type</th><th>Dr Account</th><th>Cr Account</th><th>Description</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+    <tbody>${sorted.map(e => `<tr>
+      <td style="color:var(--gray-600);font-size:12px">${e.date}</td>
+      <td style="font-size:12px;font-family:monospace">${e.ref||'—'}</td>
+      <td><span class="badge ${e.type==='collection'?'badge-green':'badge-red'}">${e.type==='collection'?'Collection':'Payment'}</span></td>
+      <td>${e.debitAccount}</td>
+      <td style="color:var(--gray-600)">${e.creditAccount}</td>
+      <td style="color:var(--gray-600);font-size:12px">${e.description||e.notes||'—'}</td>
+      <td style="text-align:right" class="${e.type==='collection'?'amount-cr':'amount-dr'}">$${parseFloat(e.amount).toFixed(2)}</td>
+      <td><button class="btn btn-sm btn-icon" onclick="deleteEntry(${e.id})"><i class="fa-solid fa-trash" style="font-size:11px;color:var(--gray-400)"></i></button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+async function deleteEntry(id) {
+  if (!confirm('Delete this entry?')) return;
+  entries = entries.filter(e => +e.id !== +id);
+  saveEntries();
+  try { await gasRequest('deleteEntry', { id }); } catch(e) { /* offline ok */ }
+  renderRecent(); renderJournal(); renderLedger(); renderTrialBalance();
+  toast('Entry deleted.', 'info');
+}
+
+// ═══════════════════════════════════════════
+//  LEDGER
+// ═══════════════════════════════════════════
+function renderLedger() {
+  const el = document.getElementById('ledger-content');
+  if (!el) return;
+
+  // Collect all unique accounts
+  const allAccounts = new Set();
+  entries.forEach(e => { allAccounts.add(e.debitAccount); allAccounts.add(e.creditAccount); });
+  [...accounts.cash, ...accounts.income, ...accounts.expense].forEach(a => allAccounts.add(a));
+
+  if (!allAccounts.size) { el.innerHTML = '<div class="empty"><i class="fa-solid fa-table-columns"></i><p>No accounts yet</p></div>'; return; }
+
+  el.innerHTML = [...allAccounts].map(acct => {
+    const debits  = entries.filter(e => e.debitAccount  === acct).reduce((s,e)=>s+parseFloat(e.amount),0);
+    const credits = entries.filter(e => e.creditAccount === acct).reduce((s,e)=>s+parseFloat(e.amount),0);
+    const balance = debits - credits;
+    const acctEntries = entries.filter(e => e.debitAccount === acct || e.creditAccount === acct)
+                                .sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const balColor = balance >= 0 ? 'var(--green-mid)' : 'var(--red)';
+    const tag = getAccountType(acct);
+
+    return `<div class="ledger-account">
+      <div class="ledger-header" onclick="toggleLedger('la-${acct.replace(/\s/g,'_')}')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="ledger-name">${acct}</span>
+          <span class="badge ${tag==='cash'?'badge-blue':tag==='income'?'badge-green':'badge-red'}">${tag}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <span class="ledger-balance" style="color:${balColor}">Balance: $${Math.abs(balance).toFixed(2)} ${balance>=0?'Dr':'Cr'}</span>
+          <i class="fa-solid fa-chevron-down" style="font-size:12px;color:var(--gray-400)"></i>
+        </div>
+      </div>
+      <div id="la-${acct.replace(/\s/g,'_')}" style="display:none;padding:0 0 8px">
+        ${acctEntries.length ? `<table style="width:100%">
+          <thead><tr><th>Date</th><th>Ref</th><th>Description</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th></tr></thead>
+          <tbody>${acctEntries.map(e => `<tr>
+            <td style="font-size:12px;color:var(--gray-600)">${e.date}</td>
+            <td style="font-size:12px;font-family:monospace">${e.ref||'—'}</td>
+            <td style="font-size:12px;color:var(--gray-600)">${e.description||e.notes||'—'}</td>
+            <td style="text-align:right" class="${e.debitAccount===acct?'amount-dr':''}">
+              ${e.debitAccount===acct?'$'+parseFloat(e.amount).toFixed(2):''}
+            </td>
+            <td style="text-align:right" class="${e.creditAccount===acct?'amount-cr':''}">
+              ${e.creditAccount===acct?'$'+parseFloat(e.amount).toFixed(2):''}
+            </td>
+          </tr>`).join('')}
+          <tr style="font-weight:700;border-top:1px solid var(--gray-200)">
+            <td colspan="3" style="padding:8px 10px;font-size:12px">Totals</td>
+            <td style="text-align:right;padding:8px 10px;color:var(--red)">$${debits.toFixed(2)}</td>
+            <td style="text-align:right;padding:8px 10px;color:var(--green-mid)">$${credits.toFixed(2)}</td>
+          </tr>
+          </tbody>
+        </table>` : `<div style="padding:12px 16px;font-size:13px;color:var(--gray-400)">No transactions yet.</div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleLedger(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function getAccountType(name) {
+  if (accounts.cash.includes(name))    return 'cash';
+  if (accounts.income.includes(name))  return 'income';
+  if (accounts.expense.includes(name)) return 'expense';
+  return 'other';
+}
+
+// ═══════════════════════════════════════════
+//  TRIAL BALANCE
+// ═══════════════════════════════════════════
+function renderTrialBalance() {
+  const el = document.getElementById('trial-table');
+  if (!el) return;
+
+  const allAccounts = new Set();
+  entries.forEach(e => { allAccounts.add(e.debitAccount); allAccounts.add(e.creditAccount); });
+
+  const rows = [...allAccounts].map(acct => {
+    const dr = entries.filter(e=>e.debitAccount===acct).reduce((s,e)=>s+parseFloat(e.amount),0);
+    const cr = entries.filter(e=>e.creditAccount===acct).reduce((s,e)=>s+parseFloat(e.amount),0);
+    return { acct, dr, cr };
+  }).filter(r => r.dr > 0 || r.cr > 0);
+
+  const totalDr = rows.reduce((s,r)=>s+r.dr,0);
+  const totalCr = rows.reduce((s,r)=>s+r.cr,0);
+  const balanced = Math.abs(totalDr - totalCr) < 0.01;
+
+  const badgeEl = document.getElementById('trial-balanced');
+  if (badgeEl) {
+    badgeEl.className = 'badge ' + (balanced ? 'badge-green' : 'badge-red');
+    badgeEl.innerHTML = balanced
+      ? '<i class="fa-solid fa-check"></i> Balanced'
+      : '<i class="fa-solid fa-triangle-exclamation"></i> Not Balanced';
+  }
+
+  if (!rows.length) { el.innerHTML = '<div class="empty"><i class="fa-solid fa-scale-balanced"></i><p>No entries yet</p></div>'; return; }
+
+  el.innerHTML = `<table>
+    <thead><tr><th>Account</th><th>Type</th><th style="text-align:right">Total Debits</th><th style="text-align:right">Total Credits</th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td style="font-weight:500">${r.acct}</td>
+      <td><span class="badge ${getAccountType(r.acct)==='cash'?'badge-blue':getAccountType(r.acct)==='income'?'badge-green':'badge-red'}">${getAccountType(r.acct)}</span></td>
+      <td style="text-align:right" class="${r.dr>0?'amount-dr':''}">$${r.dr.toFixed(2)}</td>
+      <td style="text-align:right" class="${r.cr>0?'amount-cr':''}">$${r.cr.toFixed(2)}</td>
+    </tr>`).join('')}
+    <tr style="font-weight:700;border-top:2px solid var(--gray-200)">
+      <td colspan="2" style="padding:10px 10px">TOTALS</td>
+      <td style="text-align:right;padding:10px 10px;color:var(--red)">$${totalDr.toFixed(2)}</td>
+      <td style="text-align:right;padding:10px 10px;color:var(--green-mid)">$${totalCr.toFixed(2)}</td>
+    </tr>
+    </tbody>
+  </table>`;
+}
+
+// ═══════════════════════════════════════════
+//  ACCOUNTS MANAGEMENT
+// ═══════════════════════════════════════════
+function renderAccountsPage() {
+  document.getElementById('ac-cash').textContent    = accounts.cash.length;
+  document.getElementById('ac-income').textContent  = accounts.income.length;
+  document.getElementById('ac-expense').textContent = accounts.expense.length;
+  renderAccountList('list-cash',    accounts.cash,    'cash');
+  renderAccountList('list-income',  accounts.income,  'income');
+  renderAccountList('list-expense', accounts.expense, 'expense');
+}
+
+function renderAccountList(elId, list, type) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!list.length) { el.innerHTML = '<div style="font-size:13px;color:var(--gray-400);padding:8px 0">None added yet.</div>'; return; }
+  el.innerHTML = list.map((a,i) => `
+    <div class="dm-item">
+      <span class="badge ${type==='cash'?'badge-blue':type==='income'?'badge-green':'badge-red'} dm-item-type">${type}</span>
+      <span class="dm-item-name">${a}</span>
+      <button class="btn btn-sm btn-icon" onclick="removeAccount('${type}',${i})" title="Remove"><i class="fa-solid fa-xmark" style="color:var(--gray-400)"></i></button>
+    </div>`).join('');
+}
+
+function openAddAccountModal(type) {
+  const labels = { cash:'Cash / Bank Account', income:'Income Type', expense:'Expense Type' };
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-title">
+      Add ${labels[type]}
+      <span class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input id="new-acct-name" class="form-control" placeholder="e.g. ${type==='cash'?'Petty Cash':type==='income'?'Sunday Offering':'Staff Salary'}" autofocus>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="new-acct-btn" class="btn btn-primary" style="flex:1" onclick="saveNewAccount('${type}')"><i class="fa-solid fa-plus"></i> Add</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>`;
+  openModal();
+  setTimeout(() => document.getElementById('new-acct-name')?.focus(), 100);
+  document.getElementById('new-acct-name').onkeydown = e => { if(e.key==='Enter') saveNewAccount(type); };
+}
+
+async function saveNewAccount(type) {
+  const name = document.getElementById('new-acct-name').value.trim();
+  if (!name) { toast('Please enter a name.', 'error'); return; }
+  if (accounts[type].includes(name)) { toast('This account already exists.', 'error'); return; }
+  accounts[type].push(name);
+  saveAccounts();
+  try { await pushAccounts(); } catch(e) { /* offline ok */ }
+  populateAllSelects();
+  renderAccountsPage();
+  closeModal();
+  toast(`"${name}" added!`, 'success');
+}
+
+async function removeAccount(type, idx) {
+  const name = accounts[type][idx];
+  const inUse = entries.some(e => e.debitAccount === name || e.creditAccount === name);
+  if (inUse) { toast(`"${name}" is used in journal entries and cannot be removed.`, 'error'); return; }
+  if (!confirm(`Remove "${name}"?`)) return;
+  accounts[type].splice(idx, 1);
+  saveAccounts();
+  try { await pushAccounts(); } catch(e) { /* offline ok */ }
+  populateAllSelects();
+  renderAccountsPage();
+  toast(`"${name}" removed.`, 'info');
+}
+
+// Quick-add from inside the transaction forms
+function quickAddAccount(type) {
+  openAddAccountModal(type);
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT CSV
+// ═══════════════════════════════════════════
+function exportCSV() {
+  const rows = [['ID','Date','Ref','Type','Debit Account','Credit Account','Amount','Description','Notes']];
+  [...entries].sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(e => {
+    rows.push([e.id, e.date, e.ref||'', e.type, e.debitAccount, e.creditAccount, parseFloat(e.amount).toFixed(2), e.description||'', e.notes||'']);
+  });
+  const csv  = rows.map(r => r.map(v=>`"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'st_gabriel_journal.csv';
+  a.click();
+}
+
+// ═══════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════
+function saveSettings() {
+  toast('URL is baked in — no changes needed.', 'info');
+}
+async function testConnection() {
+  try {
+    await gasRequest('getEntries');
+    toast('Connected to Google Sheets ✓', 'success');
+  } catch(e) { toast('Connection failed: ' + e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  const titles = {
+    collections:'Record Collection', payments:'Record Payment',
+    journal:'General Journal', ledger:'Account Ledger',
+    trial:'Trial Balance', accounts:'Manage Accounts', settings:'Settings'
+  };
+  document.getElementById('page-title').textContent = titles[name] || name;
+  document.getElementById('topbar-btn').innerHTML = '';
+  if (name === 'journal') {
+    document.getElementById('topbar-btn').innerHTML = `<button class="btn btn-sm" onclick="syncAll()"><i class="fa-solid fa-rotate"></i> Sync</button>`;
+    renderJournal();
+  }
+  if (name === 'ledger')  renderLedger();
+  if (name === 'trial')   renderTrialBalance();
+  if (name === 'accounts') renderAccountsPage();
+}
+
+// ═══════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════
+function openModal()  { document.getElementById('overlay').classList.add('show'); }
+function closeModal() { document.getElementById('overlay').classList.remove('show'); }
+function overlayClickHandler(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+
+// ═══════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════
+function toast(msg, type='info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show ' + type;
+  setTimeout(() => el.className = '', 3500);
+}
+
+// ═══════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
