@@ -363,8 +363,8 @@ tbody tr:hover td { background:var(--gray-50); }
               <input type="date" id="p-date" class="form-control">
             </div>
             <div class="form-group">
-              <label class="form-label">Reference / Voucher #</label>
-              <input type="text" id="p-ref" class="form-control" placeholder="e.g. PV-001">
+              <label class="form-label">Check / Voucher # <span style="color:var(--red)">*</span></label>
+              <input type="text" id="p-ref" class="form-control" placeholder="e.g. CHK-001 or check number">
             </div>
           </div>
 
@@ -681,6 +681,10 @@ function populateAllSelects() {
 //  JOURNAL PREVIEW
 // ═══════════════════════════════════════════
 function updateCollJournal() {
+  // update ref hint in journal
+  const refVal = document.getElementById('c-ref')?.value || '';
+  const refHint = document.getElementById('coll-ref-hint');
+  if (refHint) refHint.textContent = refVal ? 'Ref: ' + refVal : '';
   const dr  = document.getElementById('c-debit')?.value  || 'Cash / Bank';
   const cr  = document.getElementById('c-credit')?.value || 'Income Type';
   const amt = parseFloat(document.getElementById('c-amount')?.value || 0);
@@ -773,10 +777,6 @@ async function postPayment() {
   btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Post Payment Entry';
 }
 
-function autoRef(prefix) {
-  const count = entries.filter(e => e.ref && e.ref.startsWith(prefix)).length + 1;
-  return `${prefix}-${String(count).padStart(3,'0')}`;
-}
 
 function resetCollForm() {
   ['c-ref','c-amount','c-from','c-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
