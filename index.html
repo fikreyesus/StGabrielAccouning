@@ -18,6 +18,9 @@
   input, select, textarea { outline: none; }
   input:focus, select:focus, textarea:focus { border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.2); }
   @media print { body * { visibility:hidden; } #receipt-content, #receipt-content * { visibility:visible; } #receipt-content { position:absolute; left:0; top:0; } }
+  /* Dashboard two-column layout — explicit fallback so it never depends on the CDN's responsive scan */
+  .dash-grid { display:grid; grid-template-columns:1fr; gap:1.5rem; align-items:stretch; }
+  @media (min-width:1024px){ .dash-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .dash-wide { grid-column:span 2 / span 2; } }
 </style>
 </head>
 <body class="bg-gray-100">
@@ -86,30 +89,42 @@
     </div>
 
     <!-- DASHBOARD -->
-    <section id="dashboard-page" class="p-8">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
-        <div class="bg-white rounded-2xl shadow p-5"><p class="text-gray-500 text-xs">Families</p><p id="s-families" class="text-3xl font-bold text-indigo-600 mt-1">0</p></div>
-        <div class="bg-white rounded-2xl shadow p-5"><p class="text-gray-500 text-xs">Members</p><p id="s-members" class="text-3xl font-bold text-sky-600 mt-1">0</p></div>
-        <div class="bg-white rounded-2xl shadow p-5"><p class="text-gray-500 text-xs">Income (<span class="cur-year"></span>)</p><p id="s-income" class="text-3xl font-bold text-emerald-600 mt-1">$0</p></div>
-        <div class="bg-white rounded-2xl shadow p-5"><p class="text-gray-500 text-xs">Expenses (<span class="cur-year"></span>)</p><p id="s-expense" class="text-3xl font-bold text-red-600 mt-1">$0</p></div>
-      </div>
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-5 mt-5">
-        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-emerald-400"><p class="text-gray-500 text-xs">Cash on hand</p><p id="s-cash" class="text-3xl font-bold text-emerald-700 mt-1">$0</p></div>
-        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-sky-400"><p class="text-gray-500 text-xs">Bank balance</p><p id="s-bank" class="text-3xl font-bold text-sky-700 mt-1">$0</p></div>
-        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-indigo-400"><p class="text-gray-500 text-xs">Total funds</p><p id="s-funds" class="text-3xl font-bold text-indigo-700 mt-1">$0</p></div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
-        <div class="bg-white rounded-2xl shadow p-5 md:col-span-1">
-          <p class="text-gray-500 text-xs">Net this year (<span class="cur-year"></span>)</p>
-          <p id="s-net" class="text-4xl font-bold mt-1">$0</p>
-          <p class="text-xs text-gray-400 mt-2">Income minus expenses, all sources.</p>
+    <section id="dashboard-page" class="p-6">
+      <div class="dash-grid grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+
+        <!-- Summary column: all key figures grouped in one card -->
+        <div class="bg-white rounded-2xl shadow p-6 flex flex-col gap-6">
+          <div>
+            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-3">This year (<span class="cur-year"></span>)</p>
+            <div class="space-y-2.5">
+              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Income</span><span id="s-income" class="text-xl font-bold text-emerald-600">$0</span></div>
+              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Expenses</span><span id="s-expense" class="text-xl font-bold text-red-500">$0</span></div>
+              <div class="flex justify-between items-baseline border-t pt-2.5"><span class="text-gray-600 text-sm font-medium">Net</span><span id="s-net" class="text-xl font-bold text-gray-800">$0</span></div>
+            </div>
+          </div>
+          <div>
+            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-3">Funds on hand</p>
+            <div class="space-y-2.5">
+              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Cash</span><span id="s-cash" class="text-lg font-semibold text-emerald-700">$0</span></div>
+              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Bank</span><span id="s-bank" class="text-lg font-semibold text-sky-700">$0</span></div>
+              <div class="flex justify-between items-baseline border-t pt-2.5"><span class="text-gray-600 text-sm font-medium">Total</span><span id="s-funds" class="text-2xl font-bold text-indigo-700">$0</span></div>
+            </div>
+          </div>
+          <div class="mt-auto grid grid-cols-2 gap-3">
+            <div class="bg-indigo-50 rounded-xl py-3 text-center"><p id="s-families" class="text-2xl font-bold text-indigo-600 leading-none">0</p><p class="text-[11px] text-gray-500 mt-1">Families</p></div>
+            <div class="bg-sky-50 rounded-xl py-3 text-center"><p id="s-members" class="text-2xl font-bold text-sky-600 leading-none">0</p><p class="text-[11px] text-gray-500 mt-1">Members</p></div>
+          </div>
         </div>
-        <div class="bg-white rounded-2xl shadow overflow-hidden md:col-span-2">
-          <div class="px-6 py-3 border-b font-semibold text-gray-700">Recent transactions</div>
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-gray-500"><tr><th class="text-left px-6 py-2">Date</th><th class="text-left px-6 py-2">Description</th><th class="text-left px-6 py-2">Type</th><th class="text-right px-6 py-2">Amount</th></tr></thead>
-            <tbody id="recent-tbody" class="divide-y"></tbody>
-          </table>
+
+        <!-- Recent transactions fills the rest -->
+        <div class="dash-wide lg:col-span-2 bg-white rounded-2xl shadow flex flex-col overflow-hidden">
+          <div class="px-6 py-4 border-b font-semibold text-gray-700">Recent transactions</div>
+          <div class="overflow-auto flex-1">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50 text-gray-500 sticky top-0"><tr><th class="text-left px-6 py-2.5">Date</th><th class="text-left px-6 py-2.5">Description</th><th class="text-left px-6 py-2.5">Type</th><th class="text-right px-6 py-2.5">Amount</th></tr></thead>
+              <tbody id="recent-tbody" class="divide-y"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -719,18 +734,20 @@ function colCalc(){
   $('col-amount').value=(monthly*n).toFixed(2);
   $('col-mcount').textContent=`${n} month${n>1?'s':''} • ${money(monthly)}/mo`;
 }
-async function saveMembershipCollection(){
+// Membership payment on the Collections page — same confirm-before-print flow as Collect Fees.
+function saveMembershipCollection(){
   const id=parseInt($('col-mem').value); if(!id) return alert('Select a member.');
   const total=parseFloat($('col-amount').value); if(!total) return alert('Total is zero — check the months/fee.');
   const f=families.find(x=>x.id===id);
   const period=`${$('col-mstart').value} to ${$('col-mend').value}`;
   const date=$('col-date').value||todayISO();
   const a=acctById(+$('col-cat').value);
-  const t={id:Date.now(),kind:'fee',dir:'in',date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
-  transactions.push(t);
-  f.lastPayment=fmtDate(date); f.lastPaidFor=period; f.lastAmount=total;
-  save(); $('col-note').value=''; renderRecentCollections();
-  await gsSend('addPayment',t); showReceipt(t);
+  const tx={id:Date.now(),kind:'fee',dir:'in',date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
+  previewReceipt(tx, async t=>{
+    transactions.push(t);
+    if(f){ f.lastPayment=fmtDate(t.date); f.lastPaidFor=t.period; f.lastAmount=t.amount; }
+    save(); $('col-note').value=''; renderRecentCollections(); await gsSend('addPayment',t);
+  });
 }
 // ---- Cash & Bank ----
 function renderCashBank(){
@@ -792,7 +809,7 @@ function renderDashboard(){
   const exp = transactions.filter(t=>t.dir==='out' && (+t.date.slice(0,4))===y).reduce((a,t)=>a+t.amount,0);
   $('s-income').textContent = money0(inc);
   $('s-expense').textContent = money0(exp);
-  const net=$('s-net'); net.textContent = money0(inc-exp); net.className='text-4xl font-bold mt-1 '+((inc-exp)>=0?'text-emerald-600':'text-red-600');
+  const net=$('s-net'); net.textContent = money0(inc-exp); net.classList.remove('text-gray-800','text-emerald-600','text-red-600'); net.classList.add((inc-exp)>=0?'text-emerald-600':'text-red-600');
   document.querySelectorAll('.cur-year').forEach(e=>e.textContent=y);
   const b=balances(); $('s-cash').textContent=money0(b.cash); $('s-bank').textContent=money0(b.bank); $('s-funds').textContent=money0(b.total);
   const tb=$('recent-tbody'); tb.innerHTML='';
@@ -907,8 +924,20 @@ function calcFee(){
   $('fee-total').value=(monthly*n).toFixed(2);
   $('fee-count').textContent=`${n} month${n>1?'s':''} • ${money(monthly)}/mo`;
 }
-let pendingFeeTx=null;
-// Step 1 — cashier clicks Save: build the payment but DO NOT commit; show a preview to confirm.
+// ---- Shared confirm-before-print flow (used by Collect Fees and membership Collections) ----
+let pendingReceipt=null;  // { tx, commit: async fn(tx) }
+// Build the receipt and show it as a PREVIEW the cashier must confirm — nothing is saved yet.
+function previewReceipt(tx, commit){ pendingReceipt={tx, commit}; renderReceipt(tx, true); }
+// Cashier confirms → run the commit (save the payment), then switch to printable mode and print.
+async function confirmReceipt(){
+  if(!pendingReceipt) return;
+  const {tx, commit}=pendingReceipt; pendingReceipt=null;
+  if(commit) await commit(tx);
+  renderReceipt(tx, false);
+  window.print();
+}
+function cancelPending(){ pendingReceipt=null; $('receipt-modal').classList.add('hidden'); }
+// Collect Fees — prepare payment & preview (does not commit until confirmed).
 function saveFee(){
   const id=parseInt($('fee-family').value); if(!id) return alert('Select a family.');
   const total=parseFloat($('fee-total').value); if(!total) return alert('Total is zero — check the months/fee.');
@@ -916,26 +945,18 @@ function saveFee(){
   const period=`${$('fee-start').value} to ${$('fee-end').value}`;
   const date=$('fee-date').value||todayISO();
   const fa=acctById(feeAccountId());
-  pendingFeeTx={id:Date.now(),kind:'fee',dir:'in',date,amount:total,acctId:fa?fa.id:null,acct:fa?fa.code:'',category:fa?fa.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('fee-method').value,fund:fundFromMethod($('fee-method').value),note:''};
-  renderReceipt(pendingFeeTx, true);   // preview / confirm mode
+  const tx={id:Date.now(),kind:'fee',dir:'in',date,amount:total,acctId:fa?fa.id:null,acct:fa?fa.code:'',category:fa?fa.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('fee-method').value,fund:fundFromMethod($('fee-method').value),note:''};
+  previewReceipt(tx, async t=>{
+    transactions.push(t);
+    if(f){ f.lastPayment=fmtDate(t.date); f.lastPaidFor=t.period; f.lastAmount=t.amount; }
+    save(); await gsSend('addPayment',t);
+  });
 }
-// Step 2 — cashier confirms: commit the payment, then print.
-async function confirmFee(){
-  if(!pendingFeeTx) return;
-  const t=pendingFeeTx; pendingFeeTx=null;
-  const f=families.find(x=>x.id===t.familyId);
-  transactions.push(t);
-  if(f){ f.lastPayment=fmtDate(t.date); f.lastPaidFor=t.period; f.lastAmount=t.amount; }
-  save(); await gsSend('addPayment',t);
-  renderReceipt(t, false);   // switch to committed / printable mode
-  window.print();
-}
-function cancelPending(){ pendingFeeTx=null; $('receipt-modal').classList.add('hidden'); }
 // Renders the receipt modal. confirm=true → review step (Confirm & Print / Cancel).
 //                              confirm=false → committed receipt (Print / Close).
 function renderReceipt(t, confirm){
   const note=$('receipt-note');
-  note.textContent = confirm ? 'Please review this receipt, then confirm to save & print.' : '';
+  note.textContent = confirm ? 'Please confirm this payment receipt before printing.' : '';
   note.classList.toggle('hidden', !confirm);
   $('receipt-content').innerHTML=`
     <h3 style="text-align:center;font-weight:bold;font-size:15px">${esc(settings.name)}</h3>
@@ -952,12 +973,12 @@ function renderReceipt(t, confirm){
     <p style="text-align:center;font-size:11px;margin-top:8px">Thank you &amp; God bless</p>`;
   $('receipt-actions').innerHTML = confirm
     ? `<button onclick="cancelPending()" class="flex-1 bg-gray-200 py-3 rounded-2xl font-semibold">Cancel</button>
-       <button onclick="confirmFee()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-check"></i> Confirm &amp; Print</button>`
+       <button onclick="confirmReceipt()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-check"></i> Confirm &amp; Print</button>`
     : `<button onclick="window.print()" class="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-print"></i> Print</button>
        <button onclick="closeReceipt()" class="flex-1 bg-gray-300 py-3 rounded-2xl font-semibold">Close</button>`;
   $('receipt-modal').classList.remove('hidden');
 }
-// Back-compat: other flows (membership collection) call showReceipt for a committed receipt.
+// Committed receipt (no confirm step) — kept for any direct receipt display.
 function showReceipt(t){ renderReceipt(t, false); }
 function closeReceipt(){ $('receipt-modal').classList.add('hidden'); if(document.querySelector('main > section:not(.hidden)').id==='fees-page') showPage('fees'); }
 
