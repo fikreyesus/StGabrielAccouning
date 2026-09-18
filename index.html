@@ -27,23 +27,21 @@
 
 <!-- ===== LOGIN / ROLE GATE ===== -->
 <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:linear-gradient(160deg,#E6F1FB,#F1EFE8)">
-  <div class="bg-white rounded-3xl shadow-xl w-full max-w-sm p-8 text-center">
-    <i class="fa-solid fa-church text-5xl text-indigo-600"></i>
-    <h1 class="text-xl font-bold mt-3" id="login-church">St Gabriel</h1>
-    <p class="text-xs text-gray-500 mb-6">Church Accounting &amp; Members</p>
-    <label class="block text-xs font-medium text-gray-600 mb-1 text-left">I am the…</label>
-    <select id="login-role" class="w-full border rounded-2xl px-4 py-3 mb-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-[300px] p-6 text-center">
+    <i class="fa-solid fa-church text-3xl text-indigo-600"></i>
+    <h1 class="text-base font-bold mt-1.5" id="login-church">St Gabriel</h1>
+    <p class="text-[11px] text-gray-500 mb-4">Church Accounting &amp; Members</p>
+    <select id="login-role" class="w-full border rounded-xl px-3 py-2 mb-2 text-sm">
       <option value="cashier">Cashier</option>
       <option value="accountant">Accountant</option>
     </select>
-    <label class="block text-xs font-medium text-gray-600 mb-1 text-left">Password</label>
-    <div class="relative mb-2">
-      <input id="login-pw" type="password" onkeydown="if(event.key==='Enter')doLogin()" class="w-full border rounded-2xl px-4 py-3 pr-11" placeholder="Enter password">
-      <button type="button" onclick="togglePw()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i id="login-eye" class="fa-solid fa-eye"></i></button>
+    <div class="relative mb-1">
+      <input id="login-pw" type="password" onkeydown="if(event.key==='Enter')doLogin()" class="w-full border rounded-xl px-3 py-2 pr-9 text-sm" placeholder="Password">
+      <button type="button" onclick="togglePw()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"><i id="login-eye" class="fa-solid fa-eye"></i></button>
     </div>
-    <p id="login-err" class="text-red-500 text-xs h-4 mb-2"></p>
-    <button onclick="doLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-unlock"></i> Sign In</button>
-    <p class="text-[11px] text-gray-400 mt-4">Cashier records fees &amp; collections. Accountant has full access.</p>
+    <p id="login-err" class="text-red-500 text-[11px] h-4 mb-1"></p>
+    <button onclick="doLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl font-semibold text-sm"><i class="fa-solid fa-unlock"></i> Sign In</button>
+    <p class="text-[10px] text-gray-400 mt-3">Cashier: fees &amp; collections · Accountant: full access</p>
   </div>
 </div>
 
