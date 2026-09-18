@@ -21,6 +21,12 @@
   /* Dashboard two-column layout — explicit fallback so it never depends on the CDN's responsive scan */
   .dash-grid { display:grid; grid-template-columns:1fr; gap:1.5rem; align-items:stretch; }
   @media (min-width:1024px){ .dash-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .dash-wide { grid-column:span 2 / span 2; } }
+  /* Cashier gets a green sidebar so the role is obvious at a glance (accountant stays indigo) */
+  body.cashier-theme aside { background-color:#065f46; }                 /* emerald-800 */
+  body.cashier-theme aside .border-indigo-700 { border-color:#047857 !important; }
+  body.cashier-theme aside .text-indigo-300 { color:#6ee7b7 !important; } /* emerald-300 */
+  body.cashier-theme .nav-link.active { background:#047857; }            /* emerald-700 */
+  body.cashier-theme .nav-link:hover { background-color:#047857 !important; }
 </style>
 </head>
 <body class="bg-gray-100">
@@ -60,7 +66,6 @@
     <nav class="mt-4 px-3 flex-1 overflow-auto text-sm">
       <a href="#" data-page="dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-house w-5"></i> Dashboard</a>
       <a href="#" data-page="families" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-users w-5"></i> Families</a>
-      <a href="#" data-page="fees" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-hand-holding-dollar w-5"></i> Collect Fees</a>
       <a href="#" data-page="collections" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-basket-shopping w-5"></i> Collections</a>
       <a href="#" data-page="expenses" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-receipt w-5"></i> Expenses</a>
       <a href="#" data-page="cashbank" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-wallet w-5"></i> Cash &amp; Bank</a>
@@ -143,35 +148,6 @@
           </tr></thead>
           <tbody id="families-tbody" class="divide-y"></tbody>
         </table>
-      </div>
-    </section>
-
-    <!-- FEES -->
-    <section id="fees-page" class="p-8 hidden">
-      <div class="max-w-2xl bg-white rounded-3xl shadow p-8">
-        <h3 class="text-lg font-semibold mb-6">Collect Membership Fees</h3>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Family</label>
-        <select id="fee-family" class="w-full border rounded-2xl px-4 py-3 mb-5"></select>
-        <div class="grid grid-cols-2 gap-5">
-          <div><label class="block text-xs font-medium text-gray-600 mb-1">Monthly fee ($)</label>
-            <input id="fee-monthly" type="number" value="50" oninput="calcFee()" class="w-full border rounded-2xl px-4 py-3"></div>
-          <div><label class="block text-xs font-medium text-gray-600 mb-1">Total ($)</label>
-            <input id="fee-total" type="number" readonly class="w-full border rounded-2xl px-4 py-3 bg-gray-50 font-bold"></div>
-        </div>
-        <div class="grid grid-cols-2 gap-5 mt-5">
-          <div><label class="block text-xs font-medium text-gray-600 mb-1">From month</label>
-            <select id="fee-start" onchange="calcFee()" class="w-full border rounded-2xl px-4 py-3"></select></div>
-          <div><label class="block text-xs font-medium text-gray-600 mb-1">To month</label>
-            <select id="fee-end" onchange="calcFee()" class="w-full border rounded-2xl px-4 py-3"></select></div>
-        </div>
-        <div class="grid grid-cols-2 gap-5 mt-5">
-          <div><label class="block text-xs font-medium text-gray-600 mb-1">Date received</label>
-            <input id="fee-date" type="date" class="w-full border rounded-2xl px-4 py-3"></div>
-          <div><label class="block text-xs font-medium text-gray-600 mb-1">Method</label>
-            <select id="fee-method" class="w-full border rounded-2xl px-4 py-3"><option>Cash</option><option>Check</option><option>Card/Online</option><option>Bank Transfer</option></select></div>
-        </div>
-        <p id="fee-count" class="mt-3 text-center text-sm text-gray-500"></p>
-        <button onclick="saveFee()" class="mt-6 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl text-lg font-semibold">Save Payment &amp; Receipt</button>
       </div>
     </section>
 
@@ -578,7 +554,7 @@ function totalLiabilities(){ return accounts.filter(a=>a.type==='liability').red
 
 let settings = { name:"St Gabriel Ethiopian Orthodox Church", address:"2216 Goldsmith Lane, Louisville, KY 40218", openingCash:0, openingBank:0, openingDate:"", gsEnabled:false, gsUrl:"https://script.google.com/macros/s/AKfycbwIQx27lPc6yPF-IPGOBCxXnZ2foLv3X2sM1-C_x60pEnk4aiNw-90qfNbBBsWGKg/exec", pwCashier:"cashier", pwAccountant:"StGabriel19" };
 let currentRole = null;
-const CASHIER_PAGES = ['fees','collections'];
+const CASHIER_PAGES = ['collections'];
 let families = [];
 let transactions = [];   // {id, kind:'fee'|'collection'|'expense', dir:'in'|'out', date, amount, acctId, acct, category, familyId, family, donor, period, payee, note, method}
 let editChildren = [];
@@ -623,15 +599,14 @@ async function gsSend(type, data){
 
 // ================= NAV =================
 function showPage(page){
-  if(currentRole==='cashier' && !CASHIER_PAGES.includes(page)) page='fees';  // enforce role
+  if(currentRole==='cashier' && !CASHIER_PAGES.includes(page)) page='collections';  // enforce role
   document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));
   $(page+'-page').classList.remove('hidden');
   document.querySelectorAll('.nav-link').forEach(a=>a.classList.toggle('active', a.dataset.page===page));
-  const titles={dashboard:'Dashboard',families:'Families',fees:'Collect Fees',collections:'Collections',expenses:'Expenses',cashbank:'Cash & Bank',accounts:'Chart of Accounts',ledger:'Ledger',reports:'Reports',trial:'Trial Balance',balancesheet:'Balance Sheet',data:'Data & Backup'};
+  const titles={dashboard:'Dashboard',families:'Families',collections:'Collections',expenses:'Expenses',cashbank:'Cash & Bank',accounts:'Chart of Accounts',ledger:'Ledger',reports:'Reports',trial:'Trial Balance',balancesheet:'Balance Sheet',data:'Data & Backup'};
   $('page-title').textContent = titles[page];
   if(page==='dashboard') renderDashboard();
   if(page==='families') renderFamilies();
-  if(page==='fees'){ populateFeeFamilies(); populateMonths(); calcFee(); }
   if(page==='collections'){ fillAccountSelect($('col-cat'),'income'); fillFromSelect(); colCatChange(); renderRecentCollections(); }
   if(page==='expenses'){ fillAccountSelect($('exp-cat'),'expense'); renderRecentExpenses(); }
   if(page==='cashbank') renderCashBank();
@@ -652,13 +627,14 @@ function doLogin(){
   currentRole=role; $('login-err').textContent=''; $('login-pw').value='';
   $('login-screen').classList.add('hidden'); $('app-root').classList.remove('hidden');
   applyRole();
-  showPage(role==='accountant' ? 'dashboard' : 'fees');
+  showPage(role==='accountant' ? 'dashboard' : 'collections');
 }
-function lockApp(){ currentRole=null; $('app-root').classList.add('hidden'); $('login-screen').classList.remove('hidden'); $('login-pw').value=''; $('login-eye').className='fa-solid fa-eye'; $('login-pw').type='password'; }
+function lockApp(){ currentRole=null; document.body.classList.remove('cashier-theme'); $('app-root').classList.add('hidden'); $('login-screen').classList.remove('hidden'); $('login-pw').value=''; $('login-eye').className='fa-solid fa-eye'; $('login-pw').type='password'; }
 function applyRole(){
   const cashier = currentRole==='cashier';
   document.querySelectorAll('.nav-link').forEach(a=>{ a.classList.toggle('hidden', cashier && !CASHIER_PAGES.includes(a.dataset.page)); });
   const badge=$('role-badge'); if(badge) badge.textContent = currentRole ? (cashier?'Cashier':'Accountant') : '';
+  document.body.classList.toggle('cashier-theme', cashier);   // green sidebar for the cashier
 }
 
 // ================= TRIAL BALANCE =================
@@ -979,7 +955,7 @@ function renderReceipt(t, confirm){
 }
 // Committed receipt (no confirm step) — kept for any direct receipt display.
 function showReceipt(t){ renderReceipt(t, false); }
-function closeReceipt(){ $('receipt-modal').classList.add('hidden'); if(document.querySelector('main > section:not(.hidden)').id==='fees-page') showPage('fees'); }
+function closeReceipt(){ $('receipt-modal').classList.add('hidden'); }
 
 // ================= COLLECTIONS =================
 function fillSelect(sel,arr){ sel.innerHTML=''; arr.forEach(x=>sel.appendChild(new Option(x,x))); }
