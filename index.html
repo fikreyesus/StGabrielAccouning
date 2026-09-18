@@ -156,12 +156,15 @@
       <div class="grid md:grid-cols-2 gap-6">
         <div class="bg-white rounded-3xl shadow p-8">
           <h3 class="text-lg font-semibold mb-6">Record a Collection (income)</h3>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-3 gap-4">
+            <div><label class="block text-xs font-medium text-gray-600 mb-1">Receipt #</label>
+              <input id="col-receipt" class="w-full border rounded-2xl px-4 py-3" placeholder="e.g. 1024"></div>
             <div><label class="block text-xs font-medium text-gray-600 mb-1">Date</label>
               <input id="col-date" type="date" class="w-full border rounded-2xl px-4 py-3"></div>
             <div><label class="block text-xs font-medium text-gray-600 mb-1">Amount ($)</label>
               <input id="col-amount" type="number" class="w-full border rounded-2xl px-4 py-3"></div>
           </div>
+          <p class="text-[11px] text-gray-400 mt-1">Receipt # is optional — type your receipt-book number for historical entries; it counts up automatically for the next one. Leave blank to auto-number.</p>
           <label class="block text-xs font-medium text-gray-600 mb-1 mt-4">Account (income type)</label>
           <select id="col-cat" onchange="colCatChange()" class="w-full border rounded-2xl px-4 py-3 mb-4"></select>
 
@@ -717,13 +720,15 @@ function saveMembershipCollection(){
   const period=`${$('col-mstart').value} to ${$('col-mend').value}`;
   const date=$('col-date').value||todayISO();
   const a=acctById(+$('col-cat').value);
-  const tx={id:Date.now(),kind:'fee',dir:'in',date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
+  const tx={id:Date.now(),receiptNo:$('col-receipt').value.trim(),kind:'fee',dir:'in',date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
   previewReceipt(tx, async t=>{
     transactions.push(t);
     if(f){ f.lastPayment=fmtDate(t.date); f.lastPaidFor=t.period; f.lastAmount=t.amount; }
-    save(); $('col-note').value=''; renderRecentCollections(); await gsSend('addPayment',t);
+    save(); $('col-note').value=''; advanceReceipt(); renderRecentCollections(); await gsSend('addPayment',t);
   });
 }
+// After a save, bump a numeric receipt number to the next one for fast consecutive entry.
+function advanceReceipt(){ const el=$('col-receipt'); if(!el) return; const v=el.value.trim(); if(/^\d+$/.test(v)) el.value=String(+v+1); }
 // ---- Cash & Bank ----
 function renderCashBank(){
   const b=balances();
@@ -937,7 +942,7 @@ function renderReceipt(t, confirm){
     <h3 style="text-align:center;font-weight:bold;font-size:15px">${esc(settings.name)}</h3>
     <p style="text-align:center;font-size:11px">${esc(settings.address)}</p>
     <hr style="margin:10px 0;border-top:1px dashed #333">
-    <p><b>Receipt #${t.id}</b></p>
+    <p><b>Receipt #${esc(t.receiptNo || String(t.id))}</b></p>
     <p>Date: ${fmtDate(t.date)}</p>
     ${t.family?`<p>Family: ${esc(t.family)}</p>`:''}
     ${t.period?`<p>Period: ${esc(t.period)}</p>`:''}
@@ -966,8 +971,8 @@ async function saveCollection(){
   const from=$('col-from').value; let familyId=null, donor='';
   if(from==='onetime'){ donor=$('col-donor').value.trim(); }
   else if(from && from!=='anon'){ familyId=+from.slice(1); const f=families.find(x=>x.id===familyId); donor=f?famLabel(f):''; }
-  const t={id:Date.now(),kind:'collection',dir:'in',date:$('col-date').value||todayISO(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',familyId,donor,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
-  transactions.push(t); save(); $('col-amount').value=''; $('col-note').value=''; $('col-donor').value=''; $('col-from').value='anon'; toggleDonor();
+  const t={id:Date.now(),receiptNo:$('col-receipt').value.trim(),kind:'collection',dir:'in',date:$('col-date').value||todayISO(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',familyId,donor,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
+  transactions.push(t); save(); advanceReceipt(); $('col-amount').value=''; $('col-note').value=''; $('col-donor').value=''; $('col-from').value='anon'; toggleDonor();
   renderRecentCollections(); await gsSend('addCollection',t);
   alert('Collection saved.');
 }
@@ -1216,6 +1221,7 @@ function wbStatus(state){
     : 'bg-emerald-100 text-emerald-700';
   ['wb-badge','wb-badge2'].forEach(id=>{ const b=$(id); if(b){ b.textContent=label; b.className='text-xs px-3 py-1 rounded-full '+cls; } });
   const rc=$('wb-reconnect-top'); if(rc) rc.classList.toggle('hidden', state!=='need');
+  updateGsBadge();
 }
 // tiny IndexedDB key-value store to remember the file handle between visits
 function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open('church_acct_fs',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
@@ -1253,7 +1259,14 @@ async function testConnection(){
     el.textContent='Could not reach it: '+e.message; el.className='text-xs text-red-500';
   }
 }
-function applySettings(){ $('side-name').textContent=settings.name.split(' ').slice(0,2).join(' '); $('login-church').textContent=settings.name.split(' ').slice(0,2).join(' '); $('gs-badge').textContent = settings.gsEnabled? 'Google Sheets sync: ON' : 'Saved locally in this browser'; }
+function applySettings(){ $('side-name').textContent=settings.name.split(' ').slice(0,2).join(' '); $('login-church').textContent=settings.name.split(' ').slice(0,2).join(' '); updateGsBadge(); }
+// The "Saved locally in this browser" note is only useful when nothing else is set up.
+// Hide it once an Excel workbook is linked (the "Workbook: saved ✓" badge covers it).
+function updateGsBadge(){
+  const g=$('gs-badge'); if(!g) return;
+  g.textContent = settings.gsEnabled ? 'Google Sheets sync: ON' : 'Saved locally in this browser';
+  g.classList.toggle('hidden', !settings.gsEnabled && !!wbHandle);
+}
 
 // ================= LEGACY IMPORT =================
 function importLegacy(manual){
