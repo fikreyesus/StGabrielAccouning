@@ -768,6 +768,16 @@ function applyDateLock(){
   lockedYM={year:y, month:m};
   $('col-lock-label').textContent='Locked to '+MONTHS[m]+' '+y+' — type the day only';
   $('col-date').classList.add('hidden'); $('col-day').classList.remove('hidden'); $('col-date-label').textContent='Day of month';
+  syncMembershipPeriodToLock();   // default the membership From/To to the locked month
+}
+// When the received month/year is locked, set the membership period to that same month
+function syncMembershipPeriodToLock(){
+  if(!lockedYM) return;
+  if($('col-period-lock') && $('col-period-lock').checked) return;   // respect a manually locked period
+  const val=`${MONTHS[lockedYM.month]} ${lockedYM.year}`;
+  const s=$('col-mstart'), e=$('col-mend');
+  const setIf=(sel)=>{ if(!sel) return; for(const o of sel.options){ if(o.value===val){ sel.value=val; return; } } };
+  setIf(s); setIf(e); colCalc();
 }
 function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
 function collectionDate(){
@@ -814,17 +824,22 @@ function selectNewMemberInCollections(id){
 // Membership payment on the Collections page — same confirm-before-print flow as Collect Fees.
 function saveMembershipCollection(){
   const id=parseInt($('col-mem').value); if(!id) return alert('Select a member.');
-  const total=parseFloat($('col-amount').value); if(!total) return alert('Total is zero — check the months/fee.');
+  const total=parseFloat($('col-amount').value); if(!total) return alert('Enter the total amount.');
   const f=families.find(x=>x.id===id);
   const period=`${$('col-mstart').value} to ${$('col-mend').value}`;
   const date=collectionDate();
   const a=acctById(+$('col-cat').value);
   const tx={id:Date.now(),receiptNo:$('col-receipt').value.trim(),kind:'fee',dir:'in',date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
-  previewReceipt(tx, async t=>{
+  const commit = async t=>{
     transactions.push(t);
     if(f){ f.lastPayment=fmtDate(t.date); f.lastPaidFor=t.period; f.lastAmount=t.amount; }
     save(); $('col-note').value=''; advanceReceipt(); renderRecentCollections(); await gsSend('addPayment',t);
-  });
+  };
+  if(currentRole==='accountant'){        // historical entry: save only, no receipt
+    commit(tx).then(()=>{ $('col-amount').value=''; $('col-mem').value=''; });
+    return;
+  }
+  previewReceipt(tx, commit);            // cashier: confirm & print receipt
 }
 // After a save, bump a numeric receipt number to the next one for fast consecutive entry.
 function advanceReceipt(){ const el=$('col-receipt'); if(!el) return; const v=el.value.trim(); if(/^\d+$/.test(v)) el.value=String(+v+1); }
