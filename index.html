@@ -156,12 +156,20 @@
       <div class="grid md:grid-cols-2 gap-6">
         <div class="bg-white rounded-3xl shadow p-8">
           <h3 class="text-lg font-semibold mb-6">Record a Collection (income)</h3>
+          <!-- Historical entry: lock a month/year so you only type the day -->
+          <div class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+            <label class="flex items-center gap-2 cursor-pointer"><input id="col-lock" type="checkbox" onchange="toggleDateLock()"> <span class="font-medium text-amber-700"><i class="fa-solid fa-lock"></i> Lock month/year</span></label>
+            <select id="col-lock-month" class="border rounded-lg px-2 py-1 hidden bg-white" onchange="applyDateLock()"></select>
+            <input id="col-lock-year" type="number" class="border rounded-lg px-2 py-1 w-24 hidden bg-white" placeholder="Year" onchange="applyDateLock()">
+            <span id="col-lock-label" class="text-xs text-amber-700 font-semibold"></span>
+          </div>
           <div class="grid grid-cols-3 gap-4">
             <div><label class="block text-xs font-medium text-gray-600 mb-1">Receipt #</label>
               <input id="col-receipt" class="w-full border rounded-2xl px-4 py-3" placeholder="e.g. 1024"></div>
-            <div><label class="block text-xs font-medium text-gray-600 mb-1">Date</label>
-              <input id="col-date" type="date" class="w-full border rounded-2xl px-4 py-3"></div>
-            <div><label class="block text-xs font-medium text-gray-600 mb-1">Amount ($)</label>
+            <div><label id="col-date-label" class="block text-xs font-medium text-gray-600 mb-1">Date</label>
+              <input id="col-date" type="date" class="w-full border rounded-2xl px-4 py-3">
+              <input id="col-day" type="number" min="1" max="31" class="w-full border rounded-2xl px-4 py-3 hidden" placeholder="Day (1–31)"></div>
+            <div><label id="col-amount-label" class="block text-xs font-medium text-gray-600 mb-1">Amount ($)</label>
               <input id="col-amount" type="number" class="w-full border rounded-2xl px-4 py-3"></div>
           </div>
           <p class="text-[11px] text-gray-400 mt-1">Receipt # is optional — type your receipt-book number for historical entries; it counts up automatically for the next one. Leave blank to auto-number.</p>
@@ -170,7 +178,7 @@
 
           <!-- Membership fee panel — shows only when income type = Membership Fees -->
           <div id="col-mem-panel" class="hidden bg-indigo-50 border border-indigo-100 rounded-2xl p-4 mb-4">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Member (saved family)</label>
+            <div class="flex items-center justify-between mb-1"><label class="block text-xs font-medium text-gray-600">Member (saved family)</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
             <select id="col-mem" class="w-full border rounded-2xl px-4 py-3 mb-3 bg-white"></select>
             <div class="grid grid-cols-2 gap-3">
               <div><label class="block text-xs font-medium text-gray-600 mb-1">Monthly fee ($)</label>
@@ -187,7 +195,7 @@
           </div>
 
           <div id="col-from-row">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Received from</label>
+            <div class="flex items-center justify-between mb-1"><label class="block text-xs font-medium text-gray-600">Received from</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
             <select id="col-from" onchange="toggleDonor()" class="w-full border rounded-2xl px-4 py-3 mb-2"></select>
             <input id="col-donor" class="w-full border rounded-2xl px-4 py-3 mb-4 hidden" placeholder="One-time donor's name">
           </div>
@@ -209,8 +217,15 @@
       <div class="grid md:grid-cols-2 gap-6">
         <div class="bg-white rounded-3xl shadow p-8">
           <h3 class="text-lg font-semibold mb-6">Record an Expense (money out)</h3>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Date</label>
+          <div class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+            <label class="flex items-center gap-2 cursor-pointer"><input id="exp-lock" type="checkbox" onchange="expToggleDateLock()"> <span class="font-medium text-amber-700"><i class="fa-solid fa-lock"></i> Lock month/year</span></label>
+            <select id="exp-lock-month" class="border rounded-lg px-2 py-1 hidden bg-white" onchange="expApplyDateLock()"></select>
+            <input id="exp-lock-year" type="number" class="border rounded-lg px-2 py-1 w-24 hidden bg-white" placeholder="Year" onchange="expApplyDateLock()">
+            <span id="exp-lock-label" class="text-xs text-amber-700 font-semibold"></span>
+          </div>
+          <label id="exp-date-label" class="block text-xs font-medium text-gray-600 mb-1">Date</label>
           <input id="exp-date" type="date" class="w-full border rounded-2xl px-4 py-3 mb-4">
+          <input id="exp-day" type="number" min="1" max="31" class="w-full border rounded-2xl px-4 py-3 mb-4 hidden" placeholder="Day (1–31)">
           <label class="block text-xs font-medium text-gray-600 mb-1">Account (expense type)</label>
           <select id="exp-cat" class="w-full border rounded-2xl px-4 py-3 mb-4"></select>
           <div class="grid grid-cols-2 gap-4">
@@ -573,6 +588,8 @@ let families = [];
 let transactions = [];   // {id, kind:'fee'|'collection'|'expense', dir:'in'|'out', date, amount, acctId, acct, category, familyId, family, donor, period, payee, note, method}
 let editChildren = [];
 let editFamilyId = null;
+let familyModalReturn = null;   // 'collections' when the family modal was opened from Collections
+let lockedYM = null;            // {year, month} when the accountant locks a month for historical entry
 
 // ================= STORAGE =================
 function save(){ localStorage.setItem(KEY, JSON.stringify({settings, families, transactions, accounts})); scheduleAutosave(); }
@@ -711,11 +728,11 @@ function populateColMembership(){
   }
 }
 function colCatChange(){
-  const mem=isMembershipCat(), amt=$('col-amount');
+  const mem=isMembershipCat(), amt=$('col-amount'), lbl=$('col-amount-label');
   $('col-mem-panel').classList.toggle('hidden', !mem);
   $('col-from-row').classList.toggle('hidden', mem);
-  if(mem){ amt.readOnly=true; amt.classList.add('bg-gray-50'); populateColMembership(); colCalc(); }
-  else { amt.readOnly=false; amt.classList.remove('bg-gray-50'); }
+  if(mem){ amt.readOnly=true; amt.classList.add('bg-gray-50'); amt.placeholder='calculated below'; if(lbl) lbl.textContent='Total ($) — auto'; populateColMembership(); colCalc(); }
+  else { amt.readOnly=false; amt.classList.remove('bg-gray-50'); amt.placeholder=''; if(lbl) lbl.textContent='Amount ($)'; }
 }
 function colCalc(){
   if(!isMembershipCat()) return;
@@ -724,13 +741,74 @@ function colCalc(){
   $('col-amount').value=(monthly*n).toFixed(2);
   $('col-mcount').textContent=`${n} month${n>1?'s':''} • ${money(monthly)}/mo`;
 }
+// ---- Date lock: fix a month/year and enter only the day (for historical entry) ----
+function fillLockMonth(){ const s=$('col-lock-month'); if(s && !s.options.length){ MONTHS.forEach((m,i)=>s.appendChild(new Option(m,i))); s.value=0; } }
+function toggleDateLock(){
+  const on=$('col-lock').checked;
+  $('col-lock-month').classList.toggle('hidden', !on);
+  $('col-lock-year').classList.toggle('hidden', !on);
+  if(on){ fillLockMonth(); if(!$('col-lock-year').value) $('col-lock-year').value=2013; applyDateLock(); }
+  else {
+    lockedYM=null; $('col-lock-label').textContent='';
+    $('col-day').classList.add('hidden'); $('col-date').classList.remove('hidden'); $('col-date-label').textContent='Date';
+  }
+}
+function applyDateLock(){
+  const y=parseInt($('col-lock-year').value), m=parseInt($('col-lock-month').value);
+  if(isNaN(y)||isNaN(m)) return;
+  lockedYM={year:y, month:m};
+  $('col-lock-label').textContent='Locked to '+MONTHS[m]+' '+y+' — type the day only';
+  $('col-date').classList.add('hidden'); $('col-day').classList.remove('hidden'); $('col-date-label').textContent='Day of month';
+}
+function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+function collectionDate(){
+  if(lockedYM && $('col-lock') && $('col-lock').checked){
+    const dim=daysInMonth(lockedYM.year, lockedYM.month);
+    let d=parseInt($('col-day').value)||1; d=Math.min(dim, Math.max(1,d));
+    return `${lockedYM.year}-${String(lockedYM.month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+  return $('col-date').value||todayISO();
+}
+// ---- Date lock for the Expenses page (same idea as Collections) ----
+let expLockedYM = null;
+function expToggleDateLock(){
+  const on=$('exp-lock').checked;
+  $('exp-lock-month').classList.toggle('hidden', !on);
+  $('exp-lock-year').classList.toggle('hidden', !on);
+  const s=$('exp-lock-month'); if(on && s && !s.options.length){ MONTHS.forEach((m,i)=>s.appendChild(new Option(m,i))); s.value=0; }
+  if(on){ if(!$('exp-lock-year').value) $('exp-lock-year').value=2013; expApplyDateLock(); }
+  else { expLockedYM=null; $('exp-lock-label').textContent=''; $('exp-day').classList.add('hidden'); $('exp-date').classList.remove('hidden'); $('exp-date-label').textContent='Date'; }
+}
+function expApplyDateLock(){
+  const y=parseInt($('exp-lock-year').value), m=parseInt($('exp-lock-month').value);
+  if(isNaN(y)||isNaN(m)) return;
+  expLockedYM={year:y, month:m};
+  $('exp-lock-label').textContent='Locked to '+MONTHS[m]+' '+y+' — type the day only';
+  $('exp-date').classList.add('hidden'); $('exp-day').classList.remove('hidden'); $('exp-date-label').textContent='Day of month';
+}
+function expenseDate(){
+  if(expLockedYM && $('exp-lock') && $('exp-lock').checked){
+    const dim=daysInMonth(expLockedYM.year, expLockedYM.month);
+    let d=parseInt($('exp-day').value)||1; d=Math.min(dim, Math.max(1,d));
+    return `${expLockedYM.year}-${String(expLockedYM.month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+  return $('exp-date').value||todayISO();
+}
+// ---- Add a member without leaving the Collections page ----
+function addMemberFromCollection(){ openFamilyModal(null, 'collections'); }
+function selectNewMemberInCollections(id){
+  fillFromSelect(); populateColMembership();
+  if($('col-mem')) $('col-mem').value=id;
+  if($('col-from')){ $('col-from').value='m'+id; toggleDonor(); }
+  colCalc();
+}
 // Membership payment on the Collections page — same confirm-before-print flow as Collect Fees.
 function saveMembershipCollection(){
   const id=parseInt($('col-mem').value); if(!id) return alert('Select a member.');
   const total=parseFloat($('col-amount').value); if(!total) return alert('Total is zero — check the months/fee.');
   const f=families.find(x=>x.id===id);
   const period=`${$('col-mstart').value} to ${$('col-mend').value}`;
-  const date=$('col-date').value||todayISO();
+  const date=collectionDate();
   const a=acctById(+$('col-cat').value);
   const tx={id:Date.now(),receiptNo:$('col-receipt').value.trim(),kind:'fee',dir:'in',date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
   previewReceipt(tx, async t=>{
@@ -839,7 +917,8 @@ function renderFamilies(){
   });
   if(!list.length) tb.innerHTML='<tr><td colspan="5" class="px-5 py-6 text-center text-gray-400">No families yet. Click “Add Family”.</td></tr>';
 }
-function openFamilyModal(id){
+function openFamilyModal(id, from){
+  familyModalReturn = from||null;
   editFamilyId = id||null; editChildren=[];
   const f = id ? families.find(x=>x.id===id) : null;
   $('fm-title').textContent = f?'Edit Family':'Add Family';
@@ -855,7 +934,7 @@ function openFamilyModal(id){
   $('family-modal').classList.remove('hidden');
 }
 function fmToggleMarital(){ const single=$('fm-marital').value==='single'; $('fm-single').classList.toggle('hidden',!single); $('fm-married').classList.toggle('hidden',single); }
-function closeFamilyModal(){ $('family-modal').classList.add('hidden'); }
+function closeFamilyModal(){ $('family-modal').classList.add('hidden'); familyModalReturn=null; }
 function renderChildRows(){
   const box=$('fm-children'); box.innerHTML='';
   editChildren.forEach((c,i)=>{
@@ -885,8 +964,11 @@ async function saveFamily(){
     save(); closeFamilyModal(); renderFamilies();
   } else {
     const f=Object.assign({id:Date.now(),lastPayment:'Never',lastPaidFor:'',lastAmount:0},data);
-    families.push(f); save(); closeFamilyModal(); renderFamilies();
+    families.push(f); save();
+    const backToCollections = familyModalReturn==='collections';
+    closeFamilyModal(); renderFamilies();
     await gsSend('addFamily', f);
+    if(backToCollections) selectNewMemberInCollections(f.id);   // pick the new member right away
   }
 }
 function deleteFamily(id){
@@ -983,7 +1065,7 @@ async function saveCollection(){
   const from=$('col-from').value; let familyId=null, donor='';
   if(from==='onetime'){ donor=$('col-donor').value.trim(); }
   else if(from && from!=='anon'){ familyId=+from.slice(1); const f=families.find(x=>x.id===familyId); donor=f?famLabel(f):''; }
-  const t={id:Date.now(),receiptNo:$('col-receipt').value.trim(),kind:'collection',dir:'in',date:$('col-date').value||todayISO(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',familyId,donor,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
+  const t={id:Date.now(),receiptNo:$('col-receipt').value.trim(),kind:'collection',dir:'in',date:collectionDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',familyId,donor,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
   transactions.push(t); save(); advanceReceipt(); $('col-amount').value=''; $('col-note').value=''; $('col-donor').value=''; $('col-from').value='anon'; toggleDonor();
   renderRecentCollections(); await gsSend('addCollection',t);
   alert('Collection saved.');
@@ -1002,7 +1084,7 @@ function renderRecentCollections(){
 async function saveExpense(){
   const amount=parseFloat($('exp-amount').value); if(!amount) return alert('Enter an amount.');
   const a=acctById(+$('exp-cat').value);
-  const t={id:Date.now(),kind:'expense',dir:'out',date:$('exp-date').value||todayISO(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',payee:$('exp-payee').value.trim(),method:$('exp-method').value,fund:fundFromMethod($('exp-method').value),note:$('exp-note').value.trim()};
+  const t={id:Date.now(),kind:'expense',dir:'out',date:expenseDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',payee:$('exp-payee').value.trim(),method:$('exp-method').value,fund:fundFromMethod($('exp-method').value),note:$('exp-note').value.trim()};
   transactions.push(t); save(); $('exp-amount').value=''; $('exp-payee').value=''; $('exp-note').value='';
   renderRecentExpenses(); await gsSend('addExpense',t);
   alert('Expense saved.');
