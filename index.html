@@ -180,7 +180,7 @@
           <div id="col-mem-panel" class="hidden bg-indigo-50 border border-indigo-100 rounded-2xl p-4 mb-4">
             <div class="flex items-center justify-between mb-1"><label class="block text-xs font-medium text-gray-600">Member (saved family)</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
             <select id="col-mem" class="w-full border rounded-2xl px-4 py-3 mb-3 bg-white"></select>
-            <div class="grid grid-cols-2 gap-3">
+            <div id="col-monthly-wrap" class="grid grid-cols-2 gap-3">
               <div><label class="block text-xs font-medium text-gray-600 mb-1">Monthly fee ($)</label>
                 <input id="col-monthly" type="number" value="50" oninput="colCalc()" class="w-full border rounded-2xl px-4 py-3 bg-white"></div>
               <div class="flex items-end"><p id="col-mcount" class="text-sm text-gray-500 pb-3"></p></div>
@@ -191,7 +191,8 @@
               <div><label class="block text-xs font-medium text-gray-600 mb-1">To month</label>
                 <select id="col-mend" onchange="colCalc()" class="w-full border rounded-2xl px-4 py-3 bg-white"></select></div>
             </div>
-            <p class="text-[11px] text-indigo-500 mt-2">Total fills in automatically above and the member's Last Payment is updated.</p>
+            <label class="flex items-center gap-2 text-xs text-gray-600 mt-3 cursor-pointer"><input id="col-period-lock" type="checkbox" onchange="colTogglePeriodLock()"> <span><i class="fa-solid fa-lock"></i> Lock this period for the next members</span></label>
+            <p class="text-[11px] text-indigo-500 mt-2">Type the <b>Total</b> (top) the member paid for the From–To period. The member's Last Payment is updated.</p>
           </div>
 
           <div id="col-from-row">
@@ -723,7 +724,7 @@ function populateColMembership(){
     families.forEach(f=>sel.appendChild(new Option(famLabel(f), f.id))); if(cur) sel.value=cur; }
   const s=$('col-mstart'), e=$('col-mend');
   if(s && e && !s.options.length){ const y=curYear();
-    for(let yy=y-11; yy<=y+1; yy++){ for(let m=0;m<12;m++){ const v=`${MONTHS[m]} ${yy}`; s.appendChild(new Option(v,v)); e.appendChild(new Option(v,v)); } }
+    for(let yy=Math.min(2010, y-20); yy<=y+1; yy++){ for(let m=0;m<12;m++){ const v=`${MONTHS[m]} ${yy}`; s.appendChild(new Option(v,v)); e.appendChild(new Option(v,v)); } }
     const cur=`${MONTHS[new Date().getMonth()]} ${y}`; s.value=cur; e.value=cur;
   }
 }
@@ -731,11 +732,19 @@ function colCatChange(){
   const mem=isMembershipCat(), amt=$('col-amount'), lbl=$('col-amount-label');
   $('col-mem-panel').classList.toggle('hidden', !mem);
   $('col-from-row').classList.toggle('hidden', mem);
-  if(mem){ amt.readOnly=true; amt.classList.add('bg-gray-50'); amt.placeholder='calculated below'; if(lbl) lbl.textContent='Total ($) — auto'; populateColMembership(); colCalc(); }
+  if(mem){ amt.readOnly=false; amt.classList.remove('bg-gray-50'); amt.placeholder=''; if(lbl) lbl.textContent='Total ($)';
+    const mw=$('col-monthly-wrap'); if(mw) mw.classList.toggle('hidden', currentRole==='accountant');  // accountant types the total directly
+    populateColMembership(); colCalc(); }
   else { amt.readOnly=false; amt.classList.remove('bg-gray-50'); amt.placeholder=''; if(lbl) lbl.textContent='Amount ($)'; }
+}
+// Lock the membership period so From/To stay fixed while entering many members
+function colTogglePeriodLock(){
+  const on=$('col-period-lock').checked;
+  ['col-mstart','col-mend'].forEach(id=>{ const el=$(id); if(el){ el.disabled=on; el.classList.toggle('opacity-60',on); el.classList.toggle('cursor-not-allowed',on); } });
 }
 function colCalc(){
   if(!isMembershipCat()) return;
+  if(currentRole==='accountant') return;   // accountant types the total; no auto-calculation
   const s=$('col-mstart').value, e=$('col-mend').value; if(!s||!e) return;
   const n=monthDiff(s,e), monthly=parseFloat($('col-monthly').value)||0;
   $('col-amount').value=(monthly*n).toFixed(2);
