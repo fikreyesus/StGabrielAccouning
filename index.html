@@ -35,8 +35,8 @@
 <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:linear-gradient(160deg,#E6F1FB,#F1EFE8)">
   <div class="bg-white rounded-2xl shadow-xl w-full p-6 text-center" style="max-width:320px">
     <i class="fa-solid fa-church text-3xl text-indigo-600"></i>
-    <h1 class="text-sm font-bold mt-1.5 leading-tight" id="login-church">Debre Hayl St Gabriel EOTC</h1>
-    <p class="text-[11px] text-gray-500 mb-4">Louisville, KY</p>
+    <h1 class="text-sm font-bold mt-1.5 leading-tight" id="login-church">Debre Hayl St Gabriel Ethiopian Orthodox Tewahedo Church</h1>
+    <p class="text-[11px] text-gray-500 mb-4 mt-1">Louisville, KY</p>
     <select id="login-role" class="w-full border rounded-xl px-3 py-2 mb-2 text-sm">
       <option value="cashier">Cashier</option>
       <option value="accountant">Accountant</option>
@@ -58,8 +58,8 @@
       <div class="flex items-center gap-3">
         <i class="fa-solid fa-church text-3xl"></i>
         <div>
-          <h1 id="side-name" class="text-sm font-bold leading-tight">Debre Hayl St Gabriel EOTC</h1>
-          <p class="text-[11px] text-indigo-300">Louisville, KY · Accounting &amp; Members</p>
+          <h1 id="side-name" class="text-xs font-bold leading-tight">Debre Hayl St Gabriel Ethiopian Orthodox Tewahedo Church</h1>
+          <p class="text-[11px] text-indigo-300 mt-0.5">Louisville, KY · Accounting &amp; Members</p>
         </div>
       </div>
     </div>
@@ -512,6 +512,17 @@
   </div>
 </div>
 
+<!-- ===== REQUIRED: connect Excel workbook after login, before entering data ===== -->
+<div id="connect-modal" class="hidden fixed inset-0 z-40 bg-black/60 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 text-center">
+    <i class="fa-solid fa-file-excel text-4xl text-emerald-600"></i>
+    <h3 id="connect-title" class="text-lg font-bold mt-2 mb-1">Connect the Excel file</h3>
+    <p id="connect-msg" class="text-sm text-gray-600 mb-5"></p>
+    <div id="connect-actions" class="flex flex-col gap-2"></div>
+    <button onclick="skipConnect()" id="connect-skip" class="mt-4 text-xs text-gray-400 underline">Continue without saving to Excel (not recommended)</button>
+  </div>
+</div>
+
 <script>
 // ================= STATE =================
 const KEY = 'church_acct_v1';
@@ -555,7 +566,7 @@ function acctBalance(a){ if(a.link==='cash') return balances().cash; if(a.link==
 function totalAssets(){ return accounts.filter(a=>a.type==='asset').reduce((s,a)=>s+acctBalance(a),0); }
 function totalLiabilities(){ return accounts.filter(a=>a.type==='liability').reduce((s,a)=>s+acctBalance(a),0); }
 
-let settings = { name:"Debre Hayl St Gabriel EOTC", address:"2216 Goldsmith Lane, Louisville, KY 40218", openingCash:0, openingBank:0, openingDate:"", gsEnabled:false, gsUrl:"https://script.google.com/macros/s/AKfycbwIQx27lPc6yPF-IPGOBCxXnZ2foLv3X2sM1-C_x60pEnk4aiNw-90qfNbBBsWGKg/exec", pwCashier:"cashier", pwAccountant:"StGabriel19" };
+let settings = { name:"Debre Hayl St Gabriel Ethiopian Orthodox Tewahedo Church", address:"2216 Goldsmith Lane, Louisville, KY 40218", openingCash:0, openingBank:0, openingDate:"", gsEnabled:false, gsUrl:"https://script.google.com/macros/s/AKfycbwIQx27lPc6yPF-IPGOBCxXnZ2foLv3X2sM1-C_x60pEnk4aiNw-90qfNbBBsWGKg/exec", pwCashier:"cashier", pwAccountant:"StGabriel19" };
 let currentRole = null;
 const CASHIER_PAGES = ['collections'];
 let families = [];
@@ -631,6 +642,7 @@ function doLogin(){
   $('login-screen').classList.add('hidden'); $('app-root').classList.remove('hidden');
   applyRole();
   showPage(role==='accountant' ? 'dashboard' : 'collections');
+  requireWorkbook();   // require linking the Excel file before entering data
 }
 function lockApp(){ currentRole=null; document.body.classList.remove('cashier-theme'); $('app-root').classList.add('hidden'); $('login-screen').classList.remove('hidden'); $('login-pw').value=''; $('login-eye').className='fa-solid fa-eye'; $('login-pw').type='password'; }
 function applyRole(){
@@ -1208,6 +1220,41 @@ async function reconnectWorkbook(){
     } else { await autosave(); }
   }catch(e){ alert('Reconnect failed: '+e.message); }
 }
+// ===== Required "connect Excel" gate shown after login, before data entry =====
+function requireWorkbook(){
+  if(wbHandle){ hideConnectModal(); return; }          // already connected this session
+  if(!FSA){ showConnectModal('nofsa'); return; }        // browser can't link a file
+  idbGet('wb').then(h=>{
+    showConnectModal(h ? 'reconnect' : 'setup');
+  }).catch(()=> showConnectModal('setup'));
+}
+function hideConnectModal(){ const m=$('connect-modal'); if(m) m.classList.add('hidden'); }
+function showConnectModal(mode){
+  const t=$('connect-title'), msg=$('connect-msg'), act=$('connect-actions'), skip=$('connect-skip');
+  skip.classList.remove('hidden');
+  const B=(label,fn,cls)=>`<button onclick="${fn}" class="w-full ${cls} py-3 rounded-xl font-semibold">${label}</button>`;
+  if(mode==='reconnect'){
+    t.textContent='Reconnect the Excel file';
+    msg.textContent='To keep every entry saved into your Excel file, reconnect the workbook before you begin.';
+    act.innerHTML=B('<i class="fa-solid fa-rotate-right"></i> Reconnect Excel','cwbReconnect()','bg-emerald-600 hover:bg-emerald-700 text-white');
+  } else if(mode==='setup'){
+    t.textContent='Connect an Excel file to continue';
+    msg.innerHTML='No Excel file is linked on this computer yet.<br>If the church already has one, click <b>Open existing workbook</b> and pick it. Otherwise click <b>Create new workbook</b> to make one.';
+    act.innerHTML=B('<i class="fa-solid fa-folder-open"></i> Open existing workbook','cwbOpen()','bg-emerald-600 hover:bg-emerald-700 text-white')
+                 +B('<i class="fa-solid fa-file-circle-plus"></i> Create new workbook','cwbNew()','bg-indigo-600 hover:bg-indigo-700 text-white');
+  } else { // nofsa
+    t.textContent='Excel auto-save not available here';
+    msg.textContent='Saving directly to an Excel file needs Chrome or Edge on a computer. You can still use the app — please back up regularly from Data & Backup.';
+    act.innerHTML=B('Continue','hideConnectModal()','bg-indigo-600 hover:bg-indigo-700 text-white');
+    skip.classList.add('hidden');
+  }
+  $('connect-modal').classList.remove('hidden');
+}
+async function cwbNew(){ await connectWorkbookNew(); if(wbHandle) hideConnectModal(); }
+async function cwbOpen(){ await connectWorkbookOpen(); if(wbHandle) hideConnectModal(); }
+async function cwbReconnect(){ await reconnectWorkbook(); if(wbHandle) hideConnectModal(); }
+function signoutFromConnect(){ hideConnectModal(); lockApp(); }
+function skipConnect(){ if(confirm('Are you sure? Anything you enter now will NOT be saved to the Excel file until you reconnect it. Continue anyway?')) hideConnectModal(); }
 async function saveNow(){ if(!wbHandle) return alert('Link a workbook first (Open or Create above).'); await autosave(); alert('Saved to the linked workbook.'); }
 function disconnectWorkbook(){ wbHandle=null; idbSet('wb',null); wbStatus(); }
 function wbStatus(state){
@@ -1293,8 +1340,8 @@ document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',e=>
 window.onload=()=>{
   const firstRun = !localStorage.getItem(KEY);
   load();
-  // One-time: update the old default church name to the new full name.
-  if(settings.name==='St Gabriel Ethiopian Orthodox Church'){ settings.name='Debre Hayl St Gabriel EOTC'; save(); }
+  // One-time: update any earlier default church name to the current full name.
+  if(settings.name==='St Gabriel Ethiopian Orthodox Church' || settings.name==='Debre Hayl St Gabriel EOTC'){ settings.name='Debre Hayl St Gabriel Ethiopian Orthodox Tewahedo Church'; save(); }
   if(firstRun){ // try importing old apps, else seed a sample family
     importLegacy(false);
     if(!families.length){ families=[{id:1,husband:'Michael Smith',wife:'Sarah Smith',address:'2216 Goldsmith Lane, Louisville, KY 40218',phone:'',children:[{name:'Emma Smith',birthday:'2018-03-12'}],lastPayment:'Never',lastPaidFor:'',lastAmount:0}]; }
