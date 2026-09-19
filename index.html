@@ -110,6 +110,7 @@
             <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-3">Funds on hand</p>
             <div class="space-y-2.5">
               <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Cash</span><span id="s-cash" class="text-lg font-semibold text-emerald-700">$0</span></div>
+              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Checks (undeposited)</span><span id="s-undep" class="text-lg font-semibold text-amber-600">$0</span></div>
               <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Bank</span><span id="s-bank" class="text-lg font-semibold text-sky-700">$0</span></div>
               <div class="flex justify-between items-baseline border-t pt-2.5"><span class="text-gray-600 text-sm font-medium">Total</span><span id="s-funds" class="text-2xl font-bold text-indigo-700">$0</span></div>
             </div>
@@ -250,8 +251,9 @@
 
     <!-- CASH & BANK -->
     <section id="cashbank-page" class="p-8 hidden">
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-5 mb-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-5 mb-6">
         <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-emerald-400"><p class="text-xs text-gray-500">Cash on hand</p><p id="cb-cash" class="text-3xl font-bold text-emerald-700"></p></div>
+        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-amber-400"><p class="text-xs text-gray-500">Checks (undeposited)</p><p id="cb-undep" class="text-3xl font-bold text-amber-600"></p></div>
         <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-sky-400"><p class="text-xs text-gray-500">Bank balance</p><p id="cb-bank" class="text-3xl font-bold text-sky-700"></p></div>
         <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-indigo-400"><p class="text-xs text-gray-500">Total funds</p><p id="cb-total" class="text-3xl font-bold text-indigo-700"></p></div>
       </div>
@@ -269,13 +271,13 @@
         </div>
         <div class="bg-white rounded-3xl shadow p-6">
           <h3 class="font-semibold text-gray-700 mb-1">Deposit / transfer</h3>
-          <p class="text-xs text-gray-400 mb-4">Move money between cash and bank — e.g. banking the week's cash. This isn't income or expense; it just shifts the two balances.</p>
+          <p class="text-xs text-gray-400 mb-4">Move money between buckets — e.g. banking the week's cash, or depositing received checks. This isn't income or expense; it just shifts the balances.</p>
           <div class="grid grid-cols-2 gap-4">
             <div><label class="block text-xs text-gray-600 mb-1">Date</label><input id="tr-date" type="date" class="w-full border rounded-xl px-3 py-2"></div>
             <div><label class="block text-xs text-gray-600 mb-1">Amount ($)</label><input id="tr-amount" type="number" class="w-full border rounded-xl px-3 py-2"></div>
           </div>
           <label class="block text-xs text-gray-600 mb-1 mt-3">Direction</label>
-          <select id="tr-dir" class="w-full border rounded-xl px-3 py-2 mb-3"><option value="cash-bank">Cash → Bank (deposit)</option><option value="bank-cash">Bank → Cash (withdrawal)</option></select>
+          <select id="tr-dir" class="w-full border rounded-xl px-3 py-2 mb-3"><option value="undep-bank">Checks → Bank (deposit checks)</option><option value="cash-bank">Cash → Bank (deposit cash)</option><option value="bank-cash">Bank → Cash (withdrawal)</option></select>
           <label class="block text-xs text-gray-600 mb-1">Note (optional)</label>
           <input id="tr-note" class="w-full border rounded-xl px-3 py-2 mb-4" placeholder="e.g. deposited Sunday cash">
           <button onclick="saveTransfer()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm">Save transfer</button>
@@ -545,7 +547,7 @@ const KEY = 'church_acct_v1';
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 let accounts = [];  // {id, code, name, type:'asset'|'liability'|'equity'|'income'|'expense', balance, link}
 const BS_SEED = [
-  ['1000','Cash on Hand','asset','cash'],['1010','Bank — Checking','asset','bank'],['1100','Pledges / Receivable','asset',''],
+  ['1000','Cash on Hand','asset','cash'],['1010','Bank — Checking','asset','bank'],['1020','Undeposited Funds (Checks)','asset','undeposited'],['1100','Pledges / Receivable','asset',''],
   ['1200','Land','asset',''],['1210','Building','asset',''],['1220','Furniture & Equipment','asset',''],
   ['2000','Accounts Payable','liability',''],['2100','Loan / Mortgage Payable','liability',''],['2200','Accrued Salaries / Stipend','liability',''],
   ['3000','Net Assets / Fund Balance','equity','netassets']
@@ -566,19 +568,25 @@ const incomeAccounts = () => accounts.filter(a=>a.type==='income').sort((a,b)=>S
 const expenseAccounts = () => accounts.filter(a=>a.type==='expense').sort((a,b)=>String(a.code).localeCompare(String(b.code)));
 function acctLabel(t){ const a=acctById(t.acctId); const code=a?a.code:(t.acct||''); const name=a?a.name:(t.category||''); return code? `${code} — ${name}` : (name||'—'); }
 function feeAccountId(){ const a=accounts.find(x=>x.code==='4100') || incomeAccounts()[0]; return a?a.id:null; }
-// Cash vs Bank funds
-function fundFromMethod(m){ return m==='Cash' ? 'cash' : 'bank'; }
-function fundOf(t){ return t.fund || fundFromMethod(t.method); }
-function balances(){
-  let cash=+settings.openingCash||0, bank=+settings.openingBank||0; const od=settings.openingDate||'';
-  transactions.forEach(t=>{ if(od && t.date<od) return;
-    if(t.kind==='transfer'){ if(t.fromFund==='cash') cash-=t.amount; else bank-=t.amount; if(t.toFund==='cash') cash+=t.amount; else bank+=t.amount; return; }
-    const s = t.dir==='in' ? t.amount : t.dir==='out' ? -t.amount : 0;
-    if(fundOf(t)==='cash') cash+=s; else bank+=s;
-  });
-  return {cash, bank, total:cash+bank};
+// Funds: cash, bank, and undeposited (checks received but not yet banked).
+// A check RECEIVED (income) is undeposited; a check WRITTEN (expense) comes out of the bank.
+function fundFromMethod(m, dir){
+  if(m==='Cash') return 'cash';
+  if(m==='Check') return dir==='out' ? 'bank' : 'undeposited';
+  return 'bank';   // Card/Online, Bank Transfer
 }
-function acctBalance(a){ if(a.link==='cash') return balances().cash; if(a.link==='bank') return balances().bank; if(a.link==='netassets') return totalAssets()-totalLiabilities(); return +a.balance||0; }
+function fundOf(t){ return t.fund || fundFromMethod(t.method, t.dir); }
+function balances(){
+  let cash=+settings.openingCash||0, bank=+settings.openingBank||0, undep=0; const od=settings.openingDate||'';
+  const inc=(f,a)=>{ if(f==='cash') cash+=a; else if(f==='undeposited') undep+=a; else bank+=a; };
+  transactions.forEach(t=>{ if(od && t.date<od) return;
+    if(t.kind==='transfer'){ inc(t.fromFund,-t.amount); inc(t.toFund,t.amount); return; }
+    const s = t.dir==='in' ? t.amount : t.dir==='out' ? -t.amount : 0;
+    inc(fundOf(t), s);
+  });
+  return {cash, bank, undeposited:undep, total:cash+bank+undep};
+}
+function acctBalance(a){ if(a.link==='cash') return balances().cash; if(a.link==='bank') return balances().bank; if(a.link==='undeposited') return balances().undeposited; if(a.link==='netassets') return totalAssets()-totalLiabilities(); return +a.balance||0; }
 function totalAssets(){ return accounts.filter(a=>a.type==='asset').reduce((s,a)=>s+acctBalance(a),0); }
 function totalLiabilities(){ return accounts.filter(a=>a.type==='liability').reduce((s,a)=>s+acctBalance(a),0); }
 
@@ -593,11 +601,17 @@ let familyModalReturn = null;   // 'collections' when the family modal was opene
 let lockedYM = null;            // {year, month} when the accountant locks a month for historical entry
 
 // ================= STORAGE =================
-function save(){ localStorage.setItem(KEY, JSON.stringify({settings, families, transactions, accounts})); scheduleAutosave(); }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify({settings, families, transactions, accounts})); }catch(e){ alert('Could not save into this browser: '+e.message+'\n\nThe data may be too large for the browser. Please back up now (Data & Backup) and keep using the linked Excel workbook.'); } scheduleAutosave(); }
 function load(){
   try { const d = JSON.parse(localStorage.getItem(KEY)); if(d){ settings=Object.assign(settings,d.settings||{}); families=d.families||[]; transactions=d.transactions||[]; accounts=d.accounts||[]; } } catch(e){}
   if(!accounts || !accounts.length) seedAccounts();
   ensureBS();
+  // Migration: ensure an "Undeposited Funds (Checks)" asset exists (added later)
+  if(!accounts.some(a=>a.link==='undeposited')){
+    const acc={id:900500,code:'1020',name:'Undeposited Funds (Checks)',type:'asset',link:'undeposited',balance:0};
+    const idx=accounts.findIndex(a=>a.link==='bank');
+    if(idx>=0) accounts.splice(idx+1,0,acc); else accounts.unshift(acc);
+  }
   migrateTx();
 }
 const LEGACY_MAP = {'Membership Fees':'4100','Sunday Offering':'4110','Tithe':'4120','Donation':'4200','General Donation':'4200','Special Gift':'4210','One-time Gift':'4210','Fundraising':'4420','Other Income':'4900','Clergy Stipend':'6100','Salaries':'6110','Rent / Mortgage':'6200','Utilities':'6210','Maintenance':'6220','Supplies':'6300','Events':'6400','Charity / Outreach':'6500','Bank / Fees':'6600','Other Expense':'6900'};
@@ -685,7 +699,7 @@ function trialData(){
   const b=balances(), rows=[];
   accounts.filter(a=>a.type==='asset').forEach(a=>{
     const forced = a.link==='cash'||a.link==='bank';
-    let d = a.link==='cash'?b.cash : a.link==='bank'?b.bank : (+a.balance||0);
+    let d = a.link ? acctBalance(a) : (+a.balance||0);   // cash/bank/undeposited use live balances
     if(forced||Math.abs(d)>0.005) rows.push({code:a.code,name:a.name,debit:d,credit:0,az:forced});
   });
   expenseAccounts().forEach(a=>{ const d=outByAcct[a.id]||0; if(d>0.005) rows.push({code:a.code,name:a.name,debit:d,credit:0}); });
@@ -829,7 +843,7 @@ function saveMembershipCollection(){
   const period=`${$('col-mstart').value} to ${$('col-mend').value}`;
   const date=collectionDate();
   const a=acctById(+$('col-cat').value);
-  const tx={id:Date.now(),receiptNo:$('col-receipt').value.trim(),kind:'fee',dir:'in',date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
+  const tx={id:Date.now(),receiptNo:$('col-receipt').value.trim(),kind:'fee',dir:'in',date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:fundFromMethod($('col-method').value,'in'),note:$('col-note').value.trim()};
   const commit = async t=>{
     transactions.push(t);
     if(f){ f.lastPayment=fmtDate(t.date); f.lastPaidFor=t.period; f.lastAmount=t.amount; }
@@ -844,21 +858,26 @@ function saveMembershipCollection(){
 // After a save, bump a numeric receipt number to the next one for fast consecutive entry.
 function advanceReceipt(){ const el=$('col-receipt'); if(!el) return; const v=el.value.trim(); if(/^\d+$/.test(v)) el.value=String(+v+1); }
 // ---- Cash & Bank ----
+const FUND_LABEL={cash:'Cash',bank:'Bank',undeposited:'Checks'};
+function xferLabel(t){ return `${FUND_LABEL[t.fromFund]||t.fromFund} → ${FUND_LABEL[t.toFund]||t.toFund}`; }
 function renderCashBank(){
   const b=balances();
   $('cb-cash').textContent=money(b.cash); $('cb-bank').textContent=money(b.bank); $('cb-total').textContent=money(b.total);
+  const u=$('cb-undep'); if(u) u.textContent=money(b.undeposited);
   $('op-cash').value=settings.openingCash||0; $('op-bank').value=settings.openingBank||0; $('op-date').value=settings.openingDate||'';
   if(!$('tr-date').value) $('tr-date').value=todayISO();
   const tb=$('tr-recent'); tb.innerHTML='';
   transactions.filter(t=>t.kind==='transfer').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,15).forEach(t=>{
-    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-6 py-2">${t.fromFund==='cash'?'Cash → Bank':'Bank → Cash'}${t.note?' · '+esc(t.note):''}</td><td class="px-6 py-2 text-right font-semibold">${money(t.amount)}</td><td class="px-6 py-2 text-center"><button onclick="deleteTx(${t.id})" class="text-red-400"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-6 py-2">${xferLabel(t)}${t.note?' · '+esc(t.note):''}</td><td class="px-6 py-2 text-right font-semibold">${money(t.amount)}</td><td class="px-6 py-2 text-center"><button onclick="deleteTx(${t.id})" class="text-red-400"><i class="fa-solid fa-trash"></i></button></td></tr>`;
   });
   if(!tb.innerHTML) tb.innerHTML='<tr><td class="px-6 py-6 text-center text-gray-400">No transfers yet.</td></tr>';
 }
 function saveOpening(){ settings.openingCash=parseFloat($('op-cash').value)||0; settings.openingBank=parseFloat($('op-bank').value)||0; settings.openingDate=$('op-date').value||''; save(); renderCashBank(); alert('Opening balances saved.'); }
 async function saveTransfer(){
   const amt=parseFloat($('tr-amount').value); if(!amt) return alert('Enter an amount.');
-  const from=$('tr-dir').value==='cash-bank'?'cash':'bank', to=from==='cash'?'bank':'cash';
+  const dir=$('tr-dir').value;
+  const map={'cash-bank':['cash','bank'],'bank-cash':['bank','cash'],'undep-bank':['undeposited','bank']};
+  const [from,to]=map[dir]||['cash','bank'];
   const t={id:Date.now(),kind:'transfer',dir:'xfer',date:$('tr-date').value||todayISO(),amount:amt,fromFund:from,toFund:to,category:'Transfer',method:'',note:$('tr-note').value.trim()};
   transactions.push(t); save(); $('tr-amount').value=''; $('tr-note').value='';
   renderCashBank(); await gsSend('addTransfer',t); alert('Transfer saved.');
@@ -905,7 +924,7 @@ function renderDashboard(){
   $('s-expense').textContent = money0(exp);
   const net=$('s-net'); net.textContent = money0(inc-exp); net.classList.remove('text-gray-800','text-emerald-600','text-red-600'); net.classList.add((inc-exp)>=0?'text-emerald-600':'text-red-600');
   document.querySelectorAll('.cur-year').forEach(e=>e.textContent=y);
-  const b=balances(); $('s-cash').textContent=money0(b.cash); $('s-bank').textContent=money0(b.bank); $('s-funds').textContent=money0(b.total);
+  const b=balances(); $('s-cash').textContent=money0(b.cash); $('s-bank').textContent=money0(b.bank); $('s-funds').textContent=money0(b.total); { const u=$('s-undep'); if(u) u.textContent=money0(b.undeposited); }
   const tb=$('recent-tbody'); tb.innerHTML='';
   [...transactions].sort((a,b)=> b.date.localeCompare(a.date) || b.id-a.id).slice(0,8).forEach(t=>{
     const tr=document.createElement('tr'); tr.className='hover:bg-gray-50';
@@ -1089,7 +1108,7 @@ async function saveCollection(){
   const from=$('col-from').value; let familyId=null, donor='';
   if(from==='onetime'){ donor=$('col-donor').value.trim(); }
   else if(from && from!=='anon'){ familyId=+from.slice(1); const f=families.find(x=>x.id===familyId); donor=f?famLabel(f):''; }
-  const t={id:Date.now(),receiptNo:$('col-receipt').value.trim(),kind:'collection',dir:'in',date:collectionDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',familyId,donor,method:$('col-method').value,fund:fundFromMethod($('col-method').value),note:$('col-note').value.trim()};
+  const t={id:Date.now(),receiptNo:$('col-receipt').value.trim(),kind:'collection',dir:'in',date:collectionDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',familyId,donor,method:$('col-method').value,fund:fundFromMethod($('col-method').value,'in'),note:$('col-note').value.trim()};
   transactions.push(t); save(); advanceReceipt(); $('col-amount').value=''; $('col-note').value=''; $('col-donor').value=''; $('col-from').value='anon'; toggleDonor();
   renderRecentCollections(); await gsSend('addCollection',t);
   alert('Collection saved.');
@@ -1108,7 +1127,7 @@ function renderRecentCollections(){
 async function saveExpense(){
   const amount=parseFloat($('exp-amount').value); if(!amount) return alert('Enter an amount.');
   const a=acctById(+$('exp-cat').value);
-  const t={id:Date.now(),kind:'expense',dir:'out',date:expenseDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',payee:$('exp-payee').value.trim(),method:$('exp-method').value,fund:fundFromMethod($('exp-method').value),note:$('exp-note').value.trim()};
+  const t={id:Date.now(),kind:'expense',dir:'out',date:expenseDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',payee:$('exp-payee').value.trim(),method:$('exp-method').value,fund:fundFromMethod($('exp-method').value,'out'),note:$('exp-note').value.trim()};
   transactions.push(t); save(); $('exp-amount').value=''; $('exp-payee').value=''; $('exp-note').value='';
   renderRecentExpenses(); await gsSend('addExpense',t);
   alert('Expense saved.');
