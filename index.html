@@ -213,8 +213,20 @@
           <button onclick="saveCollection()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-semibold">Save Collection</button>
         </div>
         <div class="bg-white rounded-3xl shadow overflow-hidden">
-          <div class="px-6 py-3 border-b font-semibold text-gray-700 flex items-center justify-between"><span>Recent collections</span><span id="col-recent-count" class="text-xs text-gray-400"></span></div>
-          <div style="max-height:70vh;overflow-y:auto"><table class="w-full text-sm"><tbody id="col-recent" class="divide-y"></tbody></table></div>
+          <div class="px-6 py-3 border-b flex flex-wrap items-center gap-2">
+            <span class="font-semibold text-gray-700">Recent collections</span>
+            <span id="col-recent-count" class="text-xs text-gray-400"></span>
+            <div class="flex items-center gap-2 text-sm" style="margin-left:auto">
+              <select id="col-f-month" onchange="renderRecentCollections()" class="border rounded-lg px-2 py-1 bg-white"></select>
+              <select id="col-f-year" onchange="renderRecentCollections()" class="border rounded-lg px-2 py-1 bg-white"></select>
+              <input id="col-f-date" type="date" onchange="renderRecentCollections()" class="border rounded-lg px-2 py-1 bg-white" title="Exact date">
+              <button type="button" onclick="clearColFilters()" class="text-gray-400 hover:text-gray-600" title="Clear filters"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </div>
+          <div style="max-height:70vh;overflow-y:auto"><table class="w-full text-sm">
+            <thead><tr class="text-xs text-gray-400 border-b" style="text-align:left"><th class="px-6 py-2">Date</th><th class="px-6 py-2">Receipt #</th><th class="px-6 py-2">Type · From</th><th class="px-6 py-2" style="text-align:right">Amount</th></tr></thead>
+            <tbody id="col-recent" class="divide-y"></tbody>
+          </table></div>
         </div>
       </div>
     </section>
@@ -496,6 +508,11 @@
 <div id="family-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-3xl p-7 max-w-lg w-full max-h-[90vh] overflow-auto">
     <h3 id="fm-title" class="text-lg font-semibold mb-5">Add Family</h3>
+    <div id="fm-existing-wrap" class="mb-4 bg-gray-50 border rounded-xl p-3">
+      <label class="block text-xs text-gray-600 mb-1"><i class="fa-solid fa-magnifying-glass"></i> Check existing families (avoid duplicates)</label>
+      <select id="fm-existing" onchange="fmJumpExisting()" class="w-full border rounded-xl px-3 py-2 bg-white"></select>
+      <p class="text-[11px] text-gray-400 mt-1">Pick a name to open that family instead of creating a duplicate.</p>
+    </div>
     <label class="block text-xs text-gray-600 mb-1">Household type</label>
     <select id="fm-marital" onchange="fmToggleMarital()" class="w-full border rounded-xl px-3 py-2 mb-4">
       <option value="married">Married couple</option>
@@ -1015,7 +1032,18 @@ function openFamilyModal(id, from){
   $('fm-address').value=f?f.address||'':''; $('fm-phone').value=f?f.phone||'':'';
   editChildren = f&&f.children? f.children.map(c=>({...c})) : [];
   renderChildRows(); fmToggleMarital();
+  fmFillExisting(); if($('fm-existing')) $('fm-existing').value = id||'';
   $('family-modal').classList.remove('hidden');
+}
+// Dropdown of saved families so the user can check for a duplicate before adding a new one
+function fmFillExisting(){
+  const sel=$('fm-existing'); if(!sel) return;
+  sel.innerHTML='<option value="">— New family (not in the list) —</option>';
+  families.slice().sort((a,b)=>famLabel(a).localeCompare(famLabel(b))).forEach(f=>sel.appendChild(new Option(famLabel(f), f.id)));
+}
+function fmJumpExisting(){
+  const id=parseInt($('fm-existing').value); if(!id) return;
+  openFamilyModal(id, familyModalReturn);   // reopen the modal in edit mode for the chosen family
 }
 function fmToggleMarital(){ const single=$('fm-marital').value==='single'; $('fm-single').classList.toggle('hidden',!single); $('fm-married').classList.toggle('hidden',single); }
 function closeFamilyModal(){ $('family-modal').classList.add('hidden'); familyModalReturn=null; }
@@ -1156,15 +1184,30 @@ async function saveCollection(){
 }
 function renderRecentCollections(){
   if(!$('col-date').value) $('col-date').value=todayISO();
+  const all=transactions.filter(t=>t.kind==='collection'||t.kind==='fee');
+  // Month options (built once)
+  const mm=$('col-f-month');
+  if(mm && mm.dataset.filled!=='1'){ mm.innerHTML='<option value="">All months</option>'; MONTHS.forEach((m,i)=>mm.appendChild(new Option(m,i+1))); mm.dataset.filled='1'; }
+  // Year options (rebuilt from data, keeping the current pick)
+  const yy=$('col-f-year');
+  if(yy){ const cur=yy.value; const years=[...new Set(all.map(t=>+t.date.slice(0,4)))].sort((a,b)=>b-a);
+    yy.innerHTML='<option value="">All years</option>'; years.forEach(y=>yy.appendChild(new Option(y,y))); if(cur) yy.value=cur; }
+  const fMonth=mm?mm.value:'', fYear=yy?yy.value:'', fDate=$('col-f-date')?$('col-f-date').value:'';
   const tb=$('col-recent'); tb.innerHTML='';
-  const list=transactions.filter(t=>t.kind==='collection'||t.kind==='fee').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  const list=all.filter(t=>{
+    if(fDate) return t.date===fDate;                                   // exact date wins
+    if(fYear && +t.date.slice(0,4)!==+fYear) return false;
+    if(fMonth && +t.date.slice(5,7)!==+fMonth) return false;
+    return true;
+  }).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);             // newest date first
   list.forEach(t=>{
     const who=t.donor||t.family||'';
-    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500">${fmtDate(t.date)}</td><td class="px-6 py-2">${esc(t.category)}${who?' · '+esc(who):''}</td><td class="px-6 py-2 text-right font-semibold text-emerald-600">${money(t.amount)}</td></tr>`;
+    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-6 py-2 text-gray-500">${esc(t.receiptNo||'')}</td><td class="px-6 py-2">${esc(t.category)}${who?' · '+esc(who):''}</td><td class="px-6 py-2 text-right font-semibold text-emerald-600">${money(t.amount)}</td></tr>`;
   });
-  const c=$('col-recent-count'); if(c) c.textContent=list.length?`${list.length} total`:'';
-  if(!tb.innerHTML) tb.innerHTML='<tr><td class="px-6 py-6 text-center text-gray-400">No collections yet.</td></tr>';
+  const c=$('col-recent-count'); if(c) c.textContent=list.length?`${list.length} shown`:'';
+  if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="4" class="px-6 py-6 text-center text-gray-400">No collections match.</td></tr>';
 }
+function clearColFilters(){ ['col-f-month','col-f-year','col-f-date'].forEach(id=>{ const e=$(id); if(e) e.value=''; }); renderRecentCollections(); }
 
 // ================= EXPENSES =================
 async function saveExpense(){
