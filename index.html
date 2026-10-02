@@ -1005,7 +1005,8 @@ function txDesc(t){
 function renderFamilies(){
   const q=($('fam-search').value||'').toLowerCase();
   const tb=$('families-tbody'); tb.innerHTML='';
-  const list = families.filter(f=> !q || famLabel(f).toLowerCase().includes(q) || (f.address||'').toLowerCase().includes(q));
+  const list = families.filter(f=> !q || famLabel(f).toLowerCase().includes(q) || (f.address||'').toLowerCase().includes(q))
+    .sort((a,b)=>famLabel(a).localeCompare(famLabel(b), undefined, {sensitivity:'base'}));
   list.forEach(f=>{
     const tr=document.createElement('tr'); tr.className='hover:bg-gray-50';
     const adults=[f.husband,f.wife].filter(Boolean).length;
