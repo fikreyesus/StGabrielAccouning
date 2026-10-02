@@ -396,11 +396,22 @@
 
     <!-- REPORTS -->
     <section id="reports-page" class="p-8 hidden">
-      <div class="flex items-center gap-4 mb-5">
-        <label class="text-sm text-gray-600">Year</label>
-        <select id="rep-year" onchange="renderReports()" class="border rounded-xl px-4 py-2"></select>
-        <button onclick="exportXLSX()" class="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
-        <button onclick="window.print()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm"><i class="fa-solid fa-print"></i> Print</button>
+      <div class="flex flex-wrap items-end gap-3 mb-5">
+        <div><label class="block text-xs text-gray-500 mb-1">Year</label>
+          <select id="rep-year" onchange="renderReports()" class="border rounded-xl px-3 py-2"></select></div>
+        <div><label class="block text-xs text-gray-500 mb-1">From month</label>
+          <select id="rep-m1" onchange="renderReports()" class="border rounded-xl px-3 py-2"></select></div>
+        <div><label class="block text-xs text-gray-500 mb-1">To month</label>
+          <select id="rep-m2" onchange="renderReports()" class="border rounded-xl px-3 py-2"></select></div>
+        <div><label class="block text-xs text-gray-500 mb-1">Account</label>
+          <select id="rep-acct" onchange="renderReports()" class="border rounded-xl px-3 py-2"></select></div>
+        <div><label class="block text-xs text-gray-500 mb-1">Member / donor</label>
+          <select id="rep-member" onchange="renderReports()" class="border rounded-xl px-3 py-2"></select></div>
+        <button onclick="clearRepFilters()" class="px-3 py-2 rounded-xl text-sm bg-gray-100 hover:bg-gray-200 text-gray-600">Clear</button>
+        <div class="flex gap-2" style="margin-left:auto">
+          <button onclick="exportXLSX()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+          <button onclick="window.print()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm"><i class="fa-solid fa-print"></i> Print</button>
+        </div>
       </div>
       <div class="grid md:grid-cols-3 gap-5 mb-5">
         <div class="bg-white rounded-2xl shadow p-5"><p class="text-xs text-gray-500">Income</p><p id="rep-income" class="text-2xl font-bold text-emerald-600"></p></div>
@@ -1273,26 +1284,69 @@ function deleteTx(id){ const t=transactions.find(x=>x.id===id); if(!confirm(`Del
 
 // ================= REPORTS =================
 function reportYears(){ const ys=[...new Set(transactions.map(t=>+t.date.slice(0,4)))].sort((a,b)=>b-a); if(!ys.includes(curYear())) ys.unshift(curYear()); return ys; }
+// Build the Account filter (income + expense accounts), keeping the current pick
+function repFillAccounts(){
+  const sel=$('rep-acct'); if(!sel) return; const cur=sel.value;
+  sel.innerHTML='<option value="">All accounts</option>';
+  const add=(type,label)=>{ const g=document.createElement('optgroup'); g.label=label;
+    accounts.filter(a=>a.type===type).sort((a,b)=>String(a.code).localeCompare(String(b.code))).forEach(a=>g.appendChild(new Option(`${a.code} ${a.name}`,a.id)));
+    if(g.children.length) sel.appendChild(g); };
+  add('income','Income'); add('expense','Expense');
+  if(cur) sel.value=cur;
+}
+// Build the Member/donor filter from families + any one-time donor names, keeping the current pick
+function repFillMembers(){
+  const sel=$('rep-member'); if(!sel) return; const cur=sel.value;
+  sel.innerHTML='<option value="">All members / donors</option>';
+  if(families.length){ const fg=document.createElement('optgroup'); fg.label='Members';
+    families.slice().sort((a,b)=>famLabel(a).localeCompare(famLabel(b))).forEach(f=>fg.appendChild(new Option(famLabel(f),'m'+f.id)));
+    sel.appendChild(fg); }
+  const donors=[...new Set(transactions.filter(t=>!t.familyId && t.donor && t.donor.trim()).map(t=>t.donor.trim()))].sort();
+  if(donors.length){ const dg=document.createElement('optgroup'); dg.label='One-time donors';
+    donors.forEach(d=>dg.appendChild(new Option(d,'d'+d))); sel.appendChild(dg); }
+  if(cur) sel.value=cur;
+}
+// Apply the Account + Member/donor filters (month range handled by the caller)
+function repMatch(t){
+  const acct=$('rep-acct')?$('rep-acct').value:'', mem=$('rep-member')?$('rep-member').value:'';
+  if(acct && String(t.acctId)!==String(acct)) return false;
+  if(mem){
+    if(mem[0]==='m'){ if(String(t.familyId)!==mem.slice(1)) return false; }
+    else if(mem[0]==='d'){ if((t.donor||'').trim()!==mem.slice(1)) return false; }
+  }
+  return true;
+}
+function clearRepFilters(){
+  const m1=$('rep-m1'), m2=$('rep-m2');
+  if(m1) m1.value='1'; if(m2) m2.value='12';
+  if($('rep-acct')) $('rep-acct').value=''; if($('rep-member')) $('rep-member').value='';
+  renderReports();
+}
 function renderReports(){
   const ySel=$('rep-year'); if(ySel.dataset.filled!=='1'||ySel.options.length===0){ ySel.innerHTML=''; reportYears().forEach(y=>ySel.appendChild(new Option(y,y))); ySel.dataset.filled='1'; }
+  // month-range selects (built once, default Jan–Dec)
+  ['rep-m1','rep-m2'].forEach((id,ix)=>{ const s=$(id); if(s && s.dataset.filled!=='1'){ s.innerHTML=''; MONTHS.forEach((m,i)=>s.appendChild(new Option(m,i+1))); s.value=ix===0?'1':'12'; s.dataset.filled='1'; } });
+  repFillAccounts(); repFillMembers();
   const year = +($('rep-year').value||curYear());
-  const yr = transactions.filter(t=> (+t.date.slice(0,4))===year);
+  const lo=Math.min(+$('rep-m1').value||1, +$('rep-m2').value||12);
+  const hi=Math.max(+$('rep-m1').value||1, +$('rep-m2').value||12);
+  const yr = transactions.filter(t=>{ if((+t.date.slice(0,4))!==year) return false; const m=+t.date.slice(5,7); return m>=lo && m<=hi && repMatch(t); });
   const inc=yr.filter(t=>t.dir==='in').reduce((a,t)=>a+t.amount,0);
   const exp=yr.filter(t=>t.dir==='out').reduce((a,t)=>a+t.amount,0);
   $('rep-income').textContent=money(inc); $('rep-expense').textContent=money(exp);
   const net=$('rep-net'); net.textContent=money(inc-exp); net.className='text-2xl font-bold '+((inc-exp)>=0?'text-emerald-600':'text-red-600');
-  // monthly
+  // monthly (only the selected month range)
   const mi=Array(12).fill(0), me=Array(12).fill(0);
   yr.forEach(t=>{ const m=(+t.date.slice(5,7))-1; if(t.dir==='in')mi[m]+=t.amount; else me[m]+=t.amount; });
   const mtb=$('rep-monthly'); mtb.innerHTML='';
-  for(let m=0;m<12;m++){ const n=mi[m]-me[m];
+  for(let m=lo-1;m<=hi-1;m++){ const n=mi[m]-me[m];
     mtb.innerHTML+=`<tr><td class="px-5 py-2">${MONTHS[m].slice(0,3)}</td><td class="px-5 py-2 text-right text-emerald-600">${mi[m]?money(mi[m]):'—'}</td><td class="px-5 py-2 text-right text-red-600">${me[m]?money(me[m]):'—'}</td><td class="px-5 py-2 text-right font-medium ${n>=0?'text-gray-700':'text-red-600'}">${(mi[m]||me[m])?money(n):'—'}</td></tr>`;
   }
   mtb.innerHTML+=`<tr class="bg-gray-50 font-semibold"><td class="px-5 py-2">Total</td><td class="px-5 py-2 text-right text-emerald-700">${money(inc)}</td><td class="px-5 py-2 text-right text-red-700">${money(exp)}</td><td class="px-5 py-2 text-right">${money(inc-exp)}</td></tr>`;
-  // chart
+  // chart (selected month range)
   const max=Math.max(1,...mi,...me);
   const ch=$('rep-chart'); ch.innerHTML='';
-  for(let m=0;m<12;m++){
+  for(let m=lo-1;m<=hi-1;m++){
     ch.innerHTML+=`<div class="flex items-center gap-2 text-xs"><div class="w-8 text-gray-500">${MONTHS[m].slice(0,3)}</div>
       <div class="flex-1"><div class="bar h-3 rounded-sm" style="width:${(mi[m]/max*100)||0}%;background:#059669;min-width:${mi[m]?'2px':'0'}"></div>
       <div class="bar h-3 rounded-sm mt-0.5" style="width:${(me[m]/max*100)||0}%;background:#dc2626;min-width:${me[m]?'2px':'0'}"></div></div>
