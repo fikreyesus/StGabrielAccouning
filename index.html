@@ -1046,7 +1046,23 @@ function fmJumpExisting(){
   const id=parseInt($('fm-existing').value); if(!id) return;
   openFamilyModal(id, familyModalReturn);   // reopen the modal in edit mode for the chosen family
 }
-function fmToggleMarital(){ const single=$('fm-marital').value==='single'; $('fm-single').classList.toggle('hidden',!single); $('fm-married').classList.toggle('hidden',single); }
+function fmToggleMarital(){
+  const single=$('fm-marital').value==='single';
+  // Carry the name already entered across the switch so the person is never lost
+  if(single){
+    // married → single: move whichever adult name is filled into the single-name box
+    if(!$('fm-single-name').value){
+      const h=$('fm-husband').value.trim(), w=$('fm-wife').value.trim();
+      if(h){ $('fm-single-name').value=h; $('fm-single-gender').value='male'; }
+      else if(w){ $('fm-single-name').value=w; $('fm-single-gender').value='female'; }
+    }
+  } else {
+    // single → married: place the single person's name in the matching column
+    const nm=$('fm-single-name').value.trim(), g=$('fm-single-gender').value;
+    if(nm){ if(g==='female'){ if(!$('fm-wife').value) $('fm-wife').value=nm; } else { if(!$('fm-husband').value) $('fm-husband').value=nm; } }
+  }
+  $('fm-single').classList.toggle('hidden',!single); $('fm-married').classList.toggle('hidden',single);
+}
 function closeFamilyModal(){ $('family-modal').classList.add('hidden'); familyModalReturn=null; }
 function renderChildRows(){
   const box=$('fm-children'); box.innerHTML='';
