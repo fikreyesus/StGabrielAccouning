@@ -171,7 +171,7 @@
               <input id="col-date" type="date" class="w-full border rounded-2xl px-4 py-3">
               <input id="col-day" type="number" min="1" max="31" class="w-full border rounded-2xl px-4 py-3 hidden" placeholder="Day (1–31)"></div>
             <div><label id="col-amount-label" class="block text-xs font-medium text-gray-600 mb-1">Amount ($)</label>
-              <input id="col-amount" type="number" class="w-full border rounded-2xl px-4 py-3"></div>
+              <input id="col-amount" type="number" step="0.01" onblur="colAmtBlur()" class="w-full border rounded-2xl px-4 py-3"></div>
           </div>
           <p class="text-[11px] text-gray-400 mt-1">Receipt # is optional — type your receipt-book number for historical entries; it counts up automatically for the next one. Leave blank to auto-number.</p>
           <label class="block text-xs font-medium text-gray-600 mb-1 mt-4">Account (income type)</label>
@@ -186,10 +186,15 @@
                 <input id="col-monthly" type="number" value="50" oninput="colCalc()" class="w-full border rounded-2xl px-4 py-3 bg-white"></div>
               <div class="flex items-end"><p id="col-mcount" class="text-sm text-gray-500 pb-3"></p></div>
             </div>
+            <div class="mt-3"><label class="block text-xs font-medium text-gray-600 mb-1">Paying for</label>
+              <select id="col-mmode" onchange="colMonthModeChange()" class="w-full border rounded-2xl px-4 py-3 bg-white">
+                <option value="one">One month</option>
+                <option value="multi">Multiple months</option>
+              </select></div>
             <div class="grid grid-cols-2 gap-3 mt-3">
-              <div><label class="block text-xs font-medium text-gray-600 mb-1">From month</label>
-                <select id="col-mstart" onchange="colCalc()" class="w-full border rounded-2xl px-4 py-3 bg-white"></select></div>
-              <div><label class="block text-xs font-medium text-gray-600 mb-1">To month</label>
+              <div><label id="col-mstart-label" class="block text-xs font-medium text-gray-600 mb-1">Month</label>
+                <select id="col-mstart" onchange="colStartChange()" class="w-full border rounded-2xl px-4 py-3 bg-white"></select></div>
+              <div id="col-mend-wrap" class="hidden"><label class="block text-xs font-medium text-gray-600 mb-1">To month</label>
                 <select id="col-mend" onchange="colCalc()" class="w-full border rounded-2xl px-4 py-3 bg-white"></select></div>
             </div>
             <label class="flex items-center gap-2 text-xs text-gray-600 mt-3 cursor-pointer"><input id="col-period-lock" type="checkbox" onchange="colTogglePeriodLock()"> <span><i class="fa-solid fa-lock"></i> Lock this period for the next members</span></label>
@@ -208,8 +213,8 @@
           <button onclick="saveCollection()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-semibold">Save Collection</button>
         </div>
         <div class="bg-white rounded-3xl shadow overflow-hidden">
-          <div class="px-6 py-3 border-b font-semibold text-gray-700">Recent collections</div>
-          <table class="w-full text-sm"><tbody id="col-recent" class="divide-y"></tbody></table>
+          <div class="px-6 py-3 border-b font-semibold text-gray-700 flex items-center justify-between"><span>Recent collections</span><span id="col-recent-count" class="text-xs text-gray-400"></span></div>
+          <div style="max-height:70vh;overflow-y:auto"><table class="w-full text-sm"><tbody id="col-recent" class="divide-y"></tbody></table></div>
         </div>
       </div>
     </section>
@@ -742,19 +747,51 @@ function populateColMembership(){
     const cur=`${MONTHS[new Date().getMonth()]} ${y}`; s.value=cur; e.value=cur;
   }
 }
+// Income types that are usually not tied to a person → default "Received from" to Anonymous
+const ANON_CODES=['4110','4200','4330','4410','4900'];
+function colAmtBlur(){ const el=$('col-amount'); if(el && el.value!=='') el.value=(parseFloat(el.value)||0).toFixed(2); }
 function colCatChange(){
   const mem=isMembershipCat(), amt=$('col-amount'), lbl=$('col-amount-label');
   $('col-mem-panel').classList.toggle('hidden', !mem);
   $('col-from-row').classList.toggle('hidden', mem);
   if(mem){ amt.readOnly=false; amt.classList.remove('bg-gray-50'); amt.placeholder=''; if(lbl) lbl.textContent='Total ($)';
     const mw=$('col-monthly-wrap'); if(mw) mw.classList.toggle('hidden', currentRole==='accountant');  // accountant types the total directly
-    populateColMembership(); colCalc(); }
-  else { amt.readOnly=false; amt.classList.remove('bg-gray-50'); amt.placeholder=''; if(lbl) lbl.textContent='Amount ($)'; }
+    populateColMembership(); colMonthModeChange(); colCalc(); }
+  else { amt.readOnly=false; amt.classList.remove('bg-gray-50'); amt.placeholder=''; if(lbl) lbl.textContent='Amount ($)';
+    const a=acctById(+$('col-cat').value), fs=$('col-from');
+    if(a && fs && ANON_CODES.includes(a.code)){ fs.value='anon'; toggleDonor(); }
+  }
+}
+// Collections membership: one-month vs multiple-month period
+function monthOrd(v){ const p=String(v||'').split(' '); return (+p[1]||0)*12 + MONTHS.indexOf(p[0]); }
+// Rebuild the "To month" list so it only offers months AFTER the selected From month
+function rebuildColEnd(){
+  const s=$('col-mstart'), e=$('col-mend'); if(!s||!e||!s.value) return;
+  const startOrd=monthOrd(s.value), prev=e.value;
+  e.innerHTML='';
+  for(const o of s.options){ if(monthOrd(o.value)>startOrd) e.appendChild(new Option(o.value,o.value)); }
+  if(prev && [...e.options].some(o=>o.value===prev)) e.value=prev;
+  else if(e.options.length) e.value=e.options[0].value;
+}
+function colMonthModeChange(){
+  const multi=$('col-mmode') && $('col-mmode').value==='multi';
+  const wrap=$('col-mend-wrap'), lbl=$('col-mstart-label');
+  if(wrap) wrap.classList.toggle('hidden', !multi);
+  if(lbl) lbl.textContent = multi ? 'From month' : 'Month';
+  if(multi){ rebuildColEnd(); }
+  else if($('col-mend') && $('col-mstart')){ $('col-mend').value=$('col-mstart').value; }
+  colCalc();
+}
+function colStartChange(){
+  const multi=$('col-mmode') && $('col-mmode').value==='multi';
+  if(multi) rebuildColEnd();
+  else if($('col-mend') && $('col-mstart')){ $('col-mend').value=$('col-mstart').value; }
+  colCalc();
 }
 // Lock the membership period so From/To stay fixed while entering many members
 function colTogglePeriodLock(){
   const on=$('col-period-lock').checked;
-  ['col-mstart','col-mend'].forEach(id=>{ const el=$(id); if(el){ el.disabled=on; el.classList.toggle('opacity-60',on); el.classList.toggle('cursor-not-allowed',on); } });
+  ['col-mmode','col-mstart','col-mend'].forEach(id=>{ const el=$(id); if(el){ el.disabled=on; el.classList.toggle('opacity-60',on); el.classList.toggle('cursor-not-allowed',on); } });
 }
 function colCalc(){
   if(!isMembershipCat()) return;
@@ -791,7 +828,9 @@ function syncMembershipPeriodToLock(){
   const val=`${MONTHS[lockedYM.month]} ${lockedYM.year}`;
   const s=$('col-mstart'), e=$('col-mend');
   const setIf=(sel)=>{ if(!sel) return; for(const o of sel.options){ if(o.value===val){ sel.value=val; return; } } };
-  setIf(s); setIf(e); colCalc();
+  setIf(s);
+  if($('col-mmode') && $('col-mmode').value==='multi'){ rebuildColEnd(); } else { setIf(e); }
+  colCalc();
 }
 function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
 function collectionDate(){
@@ -840,7 +879,9 @@ function saveMembershipCollection(){
   const id=parseInt($('col-mem').value); if(!id) return alert('Select a member.');
   const total=parseFloat($('col-amount').value); if(!total) return alert('Enter the total amount.');
   const f=families.find(x=>x.id===id);
-  const period=`${$('col-mstart').value} to ${$('col-mend').value}`;
+  const ms=$('col-mstart').value, me=$('col-mend').value;
+  const oneMonth=($('col-mmode') && $('col-mmode').value==='one') || ms===me;
+  const period=oneMonth ? ms : `${ms} to ${me}`;
   const date=collectionDate();
   const a=acctById(+$('col-cat').value);
   const tx={id:Date.now(),receiptNo:$('col-receipt').value.trim(),kind:'fee',dir:'in',date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:fundFromMethod($('col-method').value,'in'),note:$('col-note').value.trim()};
@@ -1116,10 +1157,12 @@ async function saveCollection(){
 function renderRecentCollections(){
   if(!$('col-date').value) $('col-date').value=todayISO();
   const tb=$('col-recent'); tb.innerHTML='';
-  transactions.filter(t=>t.kind==='collection'||t.kind==='fee').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,12).forEach(t=>{
+  const list=transactions.filter(t=>t.kind==='collection'||t.kind==='fee').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  list.forEach(t=>{
     const who=t.donor||t.family||'';
     tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500">${fmtDate(t.date)}</td><td class="px-6 py-2">${esc(t.category)}${who?' · '+esc(who):''}</td><td class="px-6 py-2 text-right font-semibold text-emerald-600">${money(t.amount)}</td></tr>`;
   });
+  const c=$('col-recent-count'); if(c) c.textContent=list.length?`${list.length} total`:'';
   if(!tb.innerHTML) tb.innerHTML='<tr><td class="px-6 py-6 text-center text-gray-400">No collections yet.</td></tr>';
 }
 
