@@ -1085,7 +1085,7 @@ function renderDashboard(){
 
   // recent transactions (latest overall)
   const tb=$('recent-tbody'); tb.innerHTML='';
-  [...transactions].sort((a,b)=> b.date.localeCompare(a.date) || b.id-a.id).slice(0,8).forEach(t=>{
+  [...transactions].sort((a,b)=> b.date.localeCompare(a.date) || b.id-a.id).forEach(t=>{
     const tr=document.createElement('tr'); tr.className='hover:bg-gray-50';
     const amtCls = t.dir==='in'?'text-emerald-600':t.dir==='out'?'text-red-600':'text-gray-500';
     const sign = t.dir==='in'?'+':t.dir==='out'?'−':'';
