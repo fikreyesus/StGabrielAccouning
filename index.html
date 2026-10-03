@@ -202,8 +202,8 @@
             <div class="flex items-center justify-between mb-1"><label class="block text-xs font-medium text-gray-600">Member — check status first</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
             <select id="cash-mem" onchange="cashMemPick()" class="w-full border rounded-2xl px-4 py-3 bg-white"></select>
           </div>
-          <!-- Historical entry: lock a month/year so you only type the day -->
-          <div class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+          <!-- Historical entry: lock a month/year so you only type the day (accountant only) -->
+          <div id="col-lock-bar" class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
             <label class="flex items-center gap-2 cursor-pointer"><input id="col-lock" type="checkbox" onchange="toggleDateLock()"> <span class="font-medium text-amber-700"><i class="fa-solid fa-lock"></i> Lock month/year</span></label>
             <select id="col-lock-month" class="border rounded-lg px-2 py-1 hidden bg-white" onchange="applyDateLock()"></select>
             <input id="col-lock-year" type="number" class="border rounded-lg px-2 py-1 w-24 hidden bg-white" placeholder="Year" onchange="applyDateLock()">
@@ -742,7 +742,16 @@ function showPage(page){
   if(page==='dashboard') renderDashboard();
   if(page==='families') renderFamilies();
   if(page==='collections'){ fillAccountSelect($('col-cat'),'income'); fillFromSelect(); colCatChange(); renderRecentCollections();
-    const cb=$('cash-member-block'); if(cb) cb.classList.toggle('hidden', currentRole!=='cashier'); fillCashMem(); renderCashierMemberCard(); }
+    const cb=$('cash-member-block'); if(cb) cb.classList.toggle('hidden', currentRole!=='cashier'); fillCashMem(); renderCashierMemberCard();
+    const cashier=currentRole==='cashier';
+    const lb=$('col-lock-bar'); if(lb) lb.classList.toggle('hidden', cashier);   // cashier can't back-date
+    if(cashier){
+      if($('col-lock')) $('col-lock').checked=false; lockedYM=null;
+      if($('col-day')) $('col-day').classList.add('hidden');
+      if($('col-date')){ $('col-date').classList.remove('hidden'); $('col-date').min=todayISO(); if(!$('col-date').value || $('col-date').value<todayISO()) $('col-date').value=todayISO(); }
+      if($('col-date-label')) $('col-date-label').textContent='Date';
+    }
+  }
   if(page==='expenses'){ fillAccountSelect($('exp-cat'),'expense'); renderRecentExpenses(); }
   if(page==='cashbank') renderCashBank();
   if(page==='accounts') renderAccounts();
@@ -906,6 +915,10 @@ function renderCashierMemberCard(){
   const st=computeMemberStatus(f), c=toneColors(st.tone);
   card.className='bg-white rounded-3xl shadow overflow-hidden';
   if(recent) recent.classList.add('hidden');   // paid-through replaces recent collections for the cashier
+  // Pre-fill the "set paid through" editor from the member's baseline
+  const ptp = f.paidThrough? String(f.paidThrough).split(' '):null;
+  const selM = ptp? MONTHS.indexOf(ptp[0]):-1, selY = ptp? ptp[1]:'';
+  const monthOpts = '<option value="">— month —</option>'+MONTHS.map((m,i)=>`<option value="${i}" ${i===selM?'selected':''}>${m}</option>`).join('');
   card.innerHTML = `
     <div class="px-6 py-3 border-b flex items-center justify-between"><span class="font-semibold text-gray-700">Membership status</span><button type="button" onclick="cashClearMember()" class="text-xs text-gray-400 hover:text-gray-600">Show recent ✕</button></div>
     <div class="p-6">
@@ -916,8 +929,25 @@ function renderCashierMemberCard(){
         <div class="flex justify-between border-b pb-2"><span class="text-gray-500">Next payment due</span><span class="font-semibold" style="color:${c.fg}">${st.nextLabel?esc(st.nextLabel):'—'}</span></div>
         <div class="flex justify-between"><span class="text-gray-500">Last payment</span><span class="font-semibold">${st.lastTxt}</span></div>
       </div>
-      ${st.nextLabel?`<p class="text-xs text-gray-500 mt-5">To collect dues, choose <b>Membership Fees</b> as the income type below — the period starts at <b>${esc(st.nextLabel)}</b>.</p>`:`<p class="text-xs text-gray-500 mt-5">No membership history yet. Set a starting month in the member's record (Families → edit) if they paid before.</p>`}
+      ${st.nextLabel?`<p class="text-xs text-gray-500 mt-5">To collect dues, choose <b>Membership Fees</b> as the income type below — the period starts at <b>${esc(st.nextLabel)}</b>.</p>`:''}
+      <div class="mt-5 pt-4 border-t">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Set "paid through" from your records</label>
+        <div class="flex gap-2">
+          <select id="cash-pt-month" class="border rounded-lg px-2 py-1 text-sm bg-white">${monthOpts}</select>
+          <input id="cash-pt-year" type="number" min="2000" max="2100" value="${selY}" placeholder="Year" class="border rounded-lg px-2 py-1 text-sm" style="width:5.5rem">
+          <button type="button" onclick="cashSavePaidThrough()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-1 rounded-lg">Save</button>
+        </div>
+        <p class="text-[11px] text-gray-400 mt-1">Status only — records no income. New payments move it forward automatically.</p>
+      </div>
     </div>`;
+}
+// Cashier sets/updates a member's "paid through" straight from the status card (no Families page needed)
+function cashSavePaidThrough(){
+  const id=parseInt($('cash-mem')?$('cash-mem').value:'')||null; const f=families.find(x=>x.id===id); if(!f) return;
+  const m=$('cash-pt-month')?$('cash-pt-month').value:'', y=$('cash-pt-year')?$('cash-pt-year').value:'';
+  if(m!=='' && !y){ alert('Enter the year too.'); return; }
+  f.paidThrough = (m!=='' && y) ? `${MONTHS[+m]} ${y}` : '';
+  save(); colMemStatus(); renderCashierMemberCard();
 }
 // Income types that are usually not tied to a person → default "Received from" to Anonymous
 const ANON_CODES=['4110','4200','4330','4410','4900'];
@@ -1014,7 +1044,9 @@ function collectionDate(){
     let d=parseInt($('col-day').value)||1; d=Math.min(dim, Math.max(1,d));
     return `${lockedYM.year}-${String(lockedYM.month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   }
-  return $('col-date').value||todayISO();
+  let d = $('col-date').value||todayISO();
+  if(currentRole==='cashier' && d<todayISO()) d=todayISO();   // cashier cannot back-date
+  return d;
 }
 // ---- Date lock for the Expenses page (same idea as Collections) ----
 let expLockedYM = null;
