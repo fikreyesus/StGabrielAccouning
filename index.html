@@ -899,14 +899,9 @@ function colMemStatus(){
       box.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${st.badge}</div>Paid through: <b>${esc(st.paidLabel)}</b>`
         + (st.nextLabel ? ` &nbsp;·&nbsp; Next due: <b>${esc(st.nextLabel)}</b>` : '')
         + `<br>Last payment: ${st.lastTxt}`;
-      // For the cashier, start the collection at the next unpaid month (unless a period/date lock is in force)
-      if(st.nextLabel && currentRole==='cashier' && !(($('col-period-lock')&&$('col-period-lock').checked) || ($('col-lock')&&$('col-lock').checked))){
-        const s=$('col-mstart');
-        if(s && [...s.options].some(o=>o.value===st.nextLabel)){
-          s.value=st.nextLabel;
-          if($('col-mmode') && $('col-mmode').value==='multi'){ rebuildColEnd(); } else if($('col-mend')){ $('col-mend').value=st.nextLabel; }
-          colCalc();
-        }
+      // Cashier: rebuild the month options to start at the next unpaid month (no older months) when the membership panel is open
+      if(currentRole==='cashier' && $('col-mem-panel') && !$('col-mem-panel').classList.contains('hidden')){
+        cashRebuildMonths(f, st);
       }
     }
   }
@@ -918,6 +913,23 @@ function colMemStatus(){
 }
 // Convert a month-ordinal (year*12 + monthIndex) back to a "Month Year" label
 function ordToLabel(ord){ const y=Math.floor(ord/12), m=((ord%12)+12)%12; return `${MONTHS[m]} ${y}`; }
+// Cashier: fill the membership month dropdowns from the member's next-due month through this month + a year (prepay)
+let cashMonthsFor=null;   // which member the month options were last built for
+function cashRebuildMonths(f, st){
+  const s=$('col-mstart'), e=$('col-mend'); if(!s||!e||!f) return;
+  st = st || computeMemberStatus(f);
+  const nowOrd=new Date().getFullYear()*12+new Date().getMonth();
+  const startOrd = st.pt.ord>=0 ? st.pt.ord+1 : nowOrd;   // next unpaid month, or this month if no history
+  const hiOrd = Math.max(startOrd, nowOrd) + 12;          // allow up to a year ahead for prepayment
+  const sameMember = (cashMonthsFor===f.id); cashMonthsFor=f.id;
+  const prevStart=s.value;
+  s.innerHTML=''; e.innerHTML='';
+  for(let o=startOrd;o<=hiOrd;o++){ const v=ordToLabel(o); s.appendChild(new Option(v,v)); e.appendChild(new Option(v,v)); }
+  // same member → keep the cashier's current pick; new member → default to their next-due month
+  s.value = (sameMember && prevStart && [...s.options].some(o=>o.value===prevStart)) ? prevStart : ordToLabel(startOrd);
+  if($('col-mmode') && $('col-mmode').value==='multi'){ rebuildColEnd(); } else { e.value=s.value; }
+  colCalc();
+}
 // A member's furthest paid-through month ordinal (baseline record or recorded payments, whichever is later); -1 if none
 function memberPaidOrd(f){ const pt=paidThrough(memberFees(f)); let o=pt.ord; if(f.paidThrough){ const bo=monthOrd(f.paidThrough); if(bo>o) o=bo; } return o; }
 // Group members by the YEAR of their paid-through (plus a "none" bucket)
@@ -982,7 +994,7 @@ function cashMemPick(){
   if($('col-mem') && $('col-mem-panel') && !$('col-mem-panel').classList.contains('hidden')){ $('col-mem').value=id?String(id):''; colMemStatus(); }
   renderCashierMemberCard();
 }
-function cashClearMember(){ setCashMem(null); if($('col-mem') && $('col-mem-panel') && !$('col-mem-panel').classList.contains('hidden')){ $('col-mem').value=''; colMemStatus(); } renderCashierMemberCard(); }
+function cashClearMember(){ cashMonthsFor=null; setCashMem(null); if($('col-mem') && $('col-mem-panel') && !$('col-mem-panel').classList.contains('hidden')){ $('col-mem').value=''; colMemStatus(); } renderCashierMemberCard(); }
 function renderCashierMemberCard(){
   const card=$('col-member-card'), recent=$('col-recent-card'); if(!card) return;
   const id = (currentRole==='cashier' && $('cash-mem')) ? (parseInt($('cash-mem').value)||null) : null;
