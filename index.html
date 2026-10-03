@@ -162,6 +162,16 @@
         </div>
       </div>
 
+      <!-- Members by last paid-through year (click a bar to drill into the members) -->
+      <div class="bg-white rounded-2xl shadow p-6 mt-6">
+        <p class="font-semibold text-gray-700 mb-1">Members by last paid-through year</p>
+        <p class="text-xs text-gray-400 mb-4">Each member counted in the year of the furthest month they've paid membership through. Click a bar to list those members.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div id="dash-pt-chart" class="space-y-1"></div>
+          <div id="dash-pt-drill"></div>
+        </div>
+      </div>
+
       <!-- Recent transactions -->
       <div class="bg-white rounded-2xl shadow flex flex-col overflow-hidden mt-6" style="max-height:420px">
         <div class="px-6 py-4 border-b font-semibold text-gray-700">Recent transactions</div>
@@ -893,6 +903,37 @@ function colMemStatus(){
 }
 // Convert a month-ordinal (year*12 + monthIndex) back to a "Month Year" label
 function ordToLabel(ord){ const y=Math.floor(ord/12), m=((ord%12)+12)%12; return `${MONTHS[m]} ${y}`; }
+// A member's furthest paid-through month ordinal (baseline record or recorded payments, whichever is later); -1 if none
+function memberPaidOrd(f){ const pt=paidThrough(memberFees(f)); let o=pt.ord; if(f.paidThrough){ const bo=monthOrd(f.paidThrough); if(bo>o) o=bo; } return o; }
+// Group members by the YEAR of their paid-through (plus a "none" bucket)
+function paidThroughByYear(){ const map={}, none=[]; families.forEach(f=>{ const o=memberPaidOrd(f); if(o<0){ none.push({f,ord:-1}); return; } const y=Math.floor(o/12); (map[y]=map[y]||[]).push({f,ord:o}); }); return {map,none}; }
+let dashPtYear=null;
+function dashPtDrill(y){ dashPtYear=y; renderPtDrill(); }
+function renderPaidThroughChart(){
+  const wrap=$('dash-pt-chart'); if(!wrap) return;
+  const {map,none}=paidThroughByYear();
+  const years=Object.keys(map).map(Number).sort((a,b)=>a-b);
+  const maxC=Math.max(1,...years.map(y=>map[y].length), none.length);
+  const bar=(label,n,color,key,muted)=>`<div onclick="dashPtDrill('${key}')" class="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 rounded px-2 py-1">
+      <div style="width:3.5rem" class="${muted?'text-gray-400':'text-gray-600'}">${label}</div>
+      <div class="flex-1"><div style="height:1rem;border-radius:4px;width:${n/maxC*100}%;min-width:6px;background:${color}"></div></div>
+      <div style="width:2rem" class="text-right text-gray-500">${n}</div></div>`;
+  let html=years.map(y=>bar(y, map[y].length, '#4f46e5', y, false)).join('');
+  if(none.length) html+=bar('None', none.length, '#9ca3af', 'none', true);
+  wrap.innerHTML = (years.length||none.length) ? html : '<p class="text-sm text-gray-400 py-6 text-center">No members yet.</p>';
+  renderPtDrill();
+}
+function renderPtDrill(){
+  const box=$('dash-pt-drill'); if(!box) return;
+  if(dashPtYear===null){ box.innerHTML='<p class="text-xs text-gray-400 py-6 text-center">Click a year on the left to list those members.</p>'; return; }
+  const {map,none}=paidThroughByYear();
+  let list, title;
+  if(dashPtYear==='none'){ list=none.slice(); title='No paid-through set'; }
+  else { list=(map[+dashPtYear]||[]).slice(); title='Paid through '+dashPtYear; }
+  list.sort((a,b)=> b.ord-a.ord || famLabel(a.f).localeCompare(famLabel(b.f)));
+  const rows=list.map(x=>`<div class="flex justify-between text-xs border-b py-1.5"><span>${esc(famLabel(x.f))}</span><span class="text-gray-500">${x.ord>=0?esc(ordToLabel(x.ord)):'—'}</span></div>`).join('');
+  box.innerHTML=`<div class="flex items-center justify-between mb-2"><span class="text-sm font-semibold text-gray-700">${title} · ${list.length} member${list.length===1?'':'s'}</span><button onclick="dashPtYear=null;renderPtDrill()" class="text-xs text-gray-400 hover:text-gray-600">Clear ✕</button></div><div style="max-height:260px;overflow-y:auto">${rows||'<p class="text-xs text-gray-400">None.</p>'}</div>`;
+}
 // ---- Cashier: top member picker + right-hand membership status card ----
 function fillCashMem(){
   const sel=$('cash-mem'); if(!sel) return; const cur=sel.value;
@@ -1221,6 +1262,9 @@ function renderDashboard(){
     }
     if(!mi.some(v=>v)&&!me.some(v=>v)) ch.innerHTML=`<p class="text-center text-gray-400 text-sm py-8">No activity recorded in ${y}.</p>`;
   }
+
+  // members by paid-through year (with drill-down)
+  renderPaidThroughChart();
 
   // recent transactions (latest overall)
   const tb=$('recent-tbody'); tb.innerHTML='';
