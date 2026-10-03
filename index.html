@@ -220,7 +220,8 @@
           <!-- Membership fee panel — shows only when income type = Membership Fees -->
           <div id="col-mem-panel" class="hidden bg-indigo-50 border border-indigo-100 rounded-2xl p-4 mb-4">
             <div class="flex items-center justify-between mb-1"><label class="block text-xs font-medium text-gray-600">Member (saved family)</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
-            <select id="col-mem" class="w-full border rounded-2xl px-4 py-3 mb-3 bg-white"></select>
+            <select id="col-mem" onchange="colMemStatus()" class="w-full border rounded-2xl px-4 py-3 mb-3 bg-white"></select>
+            <div id="col-mem-status" class="hidden"></div>
             <div id="col-monthly-wrap" class="grid grid-cols-2 gap-3">
               <div><label class="block text-xs font-medium text-gray-600 mb-1">Monthly fee ($)</label>
                 <input id="col-monthly" type="number" value="50" oninput="colCalc()" class="w-full border rounded-2xl px-4 py-3 bg-white"></div>
@@ -815,6 +816,30 @@ function populateColMembership(){
     for(let yy=Math.min(2010, y-20); yy<=y+1; yy++){ for(let m=0;m<12;m++){ const v=`${MONTHS[m]} ${yy}`; s.appendChild(new Option(v,v)); e.appendChild(new Option(v,v)); } }
     const cur=`${MONTHS[new Date().getMonth()]} ${y}`; s.value=cur; e.value=cur;
   }
+  colMemStatus();
+}
+// ---- Membership "paid until" status (shown when a member is selected) ----
+// Match a family's membership payments by id OR by name (name survives an Excel reload, where id is not stored)
+function memberFees(f){ const label=famLabel(f); return transactions.filter(t=>t.kind==='fee' && (t.familyId===f.id || (t.family && t.family===label))); }
+// Furthest month a family has paid through, parsed from each entry's period ("June 2024" or "April 2024 to June 2024")
+function paidThrough(fees){ let ord=-1,label=''; fees.forEach(t=>{ if(!t.period) return; const parts=String(t.period).split(' to '); const end=(parts[1]||parts[0]).trim(); const o=monthOrd(end); if(o>ord){ord=o;label=end;} }); return {ord,label}; }
+function colMemStatus(){
+  const box=$('col-mem-status'); if(!box) return;
+  const id=parseInt($('col-mem')?$('col-mem').value:''); const f=families.find(x=>x.id===id);
+  if(!f){ box.className='hidden'; box.innerHTML=''; box.removeAttribute('style'); return; }
+  const fees=memberFees(f), pt=paidThrough(fees);
+  const nowOrd=new Date().getFullYear()*12+new Date().getMonth();
+  const behind = pt.ord>=0 ? nowOrd-pt.ord : null;
+  const last=fees.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id)[0];
+  let badge, style;
+  if(pt.ord<0){ badge='No membership payments yet'; style='background:#fffbeb;color:#92400e'; }
+  else if(behind>0){ badge=`${behind} month${behind>1?'s':''} behind`; style='background:#fef2f2;color:#991b1b'; }
+  else { badge='Current ✓'; style='background:#ecfdf5;color:#065f46'; }
+  box.className='text-xs rounded-xl p-3 mb-3';
+  box.setAttribute('style', style);
+  const ptTxt = pt.ord>=0 ? esc(pt.label) : '—';
+  const lastTxt = last ? `${fmtDate(last.date)} · ${money(last.amount)}` : 'none on record';
+  box.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${badge}</div>Paid through: <b>${ptTxt}</b> &nbsp;·&nbsp; Last payment: ${lastTxt}`;
 }
 // Income types that are usually not tied to a person → default "Received from" to Anonymous
 const ANON_CODES=['4110','4200','4330','4410','4900'];
@@ -941,7 +966,7 @@ function selectNewMemberInCollections(id){
   fillFromSelect(); populateColMembership();
   if($('col-mem')) $('col-mem').value=id;
   if($('col-from')){ $('col-from').value='m'+id; toggleDonor(); }
-  colCalc();
+  colCalc(); colMemStatus();
 }
 // Membership payment on the Collections page — same confirm-before-print flow as Collect Fees.
 function saveMembershipCollection(){
@@ -957,7 +982,7 @@ function saveMembershipCollection(){
   const commit = async t=>{
     transactions.push(t);
     if(f){ f.lastPayment=fmtDate(t.date); f.lastPaidFor=t.period; f.lastAmount=t.amount; }
-    save(); $('col-note').value=''; advanceReceipt(); renderRecentCollections(); await gsSend('addPayment',t);
+    save(); $('col-note').value=''; advanceReceipt(); renderRecentCollections(); colMemStatus(); await gsSend('addPayment',t);
   };
   if(currentRole==='accountant'){        // historical entry: save only, no receipt
     commit(tx).then(()=>{ $('col-amount').value=''; $('col-mem').value=''; });
