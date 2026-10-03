@@ -209,10 +209,13 @@
           <h3 class="text-lg font-semibold mb-6">Record a Collection (income)</h3>
           <!-- Cashier: pick the member first to check their membership status (does not change the income type) -->
           <div id="cash-member-block" class="hidden mb-5 bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
-            <div class="flex items-center justify-between mb-1"><label class="block text-xs font-medium text-gray-600">Member — type a name to search</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
-            <input id="cash-mem-search" list="cash-mem-list" oninput="cashMemResolve()" onchange="cashMemResolve()" autocomplete="off" placeholder="Start typing a name…" class="w-full border rounded-2xl px-4 py-3 bg-white">
-            <datalist id="cash-mem-list"></datalist>
-            <input type="hidden" id="cash-mem">
+            <div class="flex items-center justify-between mb-1"><label class="block text-xs font-medium text-gray-600">Member</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
+            <div style="position:relative">
+              <input id="cash-mem-search" oninput="cashMemFilter()" onfocus="cashMemFilter()" onblur="setTimeout(function(){var e=document.getElementById('cash-mem-results');if(e)e.classList.add('hidden')},150)" autocomplete="off" placeholder="Select a member…" class="w-full border rounded-2xl px-4 py-3 pr-9 bg-white" style="cursor:pointer">
+              <i class="fa-solid fa-chevron-down" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#9ca3af;pointer-events:none"></i>
+              <div id="cash-mem-results" class="hidden" style="position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);max-height:230px;overflow-y:auto;background:#fff;border:1px solid #e5e7eb;border-radius:0.9rem;box-shadow:0 8px 24px rgba(0,0,0,.14)"></div>
+              <input type="hidden" id="cash-mem">
+            </div>
           </div>
           <!-- Historical entry: lock a month/year so you only type the day (accountant only) -->
           <div id="col-lock-bar" class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
@@ -947,22 +950,30 @@ function renderPtDrill(){
   box.innerHTML=`<div class="flex items-center justify-between mb-2"><span class="text-sm font-semibold text-gray-700">${title} · ${list.length} member${list.length===1?'':'s'}</span><button onclick="dashPtYear=null;renderPtDrill()" class="text-xs text-gray-400 hover:text-gray-600">Clear ✕</button></div><div style="max-height:260px;overflow-y:auto">${rows||'<p class="text-xs text-gray-400">None.</p>'}</div>`;
 }
 // ---- Cashier: top member picker + right-hand membership status card ----
-function fillCashMem(){
-  const dl=$('cash-mem-list'); if(!dl) return;
-  dl.innerHTML='';
-  families.slice().sort((a,b)=>famLabel(a).localeCompare(famLabel(b))).forEach(f=>{ const o=document.createElement('option'); o.value=famLabel(f); dl.appendChild(o); });
-}
+function fillCashMem(){ const box=$('cash-mem-results'); if(box) box.classList.add('hidden'); }
 // Set the cashier member picker programmatically (keeps the hidden id and the search box in step)
 function setCashMem(id){
   const f=id?families.find(x=>x.id===id):null;
   if($('cash-mem')) $('cash-mem').value=f?String(id):'';
   if($('cash-mem-search')) $('cash-mem-search').value=f?famLabel(f):'';
 }
-// Resolve what the cashier typed into a member id (exact name match); '' until it matches someone
-function cashMemResolve(){
-  const txt=($('cash-mem-search')?$('cash-mem-search').value:'').trim().toLowerCase();
-  const f=txt?families.find(x=>famLabel(x).toLowerCase()===txt):null;
-  if($('cash-mem')) $('cash-mem').value=f?String(f.id):'';
+// Dropdown that filters as you type: show matching members in a clickable list
+function cashMemFilter(){
+  const inp=$('cash-mem-search'), box=$('cash-mem-results'); if(!inp||!box) return;
+  const q=(inp.value||'').trim().toLowerCase();
+  const list=families.slice().sort((a,b)=>famLabel(a).localeCompare(famLabel(b))).filter(f=> !q || famLabel(f).toLowerCase().includes(q));
+  box.innerHTML = list.length
+    ? list.map(f=>`<div onmousedown="cashMemChoose(${f.id})" style="padding:10px 14px;cursor:pointer" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">${esc(famLabel(f))}</div>`).join('')
+    : '<div style="padding:10px 14px;color:#9ca3af">No match</div>';
+  box.classList.remove('hidden');
+  // keep the hidden id in step with an exact text match; clear (and hide the card) otherwise
+  const exact=q?families.find(x=>famLabel(x).toLowerCase()===q):null;
+  if($('cash-mem')) $('cash-mem').value = exact?String(exact.id):'';
+  if(!exact) renderCashierMemberCard();
+}
+function cashMemChoose(id){
+  setCashMem(id);
+  const box=$('cash-mem-results'); if(box) box.classList.add('hidden');
   cashMemPick();
 }
 function cashMemPick(){
