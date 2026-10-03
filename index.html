@@ -376,7 +376,8 @@
     <!-- LEDGER -->
     <section id="ledger-page" class="p-8 hidden">
       <div class="flex flex-wrap gap-3 mb-5 items-center">
-        <select id="led-type" onchange="renderLedger()" class="border rounded-xl px-4 py-2"><option value="">All types</option><option value="fee">Fees</option><option value="collection">Collections</option><option value="expense">Expenses</option><option value="transfer">Transfers</option></select>
+        <select id="led-acct" onchange="renderLedger()" class="border rounded-xl px-4 py-2"></select>
+        <select id="led-type" onchange="renderLedger()" class="border rounded-xl px-4 py-2"><option value="">All entry types</option><option value="fee">Fees</option><option value="collection">Collections</option><option value="expense">Expenses</option><option value="transfer">Transfers</option></select>
         <select id="led-year" onchange="renderLedger()" class="border rounded-xl px-4 py-2"></select>
         <select id="led-month" onchange="renderLedger()" class="border rounded-xl px-4 py-2"></select>
         <input id="led-search" oninput="renderLedger()" placeholder="Search…" class="border rounded-xl px-4 py-2 flex-1 min-w-[160px]">
@@ -1257,12 +1258,24 @@ function renderRecentExpenses(){
 
 // ================= LEDGER =================
 function ledgerYears(){ const ys=[...new Set(transactions.map(t=>+t.date.slice(0,4)))].sort((a,b)=>b-a); return ys.length?ys:[curYear()]; }
+// Account filter for the Ledger (income + expense accounts), keeping the current pick
+function ledFillAccounts(){
+  const sel=$('led-acct'); if(!sel) return; const cur=sel.value;
+  sel.innerHTML='<option value="">All accounts</option>';
+  const add=(type,label)=>{ const g=document.createElement('optgroup'); g.label=label;
+    accounts.filter(a=>a.type===type).sort((a,b)=>String(a.code).localeCompare(String(b.code))).forEach(a=>g.appendChild(new Option(`${a.code} ${a.name}`,a.id)));
+    if(g.children.length) sel.appendChild(g); };
+  add('income','Income'); add('expense','Expense');
+  if(cur) sel.value=cur;
+}
 function renderLedger(){
   // fill filters once
   const ySel=$('led-year'); if(ySel.dataset.filled!=='1'){ ySel.innerHTML='<option value="">All years</option>'; ledgerYears().forEach(y=>ySel.appendChild(new Option(y,y))); ySel.dataset.filled='1'; }
   const mSel=$('led-month'); if(mSel.dataset.filled!=='1'){ mSel.innerHTML='<option value="">All months</option>'; MONTHS.forEach((m,i)=>mSel.appendChild(new Option(m,i+1))); mSel.dataset.filled='1'; }
-  const ty=$('led-type').value, yr=$('led-year').value, mo=$('led-month').value, q=($('led-search').value||'').toLowerCase();
+  ledFillAccounts();
+  const ty=$('led-type').value, acct=$('led-acct')?$('led-acct').value:'', yr=$('led-year').value, mo=$('led-month').value, q=($('led-search').value||'').toLowerCase();
   let rows=transactions.filter(t=>{
+    if(acct && String(t.acctId)!==acct) return false;
     if(ty && t.kind!==ty) return false;
     if(yr && t.date.slice(0,4)!==yr) return false;
     if(mo && (+t.date.slice(5,7))!==(+mo)) return false;
@@ -1369,8 +1382,8 @@ function exportCSV(what){
     rows=[['Husband','Wife','Address','Phone','#Children','Children (name : birthday)','Last Payment']];
     families.forEach(f=>rows.push([f.husband||'',f.wife||'',f.address||'',f.phone||'',(f.children||[]).length,(f.children||[]).map(c=>`${c.name}: ${c.birthday||'?'}`).join('; '),f.lastPayment||'']));
   } else {
-    rows=[['Date','Kind','In/Out','Amount','Category','Family','Period','Payee','Method','Note']];
-    [...transactions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>rows.push([t.date,t.kind,t.dir,t.amount,t.category||'',t.family||'',t.period||'',t.payee||'',t.method||'',t.note||'']));
+    rows=[['Date','Receipt','Kind','In/Out','Amount','Category','Family','Donor','Period','Payee','Method','Note']];
+    [...transactions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>rows.push([t.date,t.receiptNo||'',t.kind,t.dir,t.amount,t.category||'',t.family||'',t.donor||'',t.period||'',t.payee||'',t.method||'',t.note||'']));
   }
   const csv=rows.map(r=>r.map(c=>{const s=String(c==null?'':c); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(',')).join('\n');
   download(`${what}_${todayISO()}.csv`, new Blob([csv],{type:'text/csv'}));
@@ -1380,8 +1393,8 @@ function buildWorkbook(){
   const fam=[['Husband','Wife','Address','Phone','#Children','Children','Last Payment']];
   families.forEach(f=>fam.push([f.husband||'',f.wife||'',f.address||'',f.phone||'',(f.children||[]).length,(f.children||[]).map(c=>`${c.name}: ${c.birthday||'?'}`).join('; '),f.lastPayment||'']));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fam), 'Families');
-  const tx=[['Date','Kind','In/Out','Acct','Account','Amount','Fund','Family','Donor','Period','Payee','Method','Note','TransferFrom','TransferTo']];
-  [...transactions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{ const a=acctById(t.acctId); tx.push([t.date,t.kind,t.dir,(a?a.code:(t.acct||'')),(a?a.name:(t.category||'')),t.amount,(t.kind==='transfer'?'':fundOf(t)),t.family||'',t.donor||'',t.period||'',t.payee||'',t.method||'',t.note||'',t.fromFund||'',t.toFund||'']); });
+  const tx=[['Date','Kind','In/Out','Acct','Account','Amount','Fund','Family','Donor','Period','Payee','Method','Note','TransferFrom','TransferTo','Receipt']];
+  [...transactions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{ const a=acctById(t.acctId); tx.push([t.date,t.kind,t.dir,(a?a.code:(t.acct||'')),(a?a.name:(t.category||'')),t.amount,(t.kind==='transfer'?'':fundOf(t)),t.family||'',t.donor||'',t.period||'',t.payee||'',t.method||'',t.note||'',t.fromFund||'',t.toFund||'',t.receiptNo||'']); });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tx), 'Transactions');
   const coa=[['Code','Name','Type','Balance','Link']];
   accounts.slice().sort((a,b)=>String(a.code).localeCompare(String(b.code))).forEach(a=>coa.push([a.code,a.name,a.type,(a.link?'':(a.balance||0)),a.link||'']));
@@ -1431,7 +1444,7 @@ function parseWorkbookData(wb){
   const ts=wb.Sheets['Transactions'];
   if(ts){ XLSX.utils.sheet_to_json(ts,{header:1}).slice(1).forEach((r,i)=>{ if(!r||r[0]==null||r[0]==='') return;
     const kind=(r[1]||'collection'); const dir=r[2]|| (kind==='expense'?'out':kind==='transfer'?'xfer':'in'); const acct=r[3]!=null?String(r[3]).trim():''; const a=findByCode(acct);
-    out.transactions.push({id:Date.now()+i+Math.floor(Math.random()*1e6),date:normDate(r[0]),kind,dir,acctId:a?a.id:null,acct,category:(a?a.name:(r[4]||(kind==='transfer'?'Transfer':''))),amount:+r[5]||0,fund:r[6]||'',family:r[7]||'',donor:r[8]||'',period:r[9]||'',payee:r[10]||'',method:r[11]||'',note:r[12]||'',fromFund:r[13]||'',toFund:r[14]||''});
+    out.transactions.push({id:Date.now()+i+Math.floor(Math.random()*1e6),date:normDate(r[0]),kind,dir,acctId:a?a.id:null,acct,category:(a?a.name:(r[4]||(kind==='transfer'?'Transfer':''))),amount:+r[5]||0,fund:r[6]||'',family:r[7]||'',donor:r[8]||'',period:r[9]||'',payee:r[10]||'',method:r[11]||'',note:r[12]||'',fromFund:r[13]||'',toFund:r[14]||'',receiptNo:(r[15]!=null?String(r[15]).trim():'')});
   }); }
   const ss=wb.Sheets['Settings'];
   if(ss){ XLSX.utils.sheet_to_json(ss,{header:1}).slice(1).forEach(r=>{ if(r[0]) out.settings[r[0]]=r[1]; }); }
