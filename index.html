@@ -94,25 +94,65 @@
 
     <!-- DASHBOARD -->
     <section id="dashboard-page" class="p-6">
-      <div class="dash-grid grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+      <!-- Header with year selector that drives every panel -->
+      <div class="flex flex-wrap items-center gap-3 mb-5">
+        <h2 class="text-lg font-semibold text-gray-700">Overview</h2>
+        <div class="flex items-center gap-2" style="margin-left:auto">
+          <label class="text-sm text-gray-500">Year</label>
+          <select id="dash-year" onchange="renderDashboard()" class="border rounded-xl px-3 py-2 bg-white"></select>
+        </div>
+      </div>
 
-        <!-- Summary column: all key figures grouped in one card -->
+      <!-- KPI row: this year vs last year -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-5 mb-6">
+        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-emerald-400">
+          <p class="text-xs text-gray-500">Income (<span class="dash-year-label"></span>)</p>
+          <p id="s-income" class="text-2xl font-bold text-emerald-600">$0</p>
+          <p id="s-income-yoy" class="text-xs mt-1 text-gray-400"></p>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-red-400">
+          <p class="text-xs text-gray-500">Expenses (<span class="dash-year-label"></span>)</p>
+          <p id="s-expense" class="text-2xl font-bold text-red-500">$0</p>
+          <p id="s-expense-yoy" class="text-xs mt-1 text-gray-400"></p>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-indigo-400">
+          <p class="text-xs text-gray-500">Net (<span class="dash-year-label"></span>)</p>
+          <p id="s-net" class="text-2xl font-bold text-gray-800">$0</p>
+          <p id="s-net-yoy" class="text-xs mt-1 text-gray-400"></p>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-sky-400">
+          <p class="text-xs text-gray-500">Total funds (now)</p>
+          <p id="s-funds" class="text-2xl font-bold text-indigo-700">$0</p>
+          <p id="s-funds-sub" class="text-xs mt-1 text-gray-400"></p>
+        </div>
+      </div>
+
+      <!-- Trend + side panel -->
+      <div class="dash-grid grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        <div class="dash-wide lg:col-span-2 bg-white rounded-2xl shadow flex flex-col overflow-hidden">
+          <div class="px-6 py-4 border-b flex items-center justify-between">
+            <span class="font-semibold text-gray-700">Income vs expense — <span class="dash-year-label"></span></span>
+            <span class="text-xs text-gray-500"><span class="inline-block w-3 h-3 rounded-sm align-middle" style="background:#059669"></span> In &nbsp; <span class="inline-block w-3 h-3 rounded-sm align-middle" style="background:#dc2626"></span> Out</span>
+          </div>
+          <div id="dash-trend" class="p-6 space-y-2 flex-1 overflow-auto"></div>
+        </div>
+
         <div class="bg-white rounded-2xl shadow p-6 flex flex-col gap-6">
           <div>
-            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-3">This year (<span class="cur-year"></span>)</p>
-            <div class="space-y-2.5">
-              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Income</span><span id="s-income" class="text-xl font-bold text-emerald-600">$0</span></div>
-              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Expenses</span><span id="s-expense" class="text-xl font-bold text-red-500">$0</span></div>
-              <div class="flex justify-between items-baseline border-t pt-2.5"><span class="text-gray-600 text-sm font-medium">Net</span><span id="s-net" class="text-xl font-bold text-gray-800">$0</span></div>
-            </div>
-          </div>
-          <div>
-            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-3">Funds on hand</p>
+            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-3">Funds on hand (now)</p>
             <div class="space-y-2.5">
               <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Cash</span><span id="s-cash" class="text-lg font-semibold text-emerald-700">$0</span></div>
               <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Checks (undeposited)</span><span id="s-undep" class="text-lg font-semibold text-amber-600">$0</span></div>
               <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Bank</span><span id="s-bank" class="text-lg font-semibold text-sky-700">$0</span></div>
-              <div class="flex justify-between items-baseline border-t pt-2.5"><span class="text-gray-600 text-sm font-medium">Total</span><span id="s-funds" class="text-2xl font-bold text-indigo-700">$0</span></div>
+              <div class="flex justify-between items-baseline border-t pt-2.5"><span class="text-gray-600 text-sm font-medium">Total</span><span id="s-funds-b" class="text-xl font-bold text-indigo-700">$0</span></div>
+            </div>
+          </div>
+          <div>
+            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-3">Net assets</p>
+            <div class="space-y-2.5">
+              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Total assets</span><span id="s-assets" class="text-sm font-semibold text-gray-700">$0</span></div>
+              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Total liabilities</span><span id="s-liab" class="text-sm font-semibold text-gray-700">$0</span></div>
+              <div class="flex justify-between items-baseline border-t pt-2.5"><span class="text-gray-600 text-sm font-medium">Net assets</span><span id="s-netassets" class="text-lg font-bold text-gray-800">$0</span></div>
             </div>
           </div>
           <div class="mt-auto grid grid-cols-2 gap-3">
@@ -120,16 +160,16 @@
             <div class="bg-sky-50 rounded-xl py-3 text-center"><p id="s-members" class="text-2xl font-bold text-sky-600 leading-none">0</p><p class="text-[11px] text-gray-500 mt-1">Members</p></div>
           </div>
         </div>
+      </div>
 
-        <!-- Recent transactions fills the rest -->
-        <div class="dash-wide lg:col-span-2 bg-white rounded-2xl shadow flex flex-col overflow-hidden">
-          <div class="px-6 py-4 border-b font-semibold text-gray-700">Recent transactions</div>
-          <div class="overflow-auto flex-1">
-            <table class="w-full text-sm">
-              <thead class="bg-gray-50 text-gray-500 sticky top-0"><tr><th class="text-left px-6 py-2.5">Date</th><th class="text-left px-6 py-2.5">Description</th><th class="text-right px-6 py-2.5">Amount</th></tr></thead>
-              <tbody id="recent-tbody" class="divide-y"></tbody>
-            </table>
-          </div>
+      <!-- Recent transactions -->
+      <div class="bg-white rounded-2xl shadow flex flex-col overflow-hidden mt-6" style="max-height:420px">
+        <div class="px-6 py-4 border-b font-semibold text-gray-700">Recent transactions</div>
+        <div class="overflow-auto flex-1">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-500 sticky top-0"><tr><th class="text-left px-6 py-2.5">Date</th><th class="text-left px-6 py-2.5">Description</th><th class="text-right px-6 py-2.5">Amount</th></tr></thead>
+            <tbody id="recent-tbody" class="divide-y"></tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -984,17 +1024,66 @@ function renderBalanceSheet(){
 }
 
 // ================= DASHBOARD =================
+// income/expense totals for one calendar year
+function yearTotals(y){
+  let inc=0, exp=0;
+  transactions.forEach(t=>{ if((+t.date.slice(0,4))!==y) return; if(t.dir==='in') inc+=t.amount; else if(t.dir==='out') exp+=t.amount; });
+  return {inc, exp, net:inc-exp};
+}
+// year-over-year badge: compares cur vs prev; higherIsGood decides the colour
+function yoyBadge(cur, prev, prevYear, higherIsGood){
+  if(!prev){ return cur ? `<span class="text-gray-400">no ${prevYear} figure to compare</span>` : `<span class="text-gray-400">—</span>`; }
+  const d=(cur-prev)/Math.abs(prev)*100;
+  const up=cur>=prev, good = higherIsGood ? up : !up;
+  const cls = good ? 'text-emerald-600' : 'text-red-600';
+  return `<span class="${cls}">${up?'▲':'▼'} ${Math.abs(d).toFixed(0)}%</span> <span class="text-gray-400">vs ${prevYear}</span>`;
+}
 function renderDashboard(){
+  // year selector (built once, current year first), drives every panel
+  const ySel=$('dash-year');
+  if(ySel){ const cur=ySel.value; const years=[...new Set(transactions.map(t=>+t.date.slice(0,4)))].sort((a,b)=>b-a); if(!years.includes(curYear())) years.unshift(curYear());
+    ySel.innerHTML=''; years.forEach(y=>ySel.appendChild(new Option(y,y))); ySel.value = cur || String(curYear()); if(!ySel.value) ySel.value=String(years[0]); }
+  const y = +((ySel && ySel.value) || curYear());
+  document.querySelectorAll('.dash-year-label, .cur-year').forEach(e=>e.textContent=y);
+
+  const cur=yearTotals(y), prev=yearTotals(y-1);
+  $('s-income').textContent = money0(cur.inc);
+  $('s-expense').textContent = money0(cur.exp);
+  const net=$('s-net'); net.textContent = money0(cur.net); net.classList.remove('text-gray-800','text-emerald-600','text-red-600'); net.classList.add(cur.net>=0?'text-emerald-600':'text-red-600');
+  $('s-income-yoy').innerHTML  = yoyBadge(cur.inc, prev.inc, y-1, true);
+  $('s-expense-yoy').innerHTML = yoyBadge(cur.exp, prev.exp, y-1, false);
+  $('s-net-yoy').innerHTML     = yoyBadge(cur.net, prev.net, y-1, true);
+
+  // funds + net assets (current snapshot, not year-bound)
+  const b=balances();
+  $('s-funds').textContent=money0(b.total);
+  $('s-funds-sub').innerHTML=`Cash ${money0(b.cash)} · Bank ${money0(b.bank)} · Checks ${money0(b.undeposited)}`;
+  if($('s-cash')) $('s-cash').textContent=money0(b.cash);
+  if($('s-undep')) $('s-undep').textContent=money0(b.undeposited);
+  if($('s-bank')) $('s-bank').textContent=money0(b.bank);
+  if($('s-funds-b')) $('s-funds-b').textContent=money0(b.total);
+  const TA=totalAssets(), TL=totalLiabilities();
+  if($('s-assets')) $('s-assets').textContent=money0(TA);
+  if($('s-liab')) $('s-liab').textContent=money0(TL);
+  if($('s-netassets')) $('s-netassets').textContent=money0(TA-TL);
   $('s-families').textContent = families.length;
   $('s-members').textContent = families.reduce((a,f)=>a+memberCount(f),0);
-  const y = curYear();
-  const inc = transactions.filter(t=>t.dir==='in' && (+t.date.slice(0,4))===y).reduce((a,t)=>a+t.amount,0);
-  const exp = transactions.filter(t=>t.dir==='out' && (+t.date.slice(0,4))===y).reduce((a,t)=>a+t.amount,0);
-  $('s-income').textContent = money0(inc);
-  $('s-expense').textContent = money0(exp);
-  const net=$('s-net'); net.textContent = money0(inc-exp); net.classList.remove('text-gray-800','text-emerald-600','text-red-600'); net.classList.add((inc-exp)>=0?'text-emerald-600':'text-red-600');
-  document.querySelectorAll('.cur-year').forEach(e=>e.textContent=y);
-  const b=balances(); $('s-cash').textContent=money0(b.cash); $('s-bank').textContent=money0(b.bank); $('s-funds').textContent=money0(b.total); { const u=$('s-undep'); if(u) u.textContent=money0(b.undeposited); }
+
+  // 12-month income vs expense trend for the selected year
+  const mi=Array(12).fill(0), me=Array(12).fill(0);
+  transactions.forEach(t=>{ if((+t.date.slice(0,4))!==y) return; const m=(+t.date.slice(5,7))-1; if(t.dir==='in')mi[m]+=t.amount; else if(t.dir==='out')me[m]+=t.amount; });
+  const max=Math.max(1,...mi,...me);
+  const ch=$('dash-trend'); if(ch){ ch.innerHTML='';
+    for(let m=0;m<12;m++){
+      ch.innerHTML+=`<div class="flex items-center gap-2 text-xs"><div class="w-8 text-gray-500">${MONTHS[m].slice(0,3)}</div>
+        <div class="flex-1"><div class="h-3 rounded-sm" style="width:${(mi[m]/max*100)||0}%;background:#059669;min-width:${mi[m]?'2px':'0'}"></div>
+        <div class="h-3 rounded-sm mt-0.5" style="width:${(me[m]/max*100)||0}%;background:#dc2626;min-width:${me[m]?'2px':'0'}"></div></div>
+        <div class="w-28 text-right text-gray-400">${mi[m]?money0(mi[m]):''}${me[m]?' / '+money0(me[m]):''}</div></div>`;
+    }
+    if(!mi.some(v=>v)&&!me.some(v=>v)) ch.innerHTML=`<p class="text-center text-gray-400 text-sm py-8">No activity recorded in ${y}.</p>`;
+  }
+
+  // recent transactions (latest overall)
   const tb=$('recent-tbody'); tb.innerHTML='';
   [...transactions].sort((a,b)=> b.date.localeCompare(a.date) || b.id-a.id).slice(0,8).forEach(t=>{
     const tr=document.createElement('tr'); tr.className='hover:bg-gray-50';
@@ -1003,7 +1092,7 @@ function renderDashboard(){
     tr.innerHTML=`<td class="px-6 py-2">${fmtDate(t.date)}</td><td class="px-6 py-2">${esc(txDesc(t))}</td><td class="px-6 py-2 text-right font-semibold ${amtCls}">${sign}${money(t.amount)}</td>`;
     tb.appendChild(tr);
   });
-  if(!transactions.length) tb.innerHTML='<tr><td colspan="4" class="px-6 py-6 text-center text-gray-400">No transactions yet.</td></tr>';
+  if(!transactions.length) tb.innerHTML='<tr><td colspan="3" class="px-6 py-6 text-center text-gray-400">No transactions yet.</td></tr>';
 }
 function txDesc(t){
   if(t.kind==='transfer') return `Transfer ${t.fromFund==='cash'?'Cash → Bank':'Bank → Cash'}${t.note?' ('+t.note+')':''}`;
