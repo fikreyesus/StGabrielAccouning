@@ -386,7 +386,7 @@
       <div class="bg-white rounded-2xl shadow overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 text-gray-600"><tr>
-            <th class="text-left px-4 py-3">Date</th><th class="text-left px-4 py-3">Type</th>
+            <th class="text-left px-4 py-3">Date</th>
             <th class="text-left px-4 py-3">Description</th><th class="text-left px-4 py-3">Account</th>
             <th class="text-right px-4 py-3">In</th><th class="text-right px-4 py-3">Out</th><th class="text-center px-4 py-3"></th>
           </tr></thead>
@@ -1265,7 +1265,7 @@ function ledFillAccounts(){
   const add=(type,label)=>{ const g=document.createElement('optgroup'); g.label=label;
     accounts.filter(a=>a.type===type).sort((a,b)=>String(a.code).localeCompare(String(b.code))).forEach(a=>g.appendChild(new Option(`${a.code} ${a.name}`,a.id)));
     if(g.children.length) sel.appendChild(g); };
-  add('income','Income'); add('expense','Expense');
+  add('income','Income'); add('expense','Expense'); add('asset','Assets'); add('liability','Liabilities'); add('equity','Equity');
   if(cur) sel.value=cur;
 }
 function renderLedger(){
@@ -1285,12 +1285,11 @@ function renderLedger(){
   let inSum=0,outSum=0;
   const tb=$('ledger-tbody'); tb.innerHTML='';
   rows.forEach(t=>{ if(t.dir==='in')inSum+=t.amount; else if(t.dir==='out')outSum+=t.amount;
-    const bc=t.kind==='transfer'?'bg-gray-100 text-gray-600':(t.dir==='in'?'bg-emerald-100 text-emerald-700':'bg-red-100 text-red-700');
     const inCell=t.dir==='in'?money(t.amount):'';
     const outCell=t.dir==='out'?money(t.amount):(t.kind==='transfer'?`<span class="text-gray-400">${money(t.amount)}</span>`:'');
-    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-4 py-2"><span class="text-xs px-2 py-0.5 rounded-full ${bc}">${t.kind}</span></td><td class="px-4 py-2">${esc(txDesc(t))}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="px-4 py-2 text-right text-emerald-600">${inCell}</td><td class="px-4 py-2 text-right text-red-600">${outCell}</td><td class="px-4 py-2 text-center"><button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-4 py-2">${esc(txDesc(t))}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="px-4 py-2 text-right text-emerald-600">${inCell}</td><td class="px-4 py-2 text-right text-red-600">${outCell}</td><td class="px-4 py-2 text-center"><button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
   });
-  if(!rows.length) tb.innerHTML='<tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">No matching transactions.</td></tr>';
+  if(!rows.length) tb.innerHTML='<tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">No matching transactions.</td></tr>';
   $('led-summary').innerHTML=`In: <b class="text-emerald-600">${money(inSum)}</b> &nbsp; Out: <b class="text-red-600">${money(outSum)}</b> &nbsp; Net: <b>${money(inSum-outSum)}</b>`;
 }
 function deleteTx(id){ const t=transactions.find(x=>x.id===id); if(!confirm(`Delete this ${t.kind} of ${money(t.amount)} on ${fmtDate(t.date)}?`)) return; transactions=transactions.filter(x=>x.id!==id); save(); renderLedger(); }
