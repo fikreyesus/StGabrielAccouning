@@ -629,7 +629,7 @@
       <input id="receipt-phone" type="tel" placeholder="e.g. (502) 555-1234" class="w-full border rounded-2xl px-4 py-2.5">
       <p class="text-[11px] text-gray-400 mt-1">A new or changed number is saved to the member's record.</p>
     </div>
-    <div class="flex gap-4 mt-6" id="receipt-actions"></div>
+    <div class="flex flex-wrap gap-3 mt-6" id="receipt-actions"></div>
   </div>
 </div>
 
@@ -1432,6 +1432,14 @@ async function confirmReceipt(){
   renderReceipt(tx, false);
   window.print();
 }
+// Cashier confirms and texts (saves the payment, then opens the messaging app — no print)
+async function confirmReceiptText(){
+  if(!pendingReceipt) return;
+  const {tx, commit}=pendingReceipt; pendingReceipt=null;
+  if(commit) await commit(tx);
+  renderReceipt(tx, false);   // committed view keeps the phone the cashier typed
+  textReceipt();
+}
 function cancelPending(){ pendingReceipt=null; $('receipt-modal').classList.add('hidden'); }
 // Collect Fees — prepare payment & preview (does not commit until confirmed).
 function saveFee(){
@@ -1509,14 +1517,19 @@ function renderReceipt(t, confirm){
     <p style="text-align:center;font-size:26px;font-weight:bold;color:#059669">${money(t.amount)}</p>
     <p style="text-align:center;font-size:11px;margin-top:8px">Thank you &amp; God bless</p>`;
   $('receipt-actions').innerHTML = confirm
-    ? `<button onclick="cancelPending()" class="flex-1 bg-gray-200 py-3 rounded-2xl font-semibold">Cancel</button>
-       <button onclick="confirmReceipt()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-check"></i> Confirm &amp; Print</button>`
+    ? `<button onclick="cancelPending()" style="min-width:5rem" class="flex-1 bg-gray-200 py-3 rounded-2xl font-semibold">Cancel</button>
+       <button onclick="confirmReceipt()" style="min-width:8rem" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-print"></i> Confirm &amp; Print</button>
+       <button onclick="confirmReceiptText()" style="min-width:8rem" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-paper-plane"></i> Confirm &amp; Text</button>`
     : `<button onclick="window.print()" class="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-print"></i> Print</button>
        <button onclick="textReceipt()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-paper-plane"></i> Text</button>
        <button onclick="closeReceipt()" class="flex-1 bg-gray-300 py-3 rounded-2xl font-semibold">Close</button>`;
-  // Phone field shows on the committed receipt (for texting); prefilled from the member, editable, saved on send
+  // Phone field is shown on both the confirm step and the printed receipt; prefilled from the member, editable, saved on Text
   const pw=$('receipt-phone-wrap'), pin=$('receipt-phone');
-  if(pw && pin){ if(confirm){ pw.classList.add('hidden'); } else { pw.classList.remove('hidden'); pin.value=receiptPhone(t)||''; } }
+  if(pw && pin){
+    pw.classList.remove('hidden');
+    // On the confirm step start fresh from the member's number; on the committed step keep anything the cashier typed
+    pin.value = confirm ? (receiptPhone(t)||'') : (receiptPhone(t) || pin.value || '');
+  }
   $('receipt-modal').classList.remove('hidden');
 }
 // Committed receipt (no confirm step) — kept for any direct receipt display.
