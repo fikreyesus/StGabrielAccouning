@@ -1432,13 +1432,14 @@ async function confirmReceipt(){
   renderReceipt(tx, false);
   window.print();
 }
-// Cashier confirms and texts (saves the payment, then opens the messaging app — no print)
-async function confirmReceiptText(){
+// Cashier confirms, prints, AND opens the text in one step
+async function confirmReceiptPrintText(){
   if(!pendingReceipt) return;
   const {tx, commit}=pendingReceipt; pendingReceipt=null;
   if(commit) await commit(tx);
   renderReceipt(tx, false);   // committed view keeps the phone the cashier typed
-  textReceipt();
+  window.print();             // print first (blocks until the dialog is closed)
+  textReceipt();              // then open the messaging app pre-filled
 }
 function cancelPending(){ pendingReceipt=null; $('receipt-modal').classList.add('hidden'); }
 // Collect Fees — prepare payment & preview (does not commit until confirmed).
@@ -1518,8 +1519,7 @@ function renderReceipt(t, confirm){
     <p style="text-align:center;font-size:11px;margin-top:8px">Thank you &amp; God bless</p>`;
   $('receipt-actions').innerHTML = confirm
     ? `<button onclick="cancelPending()" style="min-width:5rem" class="flex-1 bg-gray-200 py-3 rounded-2xl font-semibold">Cancel</button>
-       <button onclick="confirmReceipt()" style="min-width:8rem" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-print"></i> Confirm &amp; Print</button>
-       <button onclick="confirmReceiptText()" style="min-width:8rem" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-paper-plane"></i> Confirm &amp; Text</button>`
+       <button onclick="confirmReceiptPrintText()" style="min-width:10rem" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-print"></i> Confirm &amp; Print / Text</button>`
     : `<button onclick="window.print()" class="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-print"></i> Print</button>
        <button onclick="textReceipt()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-paper-plane"></i> Text</button>
        <button onclick="closeReceipt()" class="flex-1 bg-gray-300 py-3 rounded-2xl font-semibold">Close</button>`;
