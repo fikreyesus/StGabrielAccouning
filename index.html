@@ -197,6 +197,11 @@
       <div class="grid md:grid-cols-2 gap-6">
         <div class="bg-white rounded-3xl shadow p-8">
           <h3 class="text-lg font-semibold mb-6">Record a Collection (income)</h3>
+          <!-- Cashier: pick the member first to check their membership status (does not change the income type) -->
+          <div id="cash-member-block" class="hidden mb-5 bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
+            <div class="flex items-center justify-between mb-1"><label class="block text-xs font-medium text-gray-600">Member — check status first</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
+            <select id="cash-mem" onchange="cashMemPick()" class="w-full border rounded-2xl px-4 py-3 bg-white"></select>
+          </div>
           <!-- Historical entry: lock a month/year so you only type the day -->
           <div class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
             <label class="flex items-center gap-2 cursor-pointer"><input id="col-lock" type="checkbox" onchange="toggleDateLock()"> <span class="font-medium text-amber-700"><i class="fa-solid fa-lock"></i> Lock month/year</span></label>
@@ -253,7 +258,9 @@
           <input id="col-note" class="w-full border rounded-2xl px-4 py-3 mb-5" placeholder="e.g. prayer request for…, in memory of…">
           <button onclick="saveCollection()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-semibold">Save Collection</button>
         </div>
-        <div class="bg-white rounded-3xl shadow overflow-hidden">
+        <!-- Cashier: member membership status shows here when a member is selected -->
+        <div id="col-member-card" class="hidden bg-white rounded-3xl shadow overflow-hidden"></div>
+        <div id="col-recent-card" class="bg-white rounded-3xl shadow overflow-hidden">
           <div class="px-6 py-3 border-b flex flex-wrap items-center gap-2">
             <span class="font-semibold text-gray-700">Recent collections</span>
             <span id="col-recent-count" class="text-xs text-gray-400"></span>
@@ -584,6 +591,12 @@
     <input id="fm-address" class="w-full border rounded-xl px-3 py-2">
     <label class="block text-xs text-gray-600 mb-1 mt-4">Phone</label>
     <input id="fm-phone" class="w-full border rounded-xl px-3 py-2">
+    <label class="block text-xs text-gray-600 mb-1 mt-4">Membership paid through <span class="text-gray-400">(optional — the last month this member has paid up to)</span></label>
+    <div class="grid grid-cols-2 gap-3">
+      <select id="fm-paid-month" class="w-full border rounded-xl px-3 py-2 bg-white"></select>
+      <input id="fm-paid-year" type="number" min="2000" max="2100" placeholder="Year" class="w-full border rounded-xl px-3 py-2">
+    </div>
+    <p class="text-[11px] text-gray-400 mt-1">Status only — this does not add any income. New payments you record will move it forward automatically.</p>
     <div class="flex items-center justify-between mt-5 mb-2">
       <span class="text-sm font-medium text-gray-700">Children</span>
       <button onclick="addChildRow()" class="text-indigo-600 text-sm"><i class="fa-solid fa-plus"></i> Add child</button>
@@ -728,7 +741,8 @@ function showPage(page){
   $('page-title').textContent = titles[page];
   if(page==='dashboard') renderDashboard();
   if(page==='families') renderFamilies();
-  if(page==='collections'){ fillAccountSelect($('col-cat'),'income'); fillFromSelect(); colCatChange(); renderRecentCollections(); }
+  if(page==='collections'){ fillAccountSelect($('col-cat'),'income'); fillFromSelect(); colCatChange(); renderRecentCollections();
+    const cb=$('cash-member-block'); if(cb) cb.classList.toggle('hidden', currentRole!=='cashier'); fillCashMem(); renderCashierMemberCard(); }
   if(page==='expenses'){ fillAccountSelect($('exp-cat'),'expense'); renderRecentExpenses(); }
   if(page==='cashbank') renderCashBank();
   if(page==='accounts') renderAccounts();
@@ -823,23 +837,87 @@ function populateColMembership(){
 function memberFees(f){ const label=famLabel(f); return transactions.filter(t=>t.kind==='fee' && (t.familyId===f.id || (t.family && t.family===label))); }
 // Furthest month a family has paid through, parsed from each entry's period ("June 2024" or "April 2024 to June 2024")
 function paidThrough(fees){ let ord=-1,label=''; fees.forEach(t=>{ if(!t.period) return; const parts=String(t.period).split(' to '); const end=(parts[1]||parts[0]).trim(); const o=monthOrd(end); if(o>ord){ord=o;label=end;} }); return {ord,label}; }
-function colMemStatus(){
-  const box=$('col-mem-status'); if(!box) return;
-  const id=parseInt($('col-mem')?$('col-mem').value:''); const f=families.find(x=>x.id===id);
-  if(!f){ box.className='hidden'; box.innerHTML=''; box.removeAttribute('style'); return; }
+// One place that works out a member's membership standing (used by the inline note and the cashier card)
+function computeMemberStatus(f){
   const fees=memberFees(f), pt=paidThrough(fees);
+  if(f.paidThrough){ const bo=monthOrd(f.paidThrough); if(bo>pt.ord){ pt.ord=bo; pt.label=f.paidThrough; } }
   const nowOrd=new Date().getFullYear()*12+new Date().getMonth();
   const behind = pt.ord>=0 ? nowOrd-pt.ord : null;
   const last=fees.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id)[0];
-  let badge, style;
-  if(pt.ord<0){ badge='No membership payments yet'; style='background:#fffbeb;color:#92400e'; }
-  else if(behind>0){ badge=`${behind} month${behind>1?'s':''} behind`; style='background:#fef2f2;color:#991b1b'; }
-  else { badge='Current ✓'; style='background:#ecfdf5;color:#065f46'; }
-  box.className='text-xs rounded-xl p-3 mb-3';
-  box.setAttribute('style', style);
-  const ptTxt = pt.ord>=0 ? esc(pt.label) : '—';
-  const lastTxt = last ? `${fmtDate(last.date)} · ${money(last.amount)}` : 'none on record';
-  box.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${badge}</div>Paid through: <b>${ptTxt}</b> &nbsp;·&nbsp; Last payment: ${lastTxt}`;
+  let badge, tone;
+  if(pt.ord<0){ badge='No membership payments yet'; tone='warn'; }
+  else if(behind>0){ badge=`${behind} month${behind>1?'s':''} behind`; tone='behind'; }
+  else { badge='Current ✓'; tone='ok'; }
+  return { pt, behind, last, badge, tone,
+    paidLabel: pt.ord>=0?pt.label:'—',
+    nextLabel: pt.ord>=0?ordToLabel(pt.ord+1):null,
+    lastTxt: last?`${fmtDate(last.date)} · ${money(last.amount)}`:'none on record' };
+}
+function toneColors(tone){ return tone==='ok'?{bg:'#ecfdf5',fg:'#065f46'}:tone==='behind'?{bg:'#fef2f2',fg:'#991b1b'}:{bg:'#fffbeb',fg:'#92400e'}; }
+function colMemStatus(){
+  const box=$('col-mem-status');
+  const id=parseInt($('col-mem')?$('col-mem').value:''); const f=families.find(x=>x.id===id);
+  if(box){
+    if(!f){ box.className='hidden'; box.innerHTML=''; box.removeAttribute('style'); }
+    else {
+      const st=computeMemberStatus(f), c=toneColors(st.tone);
+      box.className='text-xs rounded-xl p-3 mb-3'; box.setAttribute('style', `background:${c.bg};color:${c.fg}`);
+      box.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${st.badge}</div>Paid through: <b>${esc(st.paidLabel)}</b>`
+        + (st.nextLabel ? ` &nbsp;·&nbsp; Next due: <b>${esc(st.nextLabel)}</b>` : '')
+        + `<br>Last payment: ${st.lastTxt}`;
+      // For the cashier, start the collection at the next unpaid month (unless a period/date lock is in force)
+      if(st.nextLabel && currentRole==='cashier' && !(($('col-period-lock')&&$('col-period-lock').checked) || ($('col-lock')&&$('col-lock').checked))){
+        const s=$('col-mstart');
+        if(s && [...s.options].some(o=>o.value===st.nextLabel)){
+          s.value=st.nextLabel;
+          if($('col-mmode') && $('col-mmode').value==='multi'){ rebuildColEnd(); } else if($('col-mend')){ $('col-mend').value=st.nextLabel; }
+          colCalc();
+        }
+      }
+    }
+  }
+  // Cashier: keep the top member picker and the right-hand status card in step with the membership-panel selection
+  if(currentRole==='cashier' && $('cash-mem')){
+    if(f && $('col-mem-panel') && !$('col-mem-panel').classList.contains('hidden')) $('cash-mem').value=String(f.id);
+    renderCashierMemberCard();
+  }
+}
+// Convert a month-ordinal (year*12 + monthIndex) back to a "Month Year" label
+function ordToLabel(ord){ const y=Math.floor(ord/12), m=((ord%12)+12)%12; return `${MONTHS[m]} ${y}`; }
+// ---- Cashier: top member picker + right-hand membership status card ----
+function fillCashMem(){
+  const sel=$('cash-mem'); if(!sel) return; const cur=sel.value;
+  sel.innerHTML='<option value="">— Select a member to see their status —</option>';
+  families.slice().sort((a,b)=>famLabel(a).localeCompare(famLabel(b))).forEach(f=>sel.appendChild(new Option(famLabel(f), f.id)));
+  if(cur) sel.value=cur;
+}
+function cashMemPick(){
+  const id=parseInt($('cash-mem').value)||null;
+  // mirror into the membership panel only when it's open (don't force membership mode)
+  if($('col-mem') && $('col-mem-panel') && !$('col-mem-panel').classList.contains('hidden')){ $('col-mem').value=id?String(id):''; colMemStatus(); }
+  renderCashierMemberCard();
+}
+function cashClearMember(){ if($('cash-mem')) $('cash-mem').value=''; if($('col-mem') && $('col-mem-panel') && !$('col-mem-panel').classList.contains('hidden')){ $('col-mem').value=''; colMemStatus(); } renderCashierMemberCard(); }
+function renderCashierMemberCard(){
+  const card=$('col-member-card'), recent=$('col-recent-card'); if(!card) return;
+  const id = (currentRole==='cashier' && $('cash-mem')) ? (parseInt($('cash-mem').value)||null) : null;
+  const f = id?families.find(x=>x.id===id):null;
+  if(!f){ card.className='hidden'; card.innerHTML=''; if(recent) recent.classList.remove('hidden'); return; }
+  const st=computeMemberStatus(f), c=toneColors(st.tone);
+  card.className='bg-white rounded-3xl shadow overflow-hidden';
+  if(recent) recent.classList.add('hidden');   // paid-through replaces recent collections for the cashier
+  card.innerHTML = `
+    <div class="px-6 py-3 border-b flex items-center justify-between"><span class="font-semibold text-gray-700">Membership status</span><button type="button" onclick="cashClearMember()" class="text-xs text-gray-400 hover:text-gray-600">Show recent ✕</button></div>
+    <div class="p-6">
+      <p class="text-lg font-bold text-gray-800 mb-2">${esc(famLabel(f))}</p>
+      <div class="inline-block text-sm font-semibold rounded-full px-3 py-1 mb-5" style="background:${c.bg};color:${c.fg}">${st.badge}</div>
+      <div class="space-y-3 text-sm">
+        <div class="flex justify-between border-b pb-2"><span class="text-gray-500">Paid through</span><span class="font-semibold">${esc(st.paidLabel)}</span></div>
+        <div class="flex justify-between border-b pb-2"><span class="text-gray-500">Next payment due</span><span class="font-semibold" style="color:${c.fg}">${st.nextLabel?esc(st.nextLabel):'—'}</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Last payment</span><span class="font-semibold">${st.lastTxt}</span></div>
+      </div>
+      ${st.nextLabel?`<p class="text-xs text-gray-500 mt-5">To collect dues, choose <b>Membership Fees</b> as the income type below — the period starts at <b>${esc(st.nextLabel)}</b>.</p>`:`<p class="text-xs text-gray-500 mt-5">No membership history yet. Set a starting month in the member's record (Families → edit) if they paid before.</p>`}
+    </div>`;
 }
 // Income types that are usually not tied to a person → default "Received from" to Anonymous
 const ANON_CODES=['4110','4200','4330','4410','4900'];
@@ -850,7 +928,10 @@ function colCatChange(){
   $('col-from-row').classList.toggle('hidden', mem);
   if(mem){ amt.readOnly=false; amt.classList.remove('bg-gray-50'); amt.placeholder=''; if(lbl) lbl.textContent='Total ($)';
     const mw=$('col-monthly-wrap'); if(mw) mw.classList.toggle('hidden', currentRole==='accountant');  // accountant types the total directly
-    populateColMembership(); colMonthModeChange(); colCalc(); }
+    populateColMembership();
+    // Cashier: carry over the member already chosen in the top picker
+    if(currentRole==='cashier' && $('cash-mem') && $('cash-mem').value && $('col-mem')) $('col-mem').value=$('cash-mem').value;
+    colMonthModeChange(); colCalc(); colMemStatus(); }
   else { amt.readOnly=false; amt.classList.remove('bg-gray-50'); amt.placeholder=''; if(lbl) lbl.textContent='Amount ($)';
     const a=acctById(+$('col-cat').value), fs=$('col-from');
     if(a && fs && ANON_CODES.includes(a.code)){ fs.value='anon'; toggleDonor(); }
@@ -963,10 +1044,11 @@ function expenseDate(){
 // ---- Add a member without leaving the Collections page ----
 function addMemberFromCollection(){ openFamilyModal(null, 'collections'); }
 function selectNewMemberInCollections(id){
-  fillFromSelect(); populateColMembership();
+  fillFromSelect(); populateColMembership(); fillCashMem();
   if($('col-mem')) $('col-mem').value=id;
+  if($('cash-mem')) $('cash-mem').value=id;
   if($('col-from')){ $('col-from').value='m'+id; toggleDonor(); }
-  colCalc(); colMemStatus();
+  colCalc(); colMemStatus(); renderCashierMemberCard();
 }
 // Membership payment on the Collections page — same confirm-before-print flow as Collect Fees.
 function saveMembershipCollection(){
@@ -1156,6 +1238,9 @@ function openFamilyModal(id, from){
   $('fm-single-name').value = (f && marital==='single') ? (f.head || f.husband || f.wife || '') : '';
   $('fm-single-gender').value = (f && f.gender) ? f.gender : (f && f.wife && !f.husband ? 'female' : 'male');
   $('fm-address').value=f?f.address||'':''; $('fm-phone').value=f?f.phone||'':'';
+  // Membership "paid through" month/year
+  const pm=$('fm-paid-month'); if(pm && !pm.options.length){ pm.appendChild(new Option('— not set —','')); MONTHS.forEach((m,i)=>pm.appendChild(new Option(m,i))); }
+  if(pm){ const pt=(f&&f.paidThrough)?String(f.paidThrough).split(' '):null; if(pt&&pt.length===2){ pm.value=String(MONTHS.indexOf(pt[0])); $('fm-paid-year').value=pt[1]; } else { pm.value=''; $('fm-paid-year').value=''; } }
   editChildren = f&&f.children? f.children.map(c=>({...c})) : [];
   renderChildRows(); fmToggleMarital();
   fmFillExisting(); if($('fm-existing')) $('fm-existing').value = id||'';
@@ -1211,7 +1296,9 @@ async function saveFamily(){
     if(gender==='female') wife=head; else husband=head;   // put the single adult under the matching column
   }
   const children = editChildren.filter(c=>c.name && c.name.trim()).map(c=>({name:c.name.trim(), birthday:c.birthday||''}));
-  const data={husband,wife,marital,gender,head,address:$('fm-address').value.trim(),phone:$('fm-phone').value.trim(),children};
+  const pm=$('fm-paid-month'), py=$('fm-paid-year');
+  const paidThrough = (pm && pm.value!=='' && py && py.value) ? `${MONTHS[+pm.value]} ${py.value}` : '';
+  const data={husband,wife,marital,gender,head,address:$('fm-address').value.trim(),phone:$('fm-phone').value.trim(),children,paidThrough};
   if(editFamilyId){
     const f=families.find(x=>x.id===editFamilyId);
     Object.assign(f,data);
@@ -1491,8 +1578,8 @@ function download(name, blob){ const a=document.createElement('a'); a.href=URL.c
 function exportCSV(what){
   let rows;
   if(what==='families'){
-    rows=[['Husband','Wife','Address','Phone','#Children','Children (name : birthday)','Last Payment']];
-    families.forEach(f=>rows.push([f.husband||'',f.wife||'',f.address||'',f.phone||'',(f.children||[]).length,(f.children||[]).map(c=>`${c.name}: ${c.birthday||'?'}`).join('; '),f.lastPayment||'']));
+    rows=[['Husband','Wife','Address','Phone','#Children','Children (name : birthday)','Last Payment','Paid Through']];
+    families.forEach(f=>rows.push([f.husband||'',f.wife||'',f.address||'',f.phone||'',(f.children||[]).length,(f.children||[]).map(c=>`${c.name}: ${c.birthday||'?'}`).join('; '),f.lastPayment||'',f.paidThrough||'']));
   } else {
     rows=[['Date','Receipt','Kind','In/Out','Amount','Category','Family','Donor','Period','Payee','Method','Note']];
     [...transactions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>rows.push([t.date,t.receiptNo||'',t.kind,t.dir,t.amount,t.category||'',t.family||'',t.donor||'',t.period||'',t.payee||'',t.method||'',t.note||'']));
@@ -1502,8 +1589,8 @@ function exportCSV(what){
 }
 function buildWorkbook(){
   const wb=XLSX.utils.book_new();
-  const fam=[['Husband','Wife','Address','Phone','#Children','Children','Last Payment']];
-  families.forEach(f=>fam.push([f.husband||'',f.wife||'',f.address||'',f.phone||'',(f.children||[]).length,(f.children||[]).map(c=>`${c.name}: ${c.birthday||'?'}`).join('; '),f.lastPayment||'']));
+  const fam=[['Husband','Wife','Address','Phone','#Children','Children','Last Payment','Paid Through']];
+  families.forEach(f=>fam.push([f.husband||'',f.wife||'',f.address||'',f.phone||'',(f.children||[]).length,(f.children||[]).map(c=>`${c.name}: ${c.birthday||'?'}`).join('; '),f.lastPayment||'',f.paidThrough||'']));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fam), 'Families');
   const tx=[['Date','Kind','In/Out','Acct','Account','Amount','Fund','Family','Donor','Period','Payee','Method','Note','TransferFrom','TransferTo','Receipt']];
   [...transactions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{ const a=acctById(t.acctId); tx.push([t.date,t.kind,t.dir,(a?a.code:(t.acct||'')),(a?a.name:(t.category||'')),t.amount,(t.kind==='transfer'?'':fundOf(t)),t.family||'',t.donor||'',t.period||'',t.payee||'',t.method||'',t.note||'',t.fromFund||'',t.toFund||'',t.receiptNo||'']); });
@@ -1545,7 +1632,7 @@ function parseWorkbookData(wb){
   const fs=wb.Sheets['Families'];
   if(fs){ XLSX.utils.sheet_to_json(fs,{header:1}).slice(1).forEach((r,i)=>{ if(!r||(!r[0]&&!r[1])) return;
     const children=String(r[5]||'').split(';').map(s=>s.trim()).filter(Boolean).map(s=>{const k=s.lastIndexOf(':'); if(k>0){const b=s.slice(k+1).trim(); return {name:s.slice(0,k).trim(), birthday:b==='?'?'':b};} return {name:s,birthday:''};});
-    out.families.push({id:Date.now()+i+Math.floor(Math.random()*1e5),husband:r[0]||'',wife:r[1]||'',address:r[2]||'',phone:r[3]||'',children,lastPayment:r[6]||'Never',lastPaidFor:'',lastAmount:0});
+    out.families.push({id:Date.now()+i+Math.floor(Math.random()*1e5),husband:r[0]||'',wife:r[1]||'',address:r[2]||'',phone:r[3]||'',children,lastPayment:r[6]||'Never',lastPaidFor:'',lastAmount:0,paidThrough:(r[7]!=null?String(r[7]).trim():'')});
   }); }
   const cs=wb.Sheets['Chart of Accounts'];
   if(cs){ XLSX.utils.sheet_to_json(cs,{header:1}).slice(1).forEach((r,i)=>{ if(!r||(r[0]==null&&r[1]==null)) return;
