@@ -207,16 +207,6 @@
       <div class="grid md:grid-cols-2 gap-6">
         <div class="bg-white rounded-3xl shadow p-8">
           <h3 class="text-lg font-semibold mb-6">Record a Collection (income)</h3>
-          <!-- Cashier: pick the member first to check their membership status (does not change the income type) -->
-          <div id="cash-member-block" class="hidden mb-5 bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
-            <div class="flex items-center justify-between mb-1"><label class="block text-xs font-medium text-gray-600">Member</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
-            <div style="position:relative">
-              <input id="cash-mem-search" oninput="cashMemFilter()" onfocus="cashMemFilter()" onblur="setTimeout(function(){var e=document.getElementById('cash-mem-results');if(e)e.classList.add('hidden')},150)" autocomplete="off" placeholder="Select a member…" class="w-full border rounded-2xl px-4 py-3 pr-9 bg-white" style="cursor:pointer">
-              <i class="fa-solid fa-chevron-down" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#9ca3af;pointer-events:none"></i>
-              <div id="cash-mem-results" class="hidden" style="position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);max-height:230px;overflow-y:auto;background:#fff;border:1px solid #e5e7eb;border-radius:0.9rem;box-shadow:0 8px 24px rgba(0,0,0,.14)"></div>
-              <input type="hidden" id="cash-mem">
-            </div>
-          </div>
           <!-- Historical entry: lock a month/year so you only type the day (accountant only) -->
           <div id="col-lock-bar" class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
             <label class="flex items-center gap-2 cursor-pointer"><input id="col-lock" type="checkbox" onchange="toggleDateLock()"> <span class="font-medium text-amber-700"><i class="fa-solid fa-lock"></i> Lock month/year</span></label>
@@ -236,6 +226,17 @@
           <p class="text-[11px] text-gray-400 mt-1">Receipt # is optional — type your receipt-book number for historical entries; it counts up automatically for the next one. Leave blank to auto-number.</p>
           <label class="block text-xs font-medium text-gray-600 mb-1 mt-4">Account (income type)</label>
           <select id="col-cat" onchange="colCatChange()" class="w-full border rounded-2xl px-4 py-3 mb-4"></select>
+
+          <!-- Cashier: pick the member (after the income type) to check their membership status -->
+          <div id="cash-member-block" class="hidden mb-5 bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
+            <div class="flex items-center justify-between mb-1"><label class="block text-xs font-medium text-gray-600">Member</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
+            <div style="position:relative">
+              <input id="cash-mem-search" oninput="cashMemFilter()" onfocus="cashMemFilter()" onblur="setTimeout(function(){var e=document.getElementById('cash-mem-results');if(e)e.classList.add('hidden')},150)" autocomplete="off" placeholder="Select a member…" class="w-full border rounded-2xl px-4 py-3 pr-9 bg-white" style="cursor:pointer">
+              <i class="fa-solid fa-chevron-down" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#9ca3af;pointer-events:none"></i>
+              <div id="cash-mem-results" class="hidden" style="position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);max-height:230px;overflow-y:auto;background:#fff;border:1px solid #e5e7eb;border-radius:0.9rem;box-shadow:0 8px 24px rgba(0,0,0,.14)"></div>
+              <input type="hidden" id="cash-mem">
+            </div>
+          </div>
 
           <!-- Membership fee panel — shows only when income type = Membership Fees -->
           <div id="col-mem-panel" class="hidden bg-indigo-50 border border-indigo-100 rounded-2xl p-4 mb-4">
