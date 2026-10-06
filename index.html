@@ -1174,11 +1174,12 @@ function saveMembershipCollection(){
     if(f){ f.lastPayment=fmtDate(t.date); f.lastPaidFor=t.period; f.lastAmount=t.amount; }
     save(); $('col-note').value=''; advanceReceipt(); renderRecentCollections(); colMemStatus(); await gsSend('addPayment',t);
   };
-  if(currentRole==='accountant'){        // historical entry: save only, no receipt
-    commit(tx).then(()=>{ $('col-amount').value=''; $('col-mem').value=''; });
-    return;
-  }
-  previewReceipt(tx, commit);            // cashier: confirm & print receipt
+  // For now: save directly with no receipt / printing (both roles)
+  commit(tx).then(()=>{
+    $('col-amount').value='';
+    if(currentRole==='accountant'){ $('col-mem').value=''; }
+    else { alert('Membership payment saved.'); }   // cashier: keep member selected so the updated status shows
+  });
 }
 // After a save, bump a numeric receipt number to the next one for fast consecutive entry.
 function advanceReceipt(){ const el=$('col-receipt'); if(!el) return; const v=el.value.trim(); if(/^\d+$/.test(v)) el.value=String(+v+1); }
