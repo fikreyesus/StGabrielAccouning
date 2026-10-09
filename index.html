@@ -454,6 +454,12 @@
         <p class="text-sm text-gray-500 max-w-xl">Every account's balance in debit/credit form. Income is credited, expenses debited, cash &amp; bank are live from your entries, and the opening fund balance is carried forward so the two columns always agree.</p>
         <span id="trial-status" class="text-sm font-semibold text-emerald-600"></span>
       </div>
+      <div class="flex flex-wrap items-center gap-2 mb-4 text-sm">
+        <label class="text-gray-500">Balances as of</label>
+        <select id="trial-month" onchange="renderTrialBalance()" class="border rounded-xl px-3 py-1.5 bg-white"></select>
+        <select id="trial-year" onchange="renderTrialBalance()" class="border rounded-xl px-3 py-1.5 bg-white"></select>
+        <span id="trial-asof-label" class="text-xs text-gray-400"></span>
+      </div>
       <div class="bg-white rounded-2xl shadow overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 text-gray-600">
@@ -468,7 +474,13 @@
     </section>
 
     <section id="balancesheet-page" class="p-8 hidden max-w-3xl">
-      <p class="text-sm text-gray-500 mb-5">A snapshot of what the church owns and owes right now. <b>Cash</b> and <b>Bank</b> are live from your entries; other assets and liabilities use the balances you set on the Chart of Accounts page — update those periodically (e.g. the loan balance after each payment).</p>
+      <p class="text-sm text-gray-500 mb-4">A snapshot of what the church owns and owes. <b>Cash</b> and <b>Bank</b> are live from your entries; other assets and liabilities use the balances you set on the Chart of Accounts page — update those periodically (e.g. the loan balance after each payment).</p>
+      <div class="flex flex-wrap items-center gap-2 mb-5 text-sm">
+        <label class="text-gray-500">Balances as of</label>
+        <select id="bs-month" onchange="renderBalanceSheet()" class="border rounded-xl px-3 py-1.5 bg-white"></select>
+        <select id="bs-year" onchange="renderBalanceSheet()" class="border rounded-xl px-3 py-1.5 bg-white"></select>
+        <span id="bs-asof-label" class="text-xs text-gray-400"></span>
+      </div>
       <div class="bg-white rounded-2xl shadow overflow-hidden mb-5">
         <div class="px-6 py-3 border-b font-semibold text-emerald-700">Assets</div>
         <table class="w-full text-sm"><tbody id="bs-assets" class="divide-y"></tbody></table>
@@ -765,16 +777,24 @@ function bankFund(method, dir, selId){
 }
 function colBankToggle(){ const m=document.getElementById('col-method'); const w=document.getElementById('col-bank-wrap'); if(!m||!w) return; w.classList.toggle('hidden', fundFromMethod(m.value,'in')!=='bank'); }
 function expBankToggle(){ const m=document.getElementById('exp-method'); const w=document.getElementById('exp-bank-wrap'); if(!m||!w) return; w.classList.toggle('hidden', fundFromMethod(m.value,'out')!=='bank'); }
-function balances(){
+function balances(asOf){
   let cash=+settings.openingCash||0, bank=+settings.openingBank||0, bank2=+settings.openingBank2||0, undep=0; const od=settings.openingDate||'';
   const inc=(f,a)=>{ if(f==='cash') cash+=a; else if(f==='undeposited') undep+=a; else if(f==='bank2') bank2+=a; else bank+=a; };
-  transactions.forEach(t=>{ if(od && t.date<od) return;
+  transactions.forEach(t=>{ if(od && t.date<od) return; if(asOf && t.date>asOf) return;
     if(t.kind==='transfer'){ inc(t.fromFund,-t.amount); inc(t.toFund,t.amount); return; }
     const s = t.dir==='in' ? t.amount : t.dir==='out' ? -t.amount : 0;
     inc(fundOf(t), s);
   });
   return {cash, bank, bank2, undeposited:undep, total:cash+bank+bank2+undep};
 }
+// Last day (YYYY-MM-DD) implied by a year + optional month (1-12); '' = no cutoff
+function asOfCutoff(year, month){
+  if(!year) return '';
+  if(!month) return year+'-12-31';
+  const m=String(month).padStart(2,'0'); const last=new Date(+year, +month, 0).getDate();
+  return `${year}-${m}-${String(last).padStart(2,'0')}`;
+}
+function txYears(){ return [...new Set(transactions.map(t=>String(t.date||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort((a,b)=>b.localeCompare(a)); }
 function acctBalance(a){ if(a.link==='cash') return balances().cash; if(a.link==='bank') return balances().bank; if(a.link==='bank2') return balances().bank2; if(a.link==='undeposited') return balances().undeposited; if(a.link==='netassets') return totalAssets()-totalLiabilities(); return +a.balance||0; }
 function totalAssets(){ return accounts.filter(a=>a.type==='asset').reduce((s,a)=>s+acctBalance(a),0); }
 function totalLiabilities(){ return accounts.filter(a=>a.type==='liability').reduce((s,a)=>s+acctBalance(a),0); }
@@ -886,21 +906,23 @@ function applyRole(){
 }
 
 // ================= TRIAL BALANCE =================
-function trialData(){
+function trialData(asOf){
   const od=settings.openingDate||'';
   const inByAcct={}, outByAcct={};
   transactions.forEach(t=>{
     if(od && t.date<od) return;
+    if(asOf && t.date>asOf) return;
     if(t.kind==='transfer') return;
     const a=acctById(t.acctId) || accounts.find(x=>x.code===t.acct);
     if(!a) return;
     if(t.dir==='in') inByAcct[a.id]=(inByAcct[a.id]||0)+t.amount;
     else if(t.dir==='out') outByAcct[a.id]=(outByAcct[a.id]||0)+t.amount;
   });
-  const b=balances(), rows=[];
+  const b=balances(asOf), rows=[];
+  const liveByLink={cash:b.cash,bank:b.bank,bank2:b.bank2,undeposited:b.undeposited};
   accounts.filter(a=>a.type==='asset').forEach(a=>{
     const forced = a.link==='cash'||a.link==='bank'||a.link==='bank2';
-    let d = a.link ? acctBalance(a) : (+a.balance||0);   // cash/bank/undeposited use live balances
+    let d = (a.link && a.link in liveByLink) ? liveByLink[a.link] : (+a.balance||0);   // cash/bank/undeposited use live balances (as-of cutoff)
     if(forced||Math.abs(d)>0.005) rows.push({code:a.code,name:a.name,debit:d,credit:0,az:forced});
   });
   expenseAccounts().forEach(a=>{ const d=outByAcct[a.id]||0; if(d>0.005) rows.push({code:a.code,name:a.name,debit:d,credit:0}); });
@@ -912,8 +934,20 @@ function trialData(){
   if(Math.abs(opening)>0.005) rows.push({code:eq?eq.code:'3000', name:(eq?eq.name:'Net Assets')+' (opening balance)', debit: opening<0?-opening:0, credit: opening>0?opening:0});
   return {rows, totalD:rows.reduce((s,r)=>s+r.debit,0), totalC:rows.reduce((s,r)=>s+r.credit,0)};
 }
+function fillAsOfSelects(mId,yId){
+  const mSel=$(mId), ySel=$(yId); if(!mSel||!ySel) return;
+  if(mSel.options.length===0){ mSel.innerHTML='<option value="">All months</option>'+MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join(''); }
+  const prevY=ySel.value;
+  const years=txYears();
+  ySel.innerHTML='<option value="">All time</option>'+years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  if(prevY && years.includes(prevY)) ySel.value=prevY;
+}
 function renderTrialBalance(){
-  const {rows,totalD,totalC}=trialData(), tb=$('trial-body'); tb.innerHTML='';
+  fillAsOfSelects('trial-month','trial-year');
+  const yr=$('trial-year')?$('trial-year').value:'', mo=$('trial-month')?$('trial-month').value:'';
+  const asOf=asOfCutoff(yr,mo);
+  const lbl=$('trial-asof-label'); if(lbl) lbl.textContent = asOf ? ('as of '+fmtDate(asOf)) : 'current (all entries)';
+  const {rows,totalD,totalC}=trialData(asOf), tb=$('trial-body'); tb.innerHTML='';
   rows.forEach(r=>{ const dCell=r.debit?money(r.debit):(r.az?money(0):''); tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500">${esc(r.code)}</td><td class="px-4 py-2">${esc(r.name)}</td><td class="px-4 py-2 text-right">${dCell}</td><td class="px-4 py-2 text-right">${r.credit?money(r.credit):''}</td></tr>`; });
   if(!rows.length) tb.innerHTML='<tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">No entries yet.</td></tr>';
   $('trial-td').textContent=money(totalD); $('trial-tc').textContent=money(totalC);
@@ -1466,13 +1500,18 @@ function updAcct(id,f,v){ const a=acctById(id); if(!a) return; a[f] = (f==='bala
 function addAcct(type){ accounts.push({id:Date.now(),code:'',name:'New account',type,balance:0,link:''}); save(); renderAccounts(); }
 function delAcct(id){ const a=acctById(id); const used=transactions.filter(t=>t.acctId===id).length; if(!confirm(`Delete account "${a.code} ${a.name}"?`+(used?`\n\n${used} past entr${used>1?'ies':'y'} used it — they keep the account name on record.`:''))) return; accounts=accounts.filter(x=>x.id!==id); save(); renderAccounts(); }
 function renderBalanceSheet(){
-  const at=$('bs-assets'); at.innerHTML='';
-  accounts.filter(a=>a.type==='asset').sort((a,b)=>String(a.code).localeCompare(String(b.code))).forEach(a=>{ at.innerHTML+=`<tr><td class="px-6 py-2 text-gray-500 w-16">${esc(a.code)}</td><td class="px-6 py-2">${esc(a.name)}</td><td class="px-6 py-2 text-right">${money(acctBalance(a))}</td></tr>`; });
-  const TA=totalAssets(); at.innerHTML+=`<tr class="bg-gray-50 font-semibold"><td class="px-6 py-2" colspan="2">Total assets</td><td class="px-6 py-2 text-right text-emerald-700">${money(TA)}</td></tr>`;
-  const lt=$('bs-liab'); lt.innerHTML='';
-  const liabs=accounts.filter(a=>a.type==='liability').sort((a,b)=>String(a.code).localeCompare(String(b.code)));
-  liabs.forEach(a=>{ lt.innerHTML+=`<tr><td class="px-6 py-2 text-gray-500 w-16">${esc(a.code)}</td><td class="px-6 py-2">${esc(a.name)}</td><td class="px-6 py-2 text-right">${money(acctBalance(a))}</td></tr>`; });
-  const TL=totalLiabilities(); lt.innerHTML+=`<tr class="bg-gray-50 font-semibold"><td class="px-6 py-2" colspan="2">Total liabilities</td><td class="px-6 py-2 text-right text-red-700">${money(TL)}</td></tr>`;
+  fillAsOfSelects('bs-month','bs-year');
+  const yr=$('bs-year')?$('bs-year').value:'', mo=$('bs-month')?$('bs-month').value:'';
+  const asOf=asOfCutoff(yr,mo);
+  const lbl=$('bs-asof-label'); if(lbl) lbl.textContent = asOf ? ('as of '+fmtDate(asOf)) : 'current (all entries)';
+  const bb=balances(asOf); const liveByLink={cash:bb.cash,bank:bb.bank,bank2:bb.bank2,undeposited:bb.undeposited};
+  const bal=a=> (a.link && a.link in liveByLink) ? liveByLink[a.link] : (+a.balance||0);
+  const at=$('bs-assets'); at.innerHTML=''; let TA=0;
+  accounts.filter(a=>a.type==='asset').sort((a,b)=>String(a.code).localeCompare(String(b.code))).forEach(a=>{ const v=bal(a); TA+=v; at.innerHTML+=`<tr><td class="px-6 py-2 text-gray-500 w-16">${esc(a.code)}</td><td class="px-6 py-2">${esc(a.name)}</td><td class="px-6 py-2 text-right">${money(v)}</td></tr>`; });
+  at.innerHTML+=`<tr class="bg-gray-50 font-semibold"><td class="px-6 py-2" colspan="2">Total assets</td><td class="px-6 py-2 text-right text-emerald-700">${money(TA)}</td></tr>`;
+  const lt=$('bs-liab'); lt.innerHTML=''; let TL=0;
+  accounts.filter(a=>a.type==='liability').sort((a,b)=>String(a.code).localeCompare(String(b.code))).forEach(a=>{ const v=bal(a); TL+=v; lt.innerHTML+=`<tr><td class="px-6 py-2 text-gray-500 w-16">${esc(a.code)}</td><td class="px-6 py-2">${esc(a.name)}</td><td class="px-6 py-2 text-right">${money(v)}</td></tr>`; });
+  lt.innerHTML+=`<tr class="bg-gray-50 font-semibold"><td class="px-6 py-2" colspan="2">Total liabilities</td><td class="px-6 py-2 text-right text-red-700">${money(TL)}</td></tr>`;
   $('bs-net').textContent=money(TA-TL);
 }
 
@@ -1985,7 +2024,21 @@ function renderLedger(){
     const editBtn = (t.kind==='collection'||t.kind==='fee') ? `<button onclick="startEditCollection(${t.id})" class="text-indigo-500 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>` : '';
     tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-4 py-2">${esc(txDesc(t))}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="px-4 py-2 text-right text-emerald-600">${inCell}</td><td class="px-4 py-2 text-right text-red-600">${outCell}</td><td class="px-4 py-2 text-center whitespace-nowrap">${editBtn}<button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
   });
-  if(!rows.length) tb.innerHTML='<tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">No matching transactions.</td></tr>';
+  // When a specific account is selected, show its opening balance as a starting line (it isn't a transaction)
+  if(acct){
+    const a=acctById(+acct); const od=settings.openingDate||''; const cutoff=asOfCutoff(yr,mo);
+    let amt=0;
+    if(a){ if(a.link==='cash') amt=+settings.openingCash||0; else if(a.link==='bank') amt=+settings.openingBank||0; else if(a.link==='bank2') amt=+settings.openingBank2||0; else if(!a.link) amt=+a.balance||0; }
+    const withinPeriod = od && (!cutoff || od<=cutoff);
+    if(a && withinPeriod && Math.abs(amt)>0.005){
+      const isAsset=a.type==='asset';
+      const cells = isAsset
+        ? `<td class="px-4 py-2 text-right text-gray-400">${money(amt)}</td><td class="px-4 py-2"></td>`
+        : `<td class="px-4 py-2"></td><td class="px-4 py-2 text-right text-gray-400">${money(amt<0?-amt:amt)}</td>`;
+      tb.innerHTML+=`<tr class="bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(od)}</td><td class="px-4 py-2 italic text-gray-500">Opening balance${amt<0?' (contra)':''}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(a.code+' — '+a.name)}</td>${cells}<td class="px-4 py-2"></td></tr>`;
+    }
+  }
+  if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">No matching transactions.</td></tr>';
   $('led-summary').innerHTML=`In: <b class="text-emerald-600">${money(inSum)}</b> &nbsp; Out: <b class="text-red-600">${money(outSum)}</b> &nbsp; Net: <b>${money(inSum-outSum)}</b>`;
 }
 function deleteTx(id){ const t=transactions.find(x=>x.id===id); if(!confirm(`Delete this ${t.kind} of ${money(t.amount)} on ${fmtDate(t.date)}?`)) return; transactions=transactions.filter(x=>x.id!==id); save(); renderLedger(); }
