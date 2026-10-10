@@ -769,6 +769,12 @@ function fundFromMethod(m, dir){
   return 'bank';   // Card/Online, Bank Transfer
 }
 function fundOf(t){ return t.fund || fundFromMethod(t.method, t.dir); }
+// Signed effect of a transaction on one fund bucket (cash/bank/bank2/undeposited)
+function fundDelta(t, link){
+  if(t.kind==='transfer'){ let d=0; if(t.toFund===link) d+=t.amount; if(t.fromFund===link) d-=t.amount; return d; }
+  if(fundOf(t)!==link) return 0;
+  return t.dir==='in'? t.amount : t.dir==='out'? -t.amount : 0;
+}
 // When a payment routes to a bank, let the user choose which bank (PNC='bank', River City='bank2')
 function bankFund(method, dir, selId){
   const base=fundFromMethod(method, dir);
@@ -2008,19 +2014,28 @@ function renderLedger(){
   const mSel=$('led-month'); if(mSel.dataset.filled!=='1'){ mSel.innerHTML='<option value="">All months</option>'; MONTHS.forEach((m,i)=>mSel.appendChild(new Option(m,i+1))); mSel.dataset.filled='1'; }
   ledFillAccounts();
   const ty=$('led-type').value, acct=$('led-acct')?$('led-acct').value:'', yr=$('led-year').value, mo=$('led-month').value, q=($('led-search').value||'').toLowerCase();
+  const selAcct = acct ? acctById(+acct) : null;
+  // Cash/bank/undeposited accounts aren't tagged on transactions (money location is a "fund"),
+  // so for these show the fund register: everything that moved money in/out of that bucket.
+  const fundLink = (selAcct && ['cash','bank','bank2','undeposited'].includes(selAcct.link)) ? selAcct.link : '';
   let rows=transactions.filter(t=>{
-    if(acct && String(t.acctId)!==acct) return false;
     if(ty && t.kind!==ty) return false;
     if(yr && t.date.slice(0,4)!==yr) return false;
     if(mo && (+t.date.slice(5,7))!==(+mo)) return false;
     if(q && !(txDesc(t).toLowerCase().includes(q)||(t.category||'').toLowerCase().includes(q))) return false;
+    if(fundLink) return fundDelta(t,fundLink)!==0;
+    if(acct) return String(t.acctId)===acct;
     return true;
   }).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
   let inSum=0,outSum=0;
   const tb=$('ledger-tbody'); tb.innerHTML='';
-  rows.forEach(t=>{ if(t.dir==='in')inSum+=t.amount; else if(t.dir==='out')outSum+=t.amount;
-    const inCell=t.dir==='in'?money(t.amount):'';
-    const outCell=t.dir==='out'?money(t.amount):(t.kind==='transfer'?`<span class="text-gray-400">${money(t.amount)}</span>`:'');
+  rows.forEach(t=>{
+    let inAmt=0,outAmt=0;
+    if(fundLink){ const d=fundDelta(t,fundLink); if(d>0) inAmt=d; else outAmt=-d; }
+    else { if(t.dir==='in') inAmt=t.amount; else if(t.dir==='out') outAmt=t.amount; }
+    inSum+=inAmt; outSum+=outAmt;
+    const inCell=inAmt?money(inAmt):'';
+    const outCell=outAmt?money(outAmt):((!fundLink && t.kind==='transfer')?`<span class="text-gray-400">${money(t.amount)}</span>`:'');
     const editBtn = (t.kind==='collection'||t.kind==='fee') ? `<button onclick="startEditCollection(${t.id})" class="text-indigo-500 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>` : '';
     tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-4 py-2">${esc(txDesc(t))}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="px-4 py-2 text-right text-emerald-600">${inCell}</td><td class="px-4 py-2 text-right text-red-600">${outCell}</td><td class="px-4 py-2 text-center whitespace-nowrap">${editBtn}<button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
   });
