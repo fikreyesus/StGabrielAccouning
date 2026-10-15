@@ -284,9 +284,7 @@
             <input id="col-donor" class="w-full border rounded-2xl px-4 py-3 mb-4 hidden" placeholder="One-time donor's name">
           </div>
           <div class="mb-4"><label class="block text-xs font-medium text-gray-600 mb-1">Method</label>
-            <select id="col-method" onchange="colBankToggle()" class="w-full border rounded-2xl px-4 py-3"><option>Cash</option><option>Check</option><option>Card/Online</option><option>Bank Transfer</option></select></div>
-          <div id="col-bank-wrap" class="mb-4 hidden"><label class="block text-xs font-medium text-gray-600 mb-1">Deposit to which bank?</label>
-            <select id="col-bank" class="w-full border rounded-2xl px-4 py-3"><option value="bank">PNC Bank — Checking</option><option value="bank2">River City Bank — Checking</option></select></div>
+            <select id="col-method" class="w-full border rounded-2xl px-4 py-3"><option>Cash</option><option>Check</option><option>Square</option><option>Other</option></select></div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Note / intention (optional)</label>
           <input id="col-note" class="w-full border rounded-2xl px-4 py-3 mb-5" placeholder="e.g. prayer request for…, in memory of…">
           <div class="flex gap-3">
@@ -337,10 +335,10 @@
             <div><label class="block text-xs font-medium text-gray-600 mb-1">Amount ($)</label>
               <input id="exp-amount" type="number" class="w-full border rounded-2xl px-4 py-3"></div>
             <div><label class="block text-xs font-medium text-gray-600 mb-1">Method</label>
-              <select id="exp-method" onchange="expBankToggle()" class="w-full border rounded-2xl px-4 py-3"><option>Cash</option><option>Check</option><option>Card/Online</option><option>Bank Transfer</option></select></div>
+              <select id="exp-method" onchange="expBankToggle()" class="w-full border rounded-2xl px-4 py-3"><option>Cash</option><option>Check</option><option>Square</option><option>Other</option></select></div>
           </div>
           <div id="exp-bank-wrap" class="mt-4 hidden"><label class="block text-xs font-medium text-gray-600 mb-1">Pay from which bank?</label>
-            <select id="exp-bank" class="w-full border rounded-2xl px-4 py-3"><option value="bank">PNC Bank — Checking</option><option value="bank2">River City Bank — Checking</option></select></div>
+            <select id="exp-bank" class="w-full border rounded-2xl px-4 py-3"><option value="bank">PNC Bank — Checking</option><option value="bank2">River City Bank — Checking</option><option value="bank3">Rivercity - Mortgage</option></select></div>
           <label class="block text-xs font-medium text-gray-600 mb-1 mt-4">Paid to (payee)</label>
           <input id="exp-payee" class="w-full border rounded-2xl px-4 py-3 mb-4" placeholder="e.g. City Utilities">
           <label class="block text-xs font-medium text-gray-600 mb-1">Note (optional)</label>
@@ -356,11 +354,12 @@
 
     <!-- CASH & BANK -->
     <section id="cashbank-page" class="p-8 hidden">
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div class="gap-4 mb-6" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
         <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-emerald-400"><p class="text-xs text-gray-500">Cash on hand</p><p id="cb-cash" class="text-2xl font-bold text-emerald-700"></p></div>
         <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-amber-400"><p class="text-xs text-gray-500">Checks (undeposited)</p><p id="cb-undep" class="text-2xl font-bold text-amber-600"></p></div>
         <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-sky-400"><p class="text-xs text-gray-500">PNC Bank</p><p id="cb-bank" class="text-2xl font-bold text-sky-700"></p></div>
         <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-cyan-400"><p class="text-xs text-gray-500">River City Bank</p><p id="cb-bank2" class="text-2xl font-bold text-cyan-700"></p></div>
+        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-teal-400"><p class="text-xs text-gray-500">Rivercity - Mortgage</p><p id="cb-bank3" class="text-2xl font-bold text-teal-700"></p></div>
         <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-indigo-400"><p class="text-xs text-gray-500">Total funds</p><p id="cb-total" class="text-2xl font-bold text-indigo-700"></p></div>
       </div>
       <div class="grid md:grid-cols-2 gap-6">
@@ -369,10 +368,11 @@
           <p class="text-xs text-gray-400 mb-4">Set the starting cash and bank on a chosen date (e.g. the first day of the reconstruction). Only entries dated on/after this date build on these figures.</p>
           <label class="block text-xs text-gray-600 mb-1">As-of date</label>
           <input id="op-date" type="date" class="w-full border rounded-xl px-3 py-2 mb-3">
-          <div class="grid grid-cols-3 gap-3">
+          <div class="gap-3" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr))">
             <div><label class="block text-xs text-gray-600 mb-1">Opening cash ($)</label><input id="op-cash" type="number" step="0.01" class="w-full border rounded-xl px-3 py-2"></div>
             <div><label class="block text-xs text-gray-600 mb-1">PNC Bank ($)</label><input id="op-bank" type="number" step="0.01" class="w-full border rounded-xl px-3 py-2"></div>
             <div><label class="block text-xs text-gray-600 mb-1">River City Bank ($)</label><input id="op-bank2" type="number" step="0.01" class="w-full border rounded-xl px-3 py-2"></div>
+            <div><label class="block text-xs text-gray-600 mb-1">Rivercity - Mortgage ($)</label><input id="op-bank3" type="number" step="0.01" class="w-full border rounded-xl px-3 py-2"></div>
           </div>
           <button onclick="saveOpening()" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm">Save opening balances</button>
           <div class="mt-4 pt-4 border-t">
@@ -381,32 +381,29 @@
           </div>
         </div>
         <div class="bg-white rounded-3xl shadow p-6">
-          <h3 class="font-semibold text-gray-700 mb-1">Deposit / transfer</h3>
-          <p class="text-xs text-gray-400 mb-4">Move money between buckets — e.g. banking the week's cash, or depositing received checks. This isn't income or expense; it just shifts the balances.</p>
+          <h3 class="font-semibold text-gray-700 mb-1">Deposit to bank</h3>
+          <p class="text-xs text-gray-400 mb-4">Move money from Cash on Hand into a bank account. This credits (reduces) Cash on Hand and debits (increases) the bank you pick. It isn't income or expense — it just moves money you've already received.</p>
+          <div id="tr-lock-bar" class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+            <label class="flex items-center gap-2 cursor-pointer"><input id="tr-lock" type="checkbox" onchange="trToggleDateLock()"> <span class="font-medium text-amber-700"><i class="fa-solid fa-lock"></i> Lock month/year</span></label>
+            <select id="tr-lock-month" class="border rounded-lg px-2 py-1 hidden bg-white" onchange="trApplyDateLock()"></select>
+            <input id="tr-lock-year" type="number" class="border rounded-lg px-2 py-1 w-24 hidden bg-white" placeholder="Year" onchange="trApplyDateLock()">
+            <span id="tr-lock-label" class="text-xs text-amber-700 font-semibold"></span>
+          </div>
           <div class="grid grid-cols-2 gap-4">
-            <div><label class="block text-xs text-gray-600 mb-1">Date</label><input id="tr-date" type="date" class="w-full border rounded-xl px-3 py-2"></div>
+            <div><label id="tr-date-label" class="block text-xs text-gray-600 mb-1">Date</label>
+              <input id="tr-date" type="date" class="w-full border rounded-xl px-3 py-2">
+              <input id="tr-day" type="number" min="1" max="31" oninput="clampDay(this)" class="w-full border rounded-xl px-3 py-2 hidden" placeholder="Day (1–31)"></div>
             <div><label class="block text-xs text-gray-600 mb-1">Amount ($)</label><input id="tr-amount" type="number" class="w-full border rounded-xl px-3 py-2"></div>
           </div>
-          <label class="block text-xs text-gray-600 mb-1 mt-3">Direction</label>
-          <select id="tr-dir" class="w-full border rounded-xl px-3 py-2 mb-3">
-            <optgroup label="PNC Bank">
-              <option value="undep-bank">Checks → PNC (deposit checks)</option>
-              <option value="cash-bank">Cash → PNC (deposit cash)</option>
-              <option value="bank-cash">PNC → Cash (withdrawal)</option>
-            </optgroup>
-            <optgroup label="River City Bank">
-              <option value="undep-bank2">Checks → River City (deposit checks)</option>
-              <option value="cash-bank2">Cash → River City (deposit cash)</option>
-              <option value="bank2-cash">River City → Cash (withdrawal)</option>
-            </optgroup>
-            <optgroup label="Between banks">
-              <option value="bank-bank2">PNC → River City</option>
-              <option value="bank2-bank">River City → PNC</option>
-            </optgroup>
-          </select>
+          <div class="grid grid-cols-2 gap-4 mt-3 mb-3">
+            <div><label class="block text-xs text-gray-600 mb-1">Deposit to bank</label>
+              <select id="tr-to" class="w-full border rounded-xl px-3 py-2 bg-white"><option value="bank">PNC Bank</option><option value="bank2">River City Bank</option><option value="bank3">Rivercity - Mortgage</option></select></div>
+            <div><label class="block text-xs text-gray-600 mb-1">Type</label>
+              <select id="tr-method" class="w-full border rounded-xl px-3 py-2 bg-white"><option>Cash</option><option>Check</option><option>Square</option><option>Other</option></select></div>
+          </div>
           <label class="block text-xs text-gray-600 mb-1">Note (optional)</label>
           <input id="tr-note" class="w-full border rounded-xl px-3 py-2 mb-4" placeholder="e.g. deposited Sunday cash">
-          <button onclick="saveTransfer()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm">Save transfer</button>
+          <button onclick="saveTransfer()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm">Save deposit</button>
         </div>
       </div>
       <div class="bg-white rounded-2xl shadow overflow-hidden mt-6">
@@ -510,7 +507,7 @@
           <thead class="bg-gray-50 text-gray-600"><tr>
             <th class="text-left px-4 py-3">Date</th>
             <th class="text-left px-4 py-3">Description</th><th class="text-left px-4 py-3">Account</th>
-            <th class="text-right px-4 py-3">In</th><th class="text-right px-4 py-3">Out</th><th class="text-center px-4 py-3"></th>
+            <th class="text-right px-4 py-3">Debit</th><th class="text-right px-4 py-3">Credit</th><th class="text-right px-4 py-3">Balance</th><th class="text-center px-4 py-3"></th>
           </tr></thead>
           <tbody id="ledger-tbody" class="divide-y"></tbody>
         </table>
@@ -730,7 +727,7 @@ const KEY = 'church_acct_v1';
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 let accounts = [];  // {id, code, name, type:'asset'|'liability'|'equity'|'income'|'expense', balance, link}
 const BS_SEED = [
-  ['1000','Cash on Hand','asset','cash'],['1010','PNC Bank — Checking','asset','bank'],['1011','River City Bank — Checking','asset','bank2'],['1020','Undeposited Funds (Checks)','asset','undeposited'],['1100','Pledges / Receivable','asset',''],
+  ['1000','Cash on Hand','asset','cash'],['1010','PNC Bank — Checking','asset','bank'],['1011','River City Bank — Checking','asset','bank2'],['1012','Rivercity - Mortgage','asset','bank3'],['1020','Undeposited Funds (Checks)','asset','undeposited'],['1100','Pledges / Receivable','asset',''],
   ['1200','Land','asset',''],['1210','Building','asset',''],['1220','Furniture & Equipment','asset',''],
   ['2000','Accounts Payable','liability',''],['2100','Loan / Mortgage Payable','liability',''],['2200','Accrued Salaries / Stipend','liability',''],
   ['3000','Net Assets / Fund Balance','equity','netassets']
@@ -746,13 +743,18 @@ const IE_SEED = [
 ];
 function seedAccounts(){ accounts = BS_SEED.concat(IE_SEED).map((a,i)=>({id:1000+i, code:a[0], name:a[1], type:a[2], link:a[3]||'', balance:0})); }
 function ensureBS(){ if(!accounts.some(a=>a.type==='asset'||a.type==='liability'||a.type==='equity')){ accounts = BS_SEED.map((a,i)=>({id:900000+i, code:a[0], name:a[1], type:a[2], link:a[3]||'', balance:0})).concat(accounts); } }
-// Ensure two live bank accounts exist (PNC = link 'bank', River City = link 'bank2')
+// Ensure the live bank accounts exist (PNC='bank', River City='bank2', Rivercity-Mortgage='bank3')
 function ensureTwoBanks(){
   const b1=accounts.find(a=>a.link==='bank');
   if(b1 && (b1.name==='Bank — Checking' || b1.name==='Bank — Checking ')) b1.name='PNC Bank — Checking';
   if(!accounts.some(a=>a.link==='bank2')){
     const acc={id:900600,code:'1011',name:'River City Bank — Checking',type:'asset',link:'bank2',balance:0};
     const idx=accounts.findIndex(a=>a.link==='bank');
+    if(idx>=0) accounts.splice(idx+1,0,acc); else accounts.unshift(acc);
+  }
+  if(!accounts.some(a=>a.link==='bank3')){
+    const acc={id:900601,code:'1012',name:'Rivercity - Mortgage',type:'asset',link:'bank3',balance:0};
+    const idx=accounts.findIndex(a=>a.link==='bank2');
     if(idx>=0) accounts.splice(idx+1,0,acc); else accounts.unshift(acc);
   }
 }
@@ -778,20 +780,20 @@ function fundDelta(t, link){
 // When a payment routes to a bank, let the user choose which bank (PNC='bank', River City='bank2')
 function bankFund(method, dir, selId){
   const base=fundFromMethod(method, dir);
-  if(base==='bank'){ const s=document.getElementById(selId); if(s && s.value==='bank2') return 'bank2'; return 'bank'; }
+  if(base==='bank'){ const s=document.getElementById(selId); if(s && (s.value==='bank2'||s.value==='bank3')) return s.value; return 'bank'; }
   return base;
 }
 function colBankToggle(){ const m=document.getElementById('col-method'); const w=document.getElementById('col-bank-wrap'); if(!m||!w) return; w.classList.toggle('hidden', fundFromMethod(m.value,'in')!=='bank'); }
 function expBankToggle(){ const m=document.getElementById('exp-method'); const w=document.getElementById('exp-bank-wrap'); if(!m||!w) return; w.classList.toggle('hidden', fundFromMethod(m.value,'out')!=='bank'); }
 function balances(asOf){
-  let cash=+settings.openingCash||0, bank=+settings.openingBank||0, bank2=+settings.openingBank2||0, undep=0; const od=settings.openingDate||'';
-  const inc=(f,a)=>{ if(f==='cash') cash+=a; else if(f==='undeposited') undep+=a; else if(f==='bank2') bank2+=a; else bank+=a; };
+  let cash=+settings.openingCash||0, bank=+settings.openingBank||0, bank2=+settings.openingBank2||0, bank3=+settings.openingBank3||0, undep=0; const od=settings.openingDate||'';
+  const inc=(f,a)=>{ if(f==='cash') cash+=a; else if(f==='undeposited') undep+=a; else if(f==='bank2') bank2+=a; else if(f==='bank3') bank3+=a; else bank+=a; };
   transactions.forEach(t=>{ if(od && t.date<od) return; if(asOf && t.date>asOf) return;
     if(t.kind==='transfer'){ inc(t.fromFund,-t.amount); inc(t.toFund,t.amount); return; }
     const s = t.dir==='in' ? t.amount : t.dir==='out' ? -t.amount : 0;
     inc(fundOf(t), s);
   });
-  return {cash, bank, bank2, undeposited:undep, total:cash+bank+bank2+undep};
+  return {cash, bank, bank2, bank3, undeposited:undep, total:cash+bank+bank2+bank3+undep};
 }
 // Last day (YYYY-MM-DD) implied by a year + optional month (1-12); '' = no cutoff
 function asOfCutoff(year, month){
@@ -801,11 +803,11 @@ function asOfCutoff(year, month){
   return `${year}-${m}-${String(last).padStart(2,'0')}`;
 }
 function txYears(){ return [...new Set(transactions.map(t=>String(t.date||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort((a,b)=>b.localeCompare(a)); }
-function acctBalance(a){ if(a.link==='cash') return balances().cash; if(a.link==='bank') return balances().bank; if(a.link==='bank2') return balances().bank2; if(a.link==='undeposited') return balances().undeposited; if(a.link==='netassets') return totalAssets()-totalLiabilities(); return +a.balance||0; }
+function acctBalance(a){ if(a.link==='cash') return balances().cash; if(a.link==='bank') return balances().bank; if(a.link==='bank2') return balances().bank2; if(a.link==='bank3') return balances().bank3; if(a.link==='undeposited') return balances().undeposited; if(a.link==='netassets') return totalAssets()-totalLiabilities(); return +a.balance||0; }
 function totalAssets(){ return accounts.filter(a=>a.type==='asset').reduce((s,a)=>s+acctBalance(a),0); }
 function totalLiabilities(){ return accounts.filter(a=>a.type==='liability').reduce((s,a)=>s+acctBalance(a),0); }
 
-let settings = { name:"Debre Hayl St Gabriel Ethiopian Orthodox Tewahedo Church", address:"2216 Goldsmith Lane, Louisville, KY 40218", openingCash:0, openingBank:0, openingBank2:0, openingDate:"", gsEnabled:false, gsUrl:"https://script.google.com/macros/s/AKfycbwIQx27lPc6yPF-IPGOBCxXnZ2foLv3X2sM1-C_x60pEnk4aiNw-90qfNbBBsWGKg/exec", pwCashier:"cashier", pwAccountant:"StGabriel19" };
+let settings = { name:"Debre Hayl St Gabriel Ethiopian Orthodox Tewahedo Church", address:"2216 Goldsmith Lane, Louisville, KY 40218", openingCash:0, openingBank:0, openingBank2:0, openingBank3:0, openingDate:"", gsEnabled:false, gsUrl:"https://script.google.com/macros/s/AKfycbwIQx27lPc6yPF-IPGOBCxXnZ2foLv3X2sM1-C_x60pEnk4aiNw-90qfNbBBsWGKg/exec", pwCashier:"cashier", pwAccountant:"StGabriel19" };
 let currentRole = null;
 const CASHIER_PAGES = ['collections'];
 let families = [];
@@ -925,9 +927,9 @@ function trialData(asOf){
     else if(t.dir==='out') outByAcct[a.id]=(outByAcct[a.id]||0)+t.amount;
   });
   const b=balances(asOf), rows=[];
-  const liveByLink={cash:b.cash,bank:b.bank,bank2:b.bank2,undeposited:b.undeposited};
+  const liveByLink={cash:b.cash,bank:b.bank,bank2:b.bank2,bank3:b.bank3,undeposited:b.undeposited};
   accounts.filter(a=>a.type==='asset').forEach(a=>{
-    const forced = a.link==='cash'||a.link==='bank'||a.link==='bank2';
+    const forced = a.link==='cash'||a.link==='bank'||a.link==='bank2'||a.link==='bank3';
     let d = (a.link && a.link in liveByLink) ? liveByLink[a.link] : (+a.balance||0);   // cash/bank/undeposited use live balances (as-of cutoff)
     if(forced||Math.abs(d)>0.005) rows.push({code:a.code,name:a.name,debit:d,credit:0,az:forced});
   });
@@ -1371,7 +1373,7 @@ function saveMembershipCollection(){
   const period=oneMonth ? ms : `${ms} to ${me}`;
   const date=collectionDate();
   const a=acctById(+$('col-cat').value);
-  const fields={receiptNo:$('col-receipt').value.trim(),date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:bankFund($('col-method').value,'in','col-bank'),note:$('col-note').value.trim()};
+  const fields={receiptNo:$('col-receipt').value.trim(),date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:'cash',note:$('col-note').value.trim()};
   if(editTxId){                                  // update existing membership entry
     const t=transactions.find(x=>x.id===editTxId); if(t) Object.assign(t, fields);
     if(f){ f.lastPayment=fmtDate(date); f.lastPaidFor=period; f.lastAmount=total; }
@@ -1401,14 +1403,15 @@ function saveMembershipCollection(){
 // After a save, bump a numeric receipt number to the next one for fast consecutive entry.
 function advanceReceipt(){ const el=$('col-receipt'); if(!el) return; const v=el.value.trim(); if(/^\d+$/.test(v)) el.value=String(+v+1); }
 // ---- Cash & Bank ----
-const FUND_LABEL={cash:'Cash',bank:'PNC Bank',bank2:'River City Bank',undeposited:'Checks'};
-function xferLabel(t){ return `${FUND_LABEL[t.fromFund]||t.fromFund} → ${FUND_LABEL[t.toFund]||t.toFund}`; }
+const FUND_LABEL={cash:'Cash',bank:'PNC Bank',bank2:'River City Bank',bank3:'Rivercity - Mortgage',undeposited:'Checks'};
+function xferLabel(t){ const base=`${FUND_LABEL[t.fromFund]||t.fromFund} → ${FUND_LABEL[t.toFund]||t.toFund}`; return t.method ? `${base} · ${t.method}` : base; }
 function renderCashBank(){
   const b=balances();
   $('cb-cash').textContent=money(b.cash); $('cb-bank').textContent=money(b.bank); $('cb-total').textContent=money(b.total);
   if($('cb-bank2')) $('cb-bank2').textContent=money(b.bank2);
+  if($('cb-bank3')) $('cb-bank3').textContent=money(b.bank3);
   const u=$('cb-undep'); if(u) u.textContent=money(b.undeposited);
-  $('op-cash').value=settings.openingCash||0; $('op-bank').value=settings.openingBank||0; if($('op-bank2')) $('op-bank2').value=settings.openingBank2||0; $('op-date').value=settings.openingDate||'';
+  $('op-cash').value=settings.openingCash||0; $('op-bank').value=settings.openingBank||0; if($('op-bank2')) $('op-bank2').value=settings.openingBank2||0; if($('op-bank3')) $('op-bank3').value=settings.openingBank3||0; $('op-date').value=settings.openingDate||'';
   if(!$('tr-date').value) $('tr-date').value=todayISO();
   const tb=$('tr-recent'); tb.innerHTML='';
   transactions.filter(t=>t.kind==='transfer').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,15).forEach(t=>{
@@ -1416,7 +1419,7 @@ function renderCashBank(){
   });
   if(!tb.innerHTML) tb.innerHTML='<tr><td class="px-6 py-6 text-center text-gray-400">No transfers yet.</td></tr>';
 }
-function saveOpening(){ settings.openingCash=parseFloat($('op-cash').value)||0; settings.openingBank=parseFloat($('op-bank').value)||0; settings.openingBank2=parseFloat($('op-bank2').value)||0; settings.openingDate=$('op-date').value||''; save(); renderCashBank(); if(typeof renderAccounts==='function') renderAccounts(); if(typeof renderBalanceSheet==='function') renderBalanceSheet(); alert('Opening balances saved.'); }
+function saveOpening(){ settings.openingCash=parseFloat($('op-cash').value)||0; settings.openingBank=parseFloat($('op-bank').value)||0; settings.openingBank2=parseFloat($('op-bank2').value)||0; settings.openingBank3=parseFloat(($('op-bank3')||{}).value)||0; settings.openingDate=$('op-date').value||''; save(); renderCashBank(); if(typeof renderAccounts==='function') renderAccounts(); if(typeof renderBalanceSheet==='function') renderBalanceSheet(); alert('Opening balances saved.'); }
 // One-click: load the April 30, 2013 statement's opening balance sheet
 function loadApr2013Opening(){
   if(!confirm('Set the starting balances from the April 30, 2013 financial statement?\n\n• PNC Bank: $13,818.90\n• River City Bank: $28,198.16\n• Building: $487,105.39\n• Accumulated depreciation — Building: ($37,886.33)\n• Furniture & Equipment (net): $14,500.00\n• River City Mortgage: $287,498.30\n• Grace Church Mortgage: $44,154.82\n\nNet assets will compute automatically to $174,083.00. This does not touch your collections or members.')) return;
@@ -1434,14 +1437,38 @@ function loadApr2013Opening(){
   save(); renderCashBank(); if(typeof renderAccounts==='function') renderAccounts(); if(typeof renderBalanceSheet==='function') renderBalanceSheet();
   alert('Opening balances loaded. Open the Balance Sheet to check: Total assets $505,736.12, Total liabilities $331,653.12, Net assets $174,083.00.');
 }
+// Lock the deposit month/year (same behaviour as collections) so you type only the day
+let trLockedYM=null;
+function trToggleDateLock(){
+  const on=$('tr-lock').checked;
+  $('tr-lock-month').classList.toggle('hidden', !on);
+  $('tr-lock-year').classList.toggle('hidden', !on);
+  if(on){ const s=$('tr-lock-month'); if(s && !s.options.length){ MONTHS.forEach((m,i)=>s.appendChild(new Option(m,i))); s.value=0; } if(!$('tr-lock-year').value) $('tr-lock-year').value=(settings.openingDate? settings.openingDate.slice(0,4) : curYear()); trApplyDateLock(); }
+  else { trLockedYM=null; $('tr-lock-label').textContent=''; $('tr-day').classList.add('hidden'); $('tr-date').classList.remove('hidden'); $('tr-date-label').textContent='Date'; }
+}
+function trApplyDateLock(){
+  const y=parseInt($('tr-lock-year').value), m=parseInt($('tr-lock-month').value);
+  if(isNaN(y)||isNaN(m)) return;
+  trLockedYM={year:y, month:m};
+  $('tr-lock-label').textContent='Locked to '+MONTHS[m]+' '+y+' — type the day only';
+  $('tr-date').classList.add('hidden'); $('tr-day').classList.remove('hidden'); $('tr-date-label').textContent='Day of month';
+  const dim=daysInMonth(y,m), dEl=$('tr-day'); if(dEl){ dEl.max=dim; dEl.placeholder='Day (1–'+dim+')'; if(+dEl.value>dim) dEl.value=dim; }
+}
+function depositDate(){
+  if(trLockedYM && $('tr-lock') && $('tr-lock').checked){
+    const dim=daysInMonth(trLockedYM.year, trLockedYM.month);
+    let d=parseInt($('tr-day').value)||1; d=Math.min(dim, Math.max(1,d));
+    return `${trLockedYM.year}-${String(trLockedYM.month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+  return $('tr-date').value||todayISO();
+}
 async function saveTransfer(){
   const amt=parseFloat($('tr-amount').value); if(!amt) return alert('Enter an amount.');
-  const dir=$('tr-dir').value;
-  const map={'cash-bank':['cash','bank'],'bank-cash':['bank','cash'],'undep-bank':['undeposited','bank'],'cash-bank2':['cash','bank2'],'bank2-cash':['bank2','cash'],'undep-bank2':['undeposited','bank2'],'bank-bank2':['bank','bank2'],'bank2-bank':['bank2','bank']};
-  const [from,to]=map[dir]||['cash','bank'];
-  const t={id:Date.now(),kind:'transfer',dir:'xfer',date:$('tr-date').value||todayISO(),amount:amt,fromFund:from,toFund:to,category:'Transfer',method:'',note:$('tr-note').value.trim()};
+  const to=$('tr-to').value;
+  const t={id:Date.now(),kind:'transfer',dir:'xfer',date:depositDate(),amount:amt,fromFund:'cash',toFund:to,category:'Transfer',method:($('tr-method')?$('tr-method').value:''),note:$('tr-note').value.trim()};
   transactions.push(t); save(); $('tr-amount').value=''; $('tr-note').value='';
-  renderCashBank(); await gsSend('addTransfer',t); alert('Transfer saved.');
+  if($('tr-day')) $('tr-day').value='';   // clear the day for the next deposit, keep the locked month/year
+  renderCashBank(); await gsSend('addTransfer',t); alert('Deposit saved.');
 }
 // ---- Chart of accounts editor ----
 function acctActivity(a,yr,mo){
@@ -1510,7 +1537,7 @@ function renderBalanceSheet(){
   const yr=$('bs-year')?$('bs-year').value:'', mo=$('bs-month')?$('bs-month').value:'';
   const asOf=asOfCutoff(yr,mo);
   const lbl=$('bs-asof-label'); if(lbl) lbl.textContent = asOf ? ('as of '+fmtDate(asOf)) : 'current (all entries)';
-  const bb=balances(asOf); const liveByLink={cash:bb.cash,bank:bb.bank,bank2:bb.bank2,undeposited:bb.undeposited};
+  const bb=balances(asOf); const liveByLink={cash:bb.cash,bank:bb.bank,bank2:bb.bank2,bank3:bb.bank3,undeposited:bb.undeposited};
   const bal=a=> (a.link && a.link in liveByLink) ? liveByLink[a.link] : (+a.balance||0);
   const at=$('bs-assets'); at.innerHTML=''; let TA=0;
   accounts.filter(a=>a.type==='asset').sort((a,b)=>String(a.code).localeCompare(String(b.code))).forEach(a=>{ const v=bal(a); TA+=v; at.innerHTML+=`<tr><td class="px-6 py-2 text-gray-500 w-16">${esc(a.code)}</td><td class="px-6 py-2">${esc(a.name)}</td><td class="px-6 py-2 text-right">${money(v)}</td></tr>`; });
@@ -1596,7 +1623,7 @@ function renderDashboard(){
   if(!transactions.length) tb.innerHTML='<tr><td colspan="3" class="px-6 py-6 text-center text-gray-400">No transactions yet.</td></tr>';
 }
 function txDesc(t){
-  if(t.kind==='transfer') return `Transfer ${t.fromFund==='cash'?'Cash → Bank':'Bank → Cash'}${t.note?' ('+t.note+')':''}`;
+  if(t.kind==='transfer') return `Transfer ${xferLabel(t)}${t.note?' ('+t.note+')':''}`;
   if(t.kind==='fee') return `${t.family} — fees (${t.period||''})`;
   if(t.kind==='collection'){ const who=t.donor?` — ${t.donor}`:''; return `${t.category}${who}${t.note?' ('+t.note+')':''}`; }
   return `${t.category}${t.payee?' — '+t.payee:''}${t.note?' ('+t.note+')':''}`;
@@ -1858,7 +1885,7 @@ async function saveCollection(){
   const from=$('col-from').value; let familyId=null, donor='';
   if(from==='onetime'){ donor=$('col-donor').value.trim(); }
   else if(from && from!=='anon'){ familyId=+from.slice(1); const f=families.find(x=>x.id===familyId); donor=f?famLabel(f):''; }
-  const fields={receiptNo:$('col-receipt').value.trim(),date:collectionDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',familyId,donor,method:$('col-method').value,fund:bankFund($('col-method').value,'in','col-bank'),note:$('col-note').value.trim()};
+  const fields={receiptNo:$('col-receipt').value.trim(),date:collectionDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',familyId,donor,method:$('col-method').value,fund:'cash',note:$('col-note').value.trim()};
   if(editTxId){                                  // update existing entry
     const t=transactions.find(x=>x.id===editTxId); if(t) Object.assign(t, fields);
     save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓');
@@ -1920,7 +1947,7 @@ function startEditCollection(id){
   if($('col-lock')){ $('col-lock').checked=false; toggleDateLock(); }
   if($('col-date')) $('col-date').value = t.date;
   if($('col-method')) $('col-method').value = t.method||'Cash';
-  if($('col-bank')) $('col-bank').value = (fundOf(t)==='bank2'?'bank2':'bank'); colBankToggle();
+  if($('col-bank')){ const fv=fundOf(t); $('col-bank').value=(fv==='bank2'||fv==='bank3')?fv:'bank'; } colBankToggle();
   if($('col-note')) $('col-note').value = t.note||'';
   if(isMembershipCat()){
     const fid = t.familyId || ((families.find(x=>famLabel(x)===t.family)||{}).id) || null;
@@ -2015,46 +2042,70 @@ function renderLedger(){
   ledFillAccounts();
   const ty=$('led-type').value, acct=$('led-acct')?$('led-acct').value:'', yr=$('led-year').value, mo=$('led-month').value, q=($('led-search').value||'').toLowerCase();
   const selAcct = acct ? acctById(+acct) : null;
-  // Cash/bank/undeposited accounts aren't tagged on transactions (money location is a "fund"),
-  // so for these show the fund register: everything that moved money in/out of that bucket.
-  const fundLink = (selAcct && ['cash','bank','bank2','undeposited'].includes(selAcct.link)) ? selAcct.link : '';
-  let rows=transactions.filter(t=>{
-    if(ty && t.kind!==ty) return false;
-    if(yr && t.date.slice(0,4)!==yr) return false;
-    if(mo && (+t.date.slice(5,7))!==(+mo)) return false;
-    if(q && !(txDesc(t).toLowerCase().includes(q)||(t.category||'').toLowerCase().includes(q))) return false;
-    if(fundLink) return fundDelta(t,fundLink)!==0;
-    if(acct) return String(t.acctId)===acct;
-    return true;
-  }).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
-  let inSum=0,outSum=0;
+  const fundLink = (selAcct && ['cash','bank','bank2','bank3','undeposited'].includes(selAcct.link)) ? selAcct.link : '';
+  const od=settings.openingDate||'';
+  const matchQ=t=> !q || (txDesc(t).toLowerCase().includes(q)||(t.category||'').toLowerCase().includes(q));
+  const matchTy=t=> !ty || t.kind===ty;
+  const editBtnOf=t=> (t.kind==='collection'||t.kind==='fee') ? `<button onclick="startEditCollection(${t.id})" class="text-indigo-500 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>` : '';
   const tb=$('ledger-tbody'); tb.innerHTML='';
-  rows.forEach(t=>{
-    let inAmt=0,outAmt=0;
-    if(fundLink){ const d=fundDelta(t,fundLink); if(d>0) inAmt=d; else outAmt=-d; }
-    else { if(t.dir==='in') inAmt=t.amount; else if(t.dir==='out') outAmt=t.amount; }
-    inSum+=inAmt; outSum+=outAmt;
-    const inCell=inAmt?money(inAmt):'';
-    const outCell=outAmt?money(outAmt):((!fundLink && t.kind==='transfer')?`<span class="text-gray-400">${money(t.amount)}</span>`:'');
-    const editBtn = (t.kind==='collection'||t.kind==='fee') ? `<button onclick="startEditCollection(${t.id})" class="text-indigo-500 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>` : '';
-    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-4 py-2">${esc(txDesc(t))}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="px-4 py-2 text-right text-emerald-600">${inCell}</td><td class="px-4 py-2 text-right text-red-600">${outCell}</td><td class="px-4 py-2 text-center whitespace-nowrap">${editBtn}<button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
-  });
-  // When a specific account is selected, show its opening balance as a starting line (it isn't a transaction)
-  if(acct){
-    const a=acctById(+acct); const od=settings.openingDate||''; const cutoff=asOfCutoff(yr,mo);
-    let amt=0;
-    if(a){ if(a.link==='cash') amt=+settings.openingCash||0; else if(a.link==='bank') amt=+settings.openingBank||0; else if(a.link==='bank2') amt=+settings.openingBank2||0; else if(!a.link) amt=+a.balance||0; }
-    const withinPeriod = od && (!cutoff || od<=cutoff);
-    if(a && withinPeriod && Math.abs(amt)>0.005){
-      const isAsset=a.type==='asset';
-      const cells = isAsset
-        ? `<td class="px-4 py-2 text-right text-gray-400">${money(amt)}</td><td class="px-4 py-2"></td>`
-        : `<td class="px-4 py-2"></td><td class="px-4 py-2 text-right text-gray-400">${money(amt<0?-amt:amt)}</td>`;
-      tb.innerHTML+=`<tr class="bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(od)}</td><td class="px-4 py-2 italic text-gray-500">Opening balance${amt<0?' (contra)':''}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(a.code+' — '+a.name)}</td>${cells}<td class="px-4 py-2"></td></tr>`;
-    }
+
+  if(selAcct){
+    // ---- Running-balance statement for one account (oldest first) ----
+    const isIE = selAcct.type==='income'||selAcct.type==='expense';
+    const belongs=t=> fundLink ? fundDelta(t,fundLink)!==0 : (String(t.acctId)===acct);
+    const delta=t=> fundLink ? fundDelta(t,fundLink) : (isIE ? t.amount : (t.dir==='in'?t.amount:t.dir==='out'?-t.amount:0));
+    let opening=0;
+    if(fundLink==='cash') opening=+settings.openingCash||0;
+    else if(fundLink==='bank') opening=+settings.openingBank||0;
+    else if(fundLink==='bank2') opening=+settings.openingBank2||0;
+    else if(fundLink==='bank3') opening=+settings.openingBank3||0;
+    else if(!selAcct.link && !isIE) opening=+selAcct.balance||0;
+    const periodStart = yr ? (mo ? `${yr}-${String(mo).padStart(2,'0')}-01` : `${yr}-01-01`) : '';
+    const inPeriod=t=>{ if(mo&&yr) return t.date.slice(0,7)===`${yr}-${String(mo).padStart(2,'0')}`; if(yr) return t.date.slice(0,4)===yr; return true; };
+    const all = transactions.filter(t=> belongs(t) && matchTy(t) && (!od || t.date>=od)).sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+    let bf = opening;
+    all.forEach(t=>{ if(periodStart && t.date<periodStart) bf+=delta(t); });
+    const disp = all.filter(t=> inPeriod(t) && matchQ(t));
+    const debitNormal = (selAcct.type==='asset' || selAcct.type==='expense');   // assets & expenses increase with a debit
+    let run=bf, debSum=0, creSum=0;
+    const startLabel = periodStart ? 'Balance brought forward' : 'Opening balance';
+    const startDate = periodStart || od;
+    tb.innerHTML+=`<tr class="bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${startDate?fmtDate(startDate):''}</td><td class="px-4 py-2 italic text-gray-500">${startLabel}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(selAcct.code+' — '+selAcct.name)}</td><td class="px-4 py-2"></td><td class="px-4 py-2"></td><td class="px-4 py-2 text-right font-semibold">${money(run)}</td><td class="px-4 py-2"></td></tr>`;
+    disp.forEach(t=>{
+      const eff=delta(t); run+=eff;                 // eff = increase to this account's natural balance
+      let deb=0, cre=0;
+      if(debitNormal){ if(eff>0) deb=eff; else cre=-eff; }
+      else { if(eff>0) cre=eff; else deb=-eff; }
+      debSum+=deb; creSum+=cre;
+      tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-4 py-2">${esc(txDesc(t))}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="px-4 py-2 text-right text-gray-800">${deb?money(deb):''}</td><td class="px-4 py-2 text-right text-gray-800">${cre?money(cre):''}</td><td class="px-4 py-2 text-right font-semibold">${money(run)}</td><td class="px-4 py-2 text-center whitespace-nowrap">${editBtnOf(t)}<button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+    });
+    const sideNote = debitNormal ? 'debit balance' : 'credit balance';
+    $('led-summary').innerHTML=`Debits: <b>${money(debSum)}</b> &nbsp; Credits: <b>${money(creSum)}</b> &nbsp; Ending balance: <b>${money(run)}</b> <span class="text-gray-400">(${sideNote})</span>`;
+  } else {
+    // ---- All accounts: transaction list, newest first (no running balance) ----
+    let debSum=0,creSum=0;
+    const rows=transactions.filter(t=>{
+      if(ty && t.kind!==ty) return false;
+      if(yr && t.date.slice(0,4)!==yr) return false;
+      if(mo && (+t.date.slice(5,7))!==(+mo)) return false;
+      if(!matchQ(t)) return false;
+      return true;
+    }).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+    rows.forEach(t=>{
+      // Place each entry on its account's normal side: income → credit, expense → debit; transfers are internal
+      let deb=0, cre=0, gray=false;
+      if(t.kind==='expense'){ deb=t.amount; }
+      else if(t.kind==='collection'||t.kind==='fee'){ cre=t.amount; }
+      else if(t.kind==='transfer'){ deb=t.amount; gray=true; }
+      else { if(t.dir==='in') cre=t.amount; else deb=t.amount; }
+      if(!gray){ debSum+=deb; creSum+=cre; }
+      const debCell = deb?`<span class="${gray?'text-gray-400':'text-gray-800'}">${money(deb)}</span>`:'';
+      const creCell = cre?`<span class="text-gray-800">${money(cre)}</span>`:'';
+      tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-4 py-2">${esc(txDesc(t))}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="px-4 py-2 text-right">${debCell}</td><td class="px-4 py-2 text-right">${creCell}</td><td class="px-4 py-2"></td><td class="px-4 py-2 text-center whitespace-nowrap">${editBtnOf(t)}<button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+    });
+    $('led-summary').innerHTML=`Debits: <b>${money(debSum)}</b> &nbsp; Credits: <b>${money(creSum)}</b> &nbsp; Net: <b>${money(creSum-debSum)}</b>`;
   }
-  if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">No matching transactions.</td></tr>';
-  $('led-summary').innerHTML=`In: <b class="text-emerald-600">${money(inSum)}</b> &nbsp; Out: <b class="text-red-600">${money(outSum)}</b> &nbsp; Net: <b>${money(inSum-outSum)}</b>`;
+  if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">No matching transactions.</td></tr>';
 }
 function deleteTx(id){ const t=transactions.find(x=>x.id===id); if(!confirm(`Delete this ${t.kind} of ${money(t.amount)} on ${fmtDate(t.date)}?`)) return; transactions=transactions.filter(x=>x.id!==id); save(); renderLedger(); }
 
@@ -2178,7 +2229,7 @@ function buildWorkbook(){
   accounts.filter(a=>a.type==='liability').sort((a,b)=>String(a.code).localeCompare(String(b.code))).forEach(a=>bs2.push([a.code,a.name,acctBalance(a)]));
   bs2.push(['','Total liabilities',totalLiabilities()],['','',''],['','Net assets (fund balance)',totalAssets()-totalLiabilities()]);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bs2), 'Balance Sheet');
-  const st=[['key','value'],['name',settings.name],['address',settings.address],['openingCash',settings.openingCash||0],['openingBank',settings.openingBank||0],['openingBank2',settings.openingBank2||0],['openingDate',settings.openingDate||'']];
+  const st=[['key','value'],['name',settings.name],['address',settings.address],['openingCash',settings.openingCash||0],['openingBank',settings.openingBank||0],['openingBank2',settings.openingBank2||0],['openingBank3',settings.openingBank3||0],['openingDate',settings.openingDate||'']];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(st), 'Settings');
   return wb;
 }
@@ -2223,6 +2274,7 @@ function applyLoaded(d){
     if('openingCash' in d.settings) settings.openingCash=+d.settings.openingCash||0;
     if('openingBank' in d.settings) settings.openingBank=+d.settings.openingBank||0;
     if('openingBank2' in d.settings) settings.openingBank2=+d.settings.openingBank2||0;
+    if('openingBank3' in d.settings) settings.openingBank3=+d.settings.openingBank3||0;
     if('openingDate' in d.settings) settings.openingDate=d.settings.openingDate||''; }
   migrateTx(); save(); resetFilters(); applySettings();
 }
