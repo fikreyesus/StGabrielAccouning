@@ -190,7 +190,10 @@
     <section id="families-page" class="p-8 hidden">
       <div class="flex justify-between items-center mb-5">
         <input id="fam-search" oninput="renderFamilies()" placeholder="Search families…" class="border rounded-xl px-4 py-2 w-72">
-        <button onclick="openFamilyModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><i class="fa-solid fa-plus"></i> Add Family</button>
+        <div class="flex gap-2">
+          <button onclick="printFamilies()" class="bg-gray-200 hover:bg-gray-300 px-4 py-3 rounded-xl text-sm"><i class="fa-solid fa-print"></i> Print</button>
+          <button onclick="openFamilyModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><i class="fa-solid fa-plus"></i> Add Family</button>
+        </div>
       </div>
       <div class="bg-white rounded-2xl shadow overflow-hidden">
         <table class="w-full text-sm">
@@ -340,10 +343,19 @@
           <div id="exp-bank-wrap" class="mt-4 hidden"><label class="block text-xs font-medium text-gray-600 mb-1">Pay from which bank?</label>
             <select id="exp-bank" class="w-full border rounded-2xl px-4 py-3"><option value="bank">PNC Bank — Checking</option><option value="bank2">River City Bank — Checking</option><option value="bank3">Rivercity - Mortgage</option></select></div>
           <label class="block text-xs font-medium text-gray-600 mb-1 mt-4">Paid to (payee)</label>
-          <input id="exp-payee" class="w-full border rounded-2xl px-4 py-3 mb-4" placeholder="e.g. City Utilities">
+          <div class="flex gap-2 mb-4">
+            <input id="exp-payee" list="exp-payee-list" class="flex-1 border rounded-2xl px-4 py-3" placeholder="Pick or type a name / organization…" autocomplete="off">
+            <datalist id="exp-payee-list"></datalist>
+            <button type="button" onclick="addPayeeFromInput()" class="px-4 bg-gray-200 hover:bg-gray-300 rounded-2xl text-sm font-medium whitespace-nowrap" title="Save this name to your payee list"><i class="fa-solid fa-plus"></i> Save name</button>
+          </div>
+          <p id="exp-payee-flash" class="text-xs text-emerald-600 font-semibold mb-4" style="visibility:hidden">Added to payee list ✓</p>
           <label class="block text-xs font-medium text-gray-600 mb-1">Note (optional)</label>
           <input id="exp-note" class="w-full border rounded-2xl px-4 py-3 mb-5">
-          <button onclick="saveExpense()" class="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-semibold">Save Expense</button>
+          <div class="flex gap-2">
+            <button id="exp-save-btn" onclick="saveExpense()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-semibold">Save Expense</button>
+            <button id="exp-cancel-btn" onclick="cancelExpenseEdit()" class="hidden px-5 bg-gray-200 hover:bg-gray-300 rounded-2xl font-semibold">Cancel</button>
+          </div>
+          <p id="exp-edit-banner" class="hidden text-center text-sm font-semibold text-indigo-600 mt-2"></p>
         </div>
         <div class="bg-white rounded-3xl shadow overflow-hidden">
           <div class="px-6 py-3 border-b font-semibold text-gray-700">Recent expenses</div>
@@ -403,7 +415,11 @@
           </div>
           <label class="block text-xs text-gray-600 mb-1">Note (optional)</label>
           <input id="tr-note" class="w-full border rounded-xl px-3 py-2 mb-4" placeholder="e.g. deposited Sunday cash">
-          <button onclick="saveTransfer()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm">Save deposit</button>
+          <div class="flex gap-2">
+            <button id="tr-save-btn" onclick="saveTransfer()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm">Save deposit</button>
+            <button id="tr-cancel-btn" onclick="cancelTransferEdit()" class="hidden bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm">Cancel</button>
+            <span id="tr-edit-banner" class="hidden text-sm font-semibold text-indigo-600 self-center">Editing a deposit</span>
+          </div>
         </div>
       </div>
       <div class="bg-white rounded-2xl shadow overflow-hidden mt-6">
@@ -456,6 +472,7 @@
         <select id="trial-month" onchange="renderTrialBalance()" class="border rounded-xl px-3 py-1.5 bg-white"></select>
         <select id="trial-year" onchange="renderTrialBalance()" class="border rounded-xl px-3 py-1.5 bg-white"></select>
         <span id="trial-asof-label" class="text-xs text-gray-400"></span>
+        <button onclick="printTrial()" class="bg-gray-200 hover:bg-gray-300 px-4 py-1.5 rounded-xl text-sm ml-auto"><i class="fa-solid fa-print"></i> Print</button>
       </div>
       <div class="bg-white rounded-2xl shadow overflow-hidden">
         <table class="w-full text-sm">
@@ -477,6 +494,7 @@
         <select id="bs-month" onchange="renderBalanceSheet()" class="border rounded-xl px-3 py-1.5 bg-white"></select>
         <select id="bs-year" onchange="renderBalanceSheet()" class="border rounded-xl px-3 py-1.5 bg-white"></select>
         <span id="bs-asof-label" class="text-xs text-gray-400"></span>
+        <button onclick="printBalanceSheet2()" class="bg-gray-200 hover:bg-gray-300 px-4 py-1.5 rounded-xl text-sm ml-auto"><i class="fa-solid fa-print"></i> Print</button>
       </div>
       <div class="bg-white rounded-2xl shadow overflow-hidden mb-5">
         <div class="px-6 py-3 border-b font-semibold text-emerald-700">Assets</div>
@@ -500,6 +518,7 @@
         <select id="led-year" onchange="renderLedger()" class="border rounded-xl px-4 py-2"></select>
         <select id="led-month" onchange="renderLedger()" class="border rounded-xl px-4 py-2"></select>
         <input id="led-search" oninput="renderLedger()" placeholder="Search…" class="border rounded-xl px-4 py-2 flex-1 min-w-[160px]">
+        <button onclick="printLedger()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm whitespace-nowrap"><i class="fa-solid fa-print"></i> Print</button>
         <span id="led-summary" class="text-sm text-gray-600 ml-auto"></span>
       </div>
       <div class="bg-white rounded-2xl shadow overflow-hidden">
@@ -530,7 +549,7 @@
         <button onclick="clearRepFilters()" class="px-3 py-2 rounded-xl text-sm bg-gray-100 hover:bg-gray-200 text-gray-600">Clear</button>
         <div class="flex gap-2" style="margin-left:auto">
           <button onclick="exportXLSX()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
-          <button onclick="window.print()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm"><i class="fa-solid fa-print"></i> Print</button>
+          <button onclick="printReports()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm"><i class="fa-solid fa-print"></i> Print</button>
         </div>
       </div>
       <div class="grid md:grid-cols-3 gap-5 mb-5">
@@ -737,8 +756,8 @@ const IE_SEED = [
   ['4200','General Donation','income',''],['4210','One-time Gift','income',''],['4220','Prayer Request Offering','income',''],['4230','Vow / Pledge (ስለት)','income',''],
   ['4300','Baptism','income',''],['4310','Wedding','income',''],['4320','Funeral / Memorial (ተዝካር)','income',''],['4330','Candle & Incense','income',''],
   ['4400','Building Fund','income',''],['4410','Holiday Collection (Meskel, Timket)','income',''],['4420','Fundraising','income',''],['4900','Other Income','income',''],
-  ['6100','Clergy Stipend','expense',''],['6110','Salaries & Wages','expense',''],['6200','Rent / Mortgage','expense',''],['6210','Utilities','expense',''],
-  ['6220','Maintenance & Repairs','expense',''],['6300','Supplies','expense',''],['6310','Liturgical Supplies','expense',''],['6400','Events & Hospitality','expense',''],
+  ['6100','Clergy Stipend','expense',''],['6110','Salaries & Wages','expense',''],['6120','Bonus','expense',''],['6200','Rent / Mortgage','expense',''],['6210','Utilities','expense',''],
+  ['6220','Maintenance & Repairs','expense',''],['6230','Construction','expense',''],['6300','Supplies','expense',''],['6310','Liturgical Supplies','expense',''],['6400','Events & Hospitality','expense',''],
   ['6500','Charity / Outreach','expense',''],['6600','Bank & Admin Fees','expense',''],['6900','Other Expense','expense','']
 ];
 function seedAccounts(){ accounts = BS_SEED.concat(IE_SEED).map((a,i)=>({id:1000+i, code:a[0], name:a[1], type:a[2], link:a[3]||'', balance:0})); }
@@ -807,7 +826,7 @@ function acctBalance(a){ if(a.link==='cash') return balances().cash; if(a.link==
 function totalAssets(){ return accounts.filter(a=>a.type==='asset').reduce((s,a)=>s+acctBalance(a),0); }
 function totalLiabilities(){ return accounts.filter(a=>a.type==='liability').reduce((s,a)=>s+acctBalance(a),0); }
 
-let settings = { name:"Debre Hayl St Gabriel Ethiopian Orthodox Tewahedo Church", address:"2216 Goldsmith Lane, Louisville, KY 40218", openingCash:0, openingBank:0, openingBank2:0, openingBank3:0, openingDate:"", gsEnabled:false, gsUrl:"https://script.google.com/macros/s/AKfycbwIQx27lPc6yPF-IPGOBCxXnZ2foLv3X2sM1-C_x60pEnk4aiNw-90qfNbBBsWGKg/exec", pwCashier:"cashier", pwAccountant:"StGabriel19" };
+let settings = { name:"Debre Hayl St Gabriel Ethiopian Orthodox Tewahedo Church", address:"2216 Goldsmith Lane, Louisville, KY 40218", openingCash:0, openingBank:0, openingBank2:0, openingBank3:0, openingDate:"", payees:[], gsEnabled:false, gsUrl:"https://script.google.com/macros/s/AKfycbwIQx27lPc6yPF-IPGOBCxXnZ2foLv3X2sM1-C_x60pEnk4aiNw-90qfNbBBsWGKg/exec", pwCashier:"cashier", pwAccountant:"StGabriel19" };
 let currentRole = null;
 const CASHIER_PAGES = ['collections'];
 let families = [];
@@ -821,6 +840,7 @@ let lockedYM = null;            // {year, month} when the accountant locks a mon
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify({settings, families, transactions, accounts})); }catch(e){ alert('Could not save into this browser: '+e.message+'\n\nThe data may be too large for the browser. Please back up now (Data & Backup) and keep using the linked Excel workbook.'); } scheduleAutosave(); }
 function load(){
   try { const d = JSON.parse(localStorage.getItem(KEY)); if(d){ settings=Object.assign(settings,d.settings||{}); families=d.families||[]; transactions=d.transactions||[]; accounts=d.accounts||[]; } } catch(e){}
+  if(!Array.isArray(settings.payees)) settings.payees = String(settings.payees||'').split('|').map(s=>s.trim()).filter(Boolean);
   if(!accounts || !accounts.length) seedAccounts();
   ensureBS();
   // Migration: ensure an "Undeposited Funds (Checks)" asset exists (added later)
@@ -830,11 +850,20 @@ function load(){
     if(idx>=0) accounts.splice(idx+1,0,acc); else accounts.unshift(acc);
   }
   ensureTwoBanks();
+  ensureAccount('6120','Bonus','expense');
+  ensureAccount('6230','Construction','expense');
   migrateTx();
+}
+// Add a chart-of-accounts account if it isn't already present (by code)
+function ensureAccount(code,name,type){
+  if(accounts.some(a=>String(a.code)===String(code))) return;
+  accounts.push({id:900700+accounts.length,code,name,type,link:'',balance:0});
 }
 const LEGACY_MAP = {'Membership Fees':'4100','Sunday Offering':'4110','Tithe':'4120','Donation':'4200','General Donation':'4200','Special Gift':'4210','One-time Gift':'4210','Fundraising':'4420','Other Income':'4900','Clergy Stipend':'6100','Salaries':'6110','Rent / Mortgage':'6200','Utilities':'6210','Maintenance':'6220','Supplies':'6300','Events':'6400','Charity / Outreach':'6500','Bank / Fees':'6600','Other Expense':'6900'};
 function migrateTx(){
   transactions.forEach(t=>{
+    // Transfers (bank deposits) are not income or expense — never tag them to an account
+    if(t.kind==='transfer'){ t.acctId=null; t.acct=''; if(!t.category || t.category==='Other Income') t.category='Transfer'; return; }
     if(t.acctId && acctById(t.acctId)){ const a=acctById(t.acctId); t.acct=a.code; if(!t.category) t.category=a.name; return; }
     let a = accounts.find(x=>String(x.name).toLowerCase()===String(t.category||'').toLowerCase());
     if(!a){ const code=LEGACY_MAP[t.category]; if(code) a=accounts.find(x=>x.code===code); }
@@ -883,7 +912,7 @@ function showPage(page){
     }
     const mr=$('col-mem-row'); if(mr) mr.classList.toggle('hidden', cashier);   // member picked at top; this dropdown is redundant for cashier
   }
-  if(page==='expenses'){ fillAccountSelect($('exp-cat'),'expense'); renderRecentExpenses(); }
+  if(page==='expenses'){ fillAccountSelect($('exp-cat'),'expense'); fillPayeeList(); renderRecentExpenses(); }
   if(page==='cashbank') renderCashBank();
   if(page==='accounts') renderAccounts();
   if(page==='ledger') renderLedger();
@@ -1415,7 +1444,7 @@ function renderCashBank(){
   if(!$('tr-date').value) $('tr-date').value=todayISO();
   const tb=$('tr-recent'); tb.innerHTML='';
   transactions.filter(t=>t.kind==='transfer').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,15).forEach(t=>{
-    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-6 py-2">${xferLabel(t)}${t.note?' · '+esc(t.note):''}</td><td class="px-6 py-2 text-right font-semibold">${money(t.amount)}</td><td class="px-6 py-2 text-center"><button onclick="deleteTx(${t.id})" class="text-red-400"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-6 py-2">${xferLabel(t)}${t.note?' · '+esc(t.note):''}</td><td class="px-6 py-2 text-right font-semibold">${money(t.amount)}</td><td class="px-6 py-2 text-center whitespace-nowrap"><button onclick="startEditTransfer(${t.id})" class="text-indigo-400 hover:text-indigo-600 mr-2" title="Edit"><i class="fa-solid fa-pen"></i></button><button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
   });
   if(!tb.innerHTML) tb.innerHTML='<tr><td class="px-6 py-6 text-center text-gray-400">No transfers yet.</td></tr>';
 }
@@ -1462,13 +1491,42 @@ function depositDate(){
   }
   return $('tr-date').value||todayISO();
 }
+let editTrId=null;
 async function saveTransfer(){
   const amt=parseFloat($('tr-amount').value); if(!amt) return alert('Enter an amount.');
   const to=$('tr-to').value;
-  const t={id:Date.now(),kind:'transfer',dir:'xfer',date:depositDate(),amount:amt,fromFund:'cash',toFund:to,category:'Transfer',method:($('tr-method')?$('tr-method').value:''),note:$('tr-note').value.trim()};
+  const fields={date:depositDate(),amount:amt,fromFund:'cash',toFund:to,category:'Transfer',method:($('tr-method')?$('tr-method').value:''),note:$('tr-note').value.trim()};
+  if(editTrId){
+    const t=transactions.find(x=>x.id===editTrId); if(t) Object.assign(t,fields);
+    save(); cancelTransferEdit(); renderCashBank(); if($('ledger-tbody')) renderLedger();
+    return;
+  }
+  const t={id:Date.now(),kind:'transfer',dir:'xfer',...fields};
   transactions.push(t); save(); $('tr-amount').value=''; $('tr-note').value='';
   if($('tr-day')) $('tr-day').value='';   // clear the day for the next deposit, keep the locked month/year
-  renderCashBank(); await gsSend('addTransfer',t); alert('Deposit saved.');
+  renderCashBank(); if($('ledger-tbody')) renderLedger(); await gsSend('addTransfer',t);
+}
+function startEditTransfer(id){
+  if(currentRole!=='accountant'){ alert('Editing is done from the accountant login.'); return; }
+  const t=transactions.find(x=>x.id===id); if(!t||t.kind!=='transfer'){ alert('Deposit not found.'); return; }
+  showPage('cashbank'); editTrId=id;
+  if($('tr-lock')){ $('tr-lock').checked=false; trToggleDateLock(); }
+  if($('tr-date')) $('tr-date').value=t.date;
+  $('tr-amount').value=(Number(t.amount)||0).toFixed(2);
+  if($('tr-to')) $('tr-to').value=(t.toFund==='bank2'||t.toFund==='bank3')?t.toFund:'bank';
+  if($('tr-method')) $('tr-method').value=t.method||'Cash';
+  $('tr-note').value=t.note||'';
+  const b=$('tr-save-btn'); if(b) b.textContent='Update deposit';
+  if($('tr-cancel-btn')) $('tr-cancel-btn').classList.remove('hidden');
+  if($('tr-edit-banner')) $('tr-edit-banner').classList.remove('hidden');
+  window.scrollTo(0,0);
+}
+function cancelTransferEdit(){
+  editTrId=null;
+  $('tr-amount').value=''; $('tr-note').value=''; if($('tr-day')) $('tr-day').value='';
+  const b=$('tr-save-btn'); if(b) b.textContent='Save deposit';
+  if($('tr-cancel-btn')) $('tr-cancel-btn').classList.add('hidden');
+  if($('tr-edit-banner')) $('tr-edit-banner').classList.add('hidden');
 }
 // ---- Chart of accounts editor ----
 function acctActivity(a,yr,mo){
@@ -2006,21 +2064,75 @@ function renderRecentCollections(){
 function clearColFilters(){ ['col-f-month','col-f-year','col-f-date'].forEach(id=>{ const e=$(id); if(e) e.value=''; }); renderRecentCollections(); }
 
 // ================= EXPENSES =================
+// Saved "Paid to" names: the manual list in settings.payees + any used on past expenses
+function allPayees(){
+  const set=new Map();
+  (settings.payees||[]).forEach(n=>{ const s=String(n||'').trim(); if(s) set.set(s.toLowerCase(),s); });
+  transactions.forEach(t=>{ if(t.kind==='expense' && t.payee){ const s=String(t.payee).trim(); if(s && !set.has(s.toLowerCase())) set.set(s.toLowerCase(),s); } });
+  return [...set.values()].sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}));
+}
+function fillPayeeList(){
+  const dl=$('exp-payee-list'); if(!dl) return;
+  dl.innerHTML=allPayees().map(n=>`<option value="${esc(n)}"></option>`).join('');
+}
+function rememberPayee(name){
+  const s=String(name||'').trim(); if(!s) return;
+  if(!settings.payees) settings.payees=[];
+  if(!settings.payees.some(p=>String(p).trim().toLowerCase()===s.toLowerCase())) settings.payees.push(s);
+}
+function addPayeeFromInput(){
+  const s=($('exp-payee').value||'').trim();
+  if(!s){ alert('Type a name or organization first, then click Save name.'); $('exp-payee').focus(); return; }
+  rememberPayee(s); save(); fillPayeeList();
+  const f=$('exp-payee-flash'); if(f){ f.style.visibility='visible'; setTimeout(()=>{ f.style.visibility='hidden'; }, 1800); }
+}
+let editExpId=null;
 async function saveExpense(){
   const amount=parseFloat($('exp-amount').value); if(!amount) return alert('Enter an amount.');
   const a=acctById(+$('exp-cat').value);
-  const t={id:Date.now(),kind:'expense',dir:'out',date:expenseDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',payee:$('exp-payee').value.trim(),method:$('exp-method').value,fund:bankFund($('exp-method').value,'out','exp-bank'),note:$('exp-note').value.trim()};
+  const payeeName=$('exp-payee').value.trim();
+  const fields={date:expenseDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',payee:payeeName,method:$('exp-method').value,fund:bankFund($('exp-method').value,'out','exp-bank'),note:$('exp-note').value.trim()};
+  if(payeeName) rememberPayee(payeeName);   // keep the paid-to name for next time
+  if(editExpId){
+    const t=transactions.find(x=>x.id===editExpId); if(t) Object.assign(t,fields);
+    save(); cancelExpenseEdit(); fillPayeeList(); renderRecentExpenses(); if($('ledger-tbody')) renderLedger();
+    return;
+  }
+  const t={id:Date.now(),kind:'expense',dir:'out',...fields};
   transactions.push(t); save(); $('exp-amount').value=''; $('exp-payee').value=''; $('exp-note').value='';
-  renderRecentExpenses(); await gsSend('addExpense',t);
-  alert('Expense saved.');
+  fillPayeeList(); renderRecentExpenses(); if($('ledger-tbody')) renderLedger(); await gsSend('addExpense',t);
+}
+function startEditExpense(id){
+  if(currentRole!=='accountant'){ alert('Editing is done from the accountant login.'); return; }
+  const t=transactions.find(x=>x.id===id); if(!t||t.kind!=='expense'){ alert('Expense not found.'); return; }
+  showPage('expenses'); editExpId=id;
+  if($('exp-lock')){ $('exp-lock').checked=false; expToggleDateLock&&expToggleDateLock(); }
+  if($('exp-date')) $('exp-date').value=t.date;
+  if($('exp-cat')){ const a=(t.acctId!=null&&acctById(t.acctId))?acctById(t.acctId):acctByCode(t.acct); if(a) $('exp-cat').value=a.id; }
+  $('exp-amount').value=(Number(t.amount)||0).toFixed(2);
+  if($('exp-method')) $('exp-method').value=t.method||'Cash';
+  if($('exp-bank')){ const fv=fundOf(t); $('exp-bank').value=(fv==='bank2'||fv==='bank3')?fv:'bank'; } expBankToggle();
+  $('exp-payee').value=t.payee||''; $('exp-note').value=t.note||'';
+  const b=$('exp-save-btn'); if(b) b.textContent='Update expense';
+  if($('exp-cancel-btn')) $('exp-cancel-btn').classList.remove('hidden');
+  const bn=$('exp-edit-banner'); if(bn){ bn.textContent='Editing an existing expense'; bn.classList.remove('hidden'); }
+  window.scrollTo(0,0);
+}
+function cancelExpenseEdit(){
+  editExpId=null;
+  $('exp-amount').value=''; $('exp-payee').value=''; $('exp-note').value='';
+  const b=$('exp-save-btn'); if(b) b.textContent='Save Expense';
+  if($('exp-cancel-btn')) $('exp-cancel-btn').classList.add('hidden');
+  const bn=$('exp-edit-banner'); if(bn) bn.classList.add('hidden');
 }
 function renderRecentExpenses(){
   if(!$('exp-date').value) $('exp-date').value=todayISO();
   const tb=$('exp-recent'); tb.innerHTML='';
   transactions.filter(t=>t.kind==='expense').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,12).forEach(t=>{
-    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500">${fmtDate(t.date)}</td><td class="px-6 py-2">${esc(t.category)}${t.payee?' · '+esc(t.payee):''}</td><td class="px-6 py-2 text-right font-semibold text-red-600">${money(t.amount)}</td></tr>`;
+    const act = currentRole==='accountant' ? `<button onclick="startEditExpense(${t.id})" class="text-indigo-400 hover:text-indigo-600 mr-2" title="Edit"><i class="fa-solid fa-pen"></i></button><button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button>` : '';
+    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500">${fmtDate(t.date)}</td><td class="px-6 py-2">${esc(t.category)}${t.payee?' · '+esc(t.payee):''}</td><td class="px-6 py-2 text-right font-semibold text-red-600">${money(t.amount)}</td><td class="px-6 py-2 text-center whitespace-nowrap">${act}</td></tr>`;
   });
-  if(!tb.innerHTML) tb.innerHTML='<tr><td class="px-6 py-6 text-center text-gray-400">No expenses yet.</td></tr>';
+  if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="4" class="px-6 py-6 text-center text-gray-400">No expenses yet.</td></tr>';
 }
 
 // ================= LEDGER =================
@@ -2046,7 +2158,7 @@ function renderLedger(){
   const od=settings.openingDate||'';
   const matchQ=t=> !q || (txDesc(t).toLowerCase().includes(q)||(t.category||'').toLowerCase().includes(q));
   const matchTy=t=> !ty || t.kind===ty;
-  const editBtnOf=t=> (t.kind==='collection'||t.kind==='fee') ? `<button onclick="startEditCollection(${t.id})" class="text-indigo-500 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>` : '';
+  const editBtnOf=t=>{ let fn=''; if(t.kind==='collection'||t.kind==='fee') fn=`startEditCollection(${t.id})`; else if(t.kind==='expense') fn=`startEditExpense(${t.id})`; else if(t.kind==='transfer') fn=`startEditTransfer(${t.id})`; return fn?`<button onclick="${fn}" class="text-indigo-500 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>`:''; };
   const tb=$('ledger-tbody'); tb.innerHTML='';
 
   if(selAcct){
@@ -2108,6 +2220,124 @@ function renderLedger(){
   if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">No matching transactions.</td></tr>';
 }
 function deleteTx(id){ const t=transactions.find(x=>x.id===id); if(!confirm(`Delete this ${t.kind} of ${money(t.amount)} on ${fmtDate(t.date)}?`)) return; transactions=transactions.filter(x=>x.id!==id); save(); renderLedger(); }
+function printLedger(){
+  renderLedger();   // make sure the view is current
+  const accSel=$('led-acct'); const acctLabelText = (accSel && accSel.value) ? (accSel.options[accSel.selectedIndex].text) : 'All accounts';
+  const yr=$('led-year').value, mo=$('led-month').value;
+  const period = mo&&yr ? `${MONTHS[+mo-1]} ${yr}` : yr ? `Year ${yr}` : 'All dates';
+  const ty=$('led-type').value; const typeLabel = ty ? (({fee:'Fees',collection:'Collections',expense:'Expenses',transfer:'Transfers'})[ty]||ty) : '';
+  // Build the rows from the rendered table, dropping the last (actions) column and any buttons
+  let bodyRows='';
+  [...$('ledger-tbody').querySelectorAll('tr')].forEach(tr=>{
+    const tds=[...tr.querySelectorAll('td')];
+    if(!tds.length) return;
+    const cells=tds.slice(0,6).map((td,i)=>{ const txt=td.innerText.trim(); const align=(i>=3)?'right':'left'; return `<td style="text-align:${align}">${esc(txt)}</td>`; }).join('');
+    const bold = /bg-gray-50/.test(tr.className) ? ' style="font-weight:600;background:#f3f4f6"' : '';
+    bodyRows+=`<tr${bold}>${cells}</tr>`;
+  });
+  const summary=($('led-summary').innerText||'').trim();
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>Ledger — ${esc(acctLabelText)}</title></head>
+  <body style="font-family:Arial,Helvetica,sans-serif;color:#111;padding:28px">
+    <h2 style="margin:0 0 2px;font-size:20px">${esc(settings.name||'Church')}</h2>
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Ledger — ${esc(acctLabelText)}</div>
+    <div style="font-size:12px;color:#555;margin-bottom:14px">${esc(period)}${typeLabel?(' · '+esc(typeLabel)):''} · generated ${fmtDate(todayISO())}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:2px solid #333">
+        <th style="text-align:left;padding:6px 8px">Date</th>
+        <th style="text-align:left;padding:6px 8px">Description</th>
+        <th style="text-align:left;padding:6px 8px">Account</th>
+        <th style="text-align:right;padding:6px 8px">Debit</th>
+        <th style="text-align:right;padding:6px 8px">Credit</th>
+        <th style="text-align:right;padding:6px 8px">Balance</th>
+      </tr></thead>
+      <tbody>${bodyRows}</tbody>
+    </table>
+    <div style="margin-top:14px;font-size:13px;font-weight:600;text-align:right">${esc(summary)}</div>
+    <style>tbody td{padding:5px 8px;border-bottom:1px solid #e5e7eb}</style>
+  </body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>{ try{ w.print(); }catch(e){} }, 300);
+}
+// Generic print window: church header + title + content HTML
+function printDoc(title, subtitle, inner){
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>${esc(title)}</title></head>
+  <body style="font-family:Arial,Helvetica,sans-serif;color:#111;padding:28px">
+    <h2 style="margin:0 0 2px;font-size:20px">${esc(settings.name||'Church')}</h2>
+    <div style="font-size:15px;font-weight:600">${esc(title)}</div>
+    <div style="font-size:12px;color:#555;margin-bottom:14px">${subtitle?esc(subtitle)+' · ':''}generated ${fmtDate(todayISO())}</div>
+    ${inner}
+    <style>
+      table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+      th{text-align:left;padding:6px 8px;border-bottom:2px solid #333;font-weight:600}
+      td{padding:5px 8px;border-bottom:1px solid #e5e7eb}
+      .text-right{text-align:right}.text-center{text-align:center}
+      .font-semibold,.font-bold{font-weight:600}
+      .bg-gray-50{background:#f3f4f6}
+      .text-emerald-700,.text-emerald-600{color:#047857}.text-red-700,.text-red-600{color:#b91c1c}.text-indigo-700{color:#4338ca}
+      h3.sec{font-size:13px;margin:18px 0 6px;font-weight:700}
+      .kpis{display:flex;gap:24px;margin-bottom:12px;font-size:13px}
+      .kpis b{display:block;font-size:17px}
+    </style>
+  </body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>{ try{ w.print(); }catch(e){} }, 300);
+}
+// Clone a table/element for print: turn inputs/selects into plain text, drop buttons & action cells
+function cleanForPrint(el){
+  if(!el) return '';
+  const c=el.cloneNode(true);
+  c.querySelectorAll('input,select,textarea').forEach(i=>{ const s=document.createElement('span'); s.textContent=(i.value||''); i.replaceWith(s); });
+  c.querySelectorAll('button, i.fa-solid, i.fa-regular, svg').forEach(b=>b.remove());
+  return c.outerHTML;
+}
+function printTrial(){
+  renderTrialBalance();
+  const sub = ($('trial-asof-label')?$('trial-asof-label').textContent:'')||'';
+  const tbl = $('trial-body') ? $('trial-body').closest('table') : null;
+  printDoc('Trial Balance', sub.replace(/^as of/i,'As of').replace(/^current.*/i,'All entries'), cleanForPrint(tbl));
+}
+function printBalanceSheet2(){
+  renderBalanceSheet();
+  const sub = ($('bs-asof-label')?$('bs-asof-label').textContent:'')||'';
+  const assets = cleanForPrint($('bs-assets')?$('bs-assets').closest('table'):null);
+  const liab = cleanForPrint($('bs-liab')?$('bs-liab').closest('table'):null);
+  const net = $('bs-net')?$('bs-net').textContent:'';
+  const inner = `<h3 class="sec">Assets</h3>${assets}<h3 class="sec">Liabilities</h3>${liab}`
+    + `<div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;border-top:2px solid #333;padding-top:8px"><span>Net assets (fund balance)</span><span>${esc(net)}</span></div>`;
+  printDoc('Balance Sheet', sub.replace(/^as of/i,'As of').replace(/^current.*/i,'Current'), inner);
+}
+function printFamilies(){
+  renderFamilies();
+  const tbl = $('families-tbody') ? $('families-tbody').closest('table') : null;
+  // Drop the "Actions" column (last) from a clone
+  const c = tbl ? tbl.cloneNode(true) : null;
+  if(c){
+    c.querySelectorAll('tr').forEach(tr=>{ const cells=tr.children; if(cells.length) cells[cells.length-1].remove(); });
+    c.querySelectorAll('input,select').forEach(i=>{ const s=document.createElement('span'); s.textContent=(i.value||''); i.replaceWith(s); });
+    c.querySelectorAll('button, i.fa-solid, svg').forEach(b=>b.remove());
+  }
+  const n=families.length;
+  printDoc('Families / Members', `${n} famil${n===1?'y':'ies'}`, c?c.outerHTML:'');
+}
+function printReports(){
+  renderReports();
+  const yr=$('rep-year')?$('rep-year').value:''; const m1=$('rep-m1')?$('rep-m1').value:''; const m2=$('rep-m2')?$('rep-m2').value:'';
+  const period = yr ? (`${(m1&&MONTHS[+m1-1])||'Jan'}–${(m2&&MONTHS[+m2-1])||'Dec'} ${yr}`) : 'All dates';
+  const acctSel=$('rep-acct'), memSel=$('rep-member');
+  const acctTxt = acctSel&&acctSel.value ? acctSel.options[acctSel.selectedIndex].text : '';
+  const memTxt = memSel&&memSel.value ? memSel.options[memSel.selectedIndex].text : '';
+  const inc=$('rep-income')?$('rep-income').textContent:'', exp=$('rep-expense')?$('rep-expense').textContent:'', net=$('rep-net')?$('rep-net').textContent:'';
+  const kpis = `<div class="kpis"><span>Income<b class="text-emerald-600">${esc(inc)}</b></span><span>Expenses<b class="text-red-600">${esc(exp)}</b></span><span>Net<b>${esc(net)}</b></span></div>`;
+  const monthly = cleanForPrint($('rep-monthly')?$('rep-monthly').closest('table'):null);
+  const incCat = cleanForPrint($('rep-inccat')?$('rep-inccat').closest('table'):null);
+  const expCat = cleanForPrint($('rep-expcat')?$('rep-expcat').closest('table'):null);
+  const inner = kpis
+    + `<h3 class="sec">Monthly statement</h3>`+monthly
+    + `<h3 class="sec">Income by account</h3>`+incCat
+    + `<h3 class="sec">Expense by account</h3>`+expCat;
+  let sub = period; if(acctTxt) sub+=' · '+acctTxt; if(memTxt) sub+=' · '+memTxt;
+  printDoc('Financial Report', sub, inner);
+}
 
 // ================= REPORTS =================
 function reportYears(){ const ys=[...new Set(transactions.map(t=>+t.date.slice(0,4)))].sort((a,b)=>b-a); if(!ys.includes(curYear())) ys.unshift(curYear()); return ys; }
@@ -2229,7 +2459,7 @@ function buildWorkbook(){
   accounts.filter(a=>a.type==='liability').sort((a,b)=>String(a.code).localeCompare(String(b.code))).forEach(a=>bs2.push([a.code,a.name,acctBalance(a)]));
   bs2.push(['','Total liabilities',totalLiabilities()],['','',''],['','Net assets (fund balance)',totalAssets()-totalLiabilities()]);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bs2), 'Balance Sheet');
-  const st=[['key','value'],['name',settings.name],['address',settings.address],['openingCash',settings.openingCash||0],['openingBank',settings.openingBank||0],['openingBank2',settings.openingBank2||0],['openingBank3',settings.openingBank3||0],['openingDate',settings.openingDate||'']];
+  const st=[['key','value'],['name',settings.name],['address',settings.address],['openingCash',settings.openingCash||0],['openingBank',settings.openingBank||0],['openingBank2',settings.openingBank2||0],['openingBank3',settings.openingBank3||0],['openingDate',settings.openingDate||''],['payees',(Array.isArray(settings.payees)?settings.payees:[]).join(' | ')]];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(st), 'Settings');
   return wb;
 }
@@ -2269,12 +2499,13 @@ function applyLoaded(d){
   families=d.families||[]; transactions=d.transactions||[];
   if(d.accounts && d.accounts.length) accounts=d.accounts;
   if(!accounts || !accounts.length) seedAccounts();
-  ensureBS(); ensureTwoBanks();
+  ensureBS(); ensureTwoBanks(); ensureAccount('6120','Bonus','expense'); ensureAccount('6230','Construction','expense');
   if(d.settings){ if(d.settings.name) settings.name=d.settings.name; if(d.settings.address) settings.address=d.settings.address;
     if('openingCash' in d.settings) settings.openingCash=+d.settings.openingCash||0;
     if('openingBank' in d.settings) settings.openingBank=+d.settings.openingBank||0;
     if('openingBank2' in d.settings) settings.openingBank2=+d.settings.openingBank2||0;
     if('openingBank3' in d.settings) settings.openingBank3=+d.settings.openingBank3||0;
+    if('payees' in d.settings) settings.payees=String(d.settings.payees||'').split('|').map(s=>s.trim()).filter(Boolean);
     if('openingDate' in d.settings) settings.openingDate=d.settings.openingDate||''; }
   migrateTx(); save(); resetFilters(); applySettings();
 }
