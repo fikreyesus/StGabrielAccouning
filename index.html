@@ -20,6 +20,10 @@
   @media print { body * { visibility:hidden; } #receipt-content, #receipt-content *, #mr-print, #mr-print * { visibility:visible; } #receipt-content { position:absolute; left:0; top:0; } }
   body.printing-report #receipt-content{ display:none; }
   body.printing-report #mr-print{ position:absolute; left:0; top:0; width:100%; }
+  @media print { .mr-act{ display:none !important; } }
+  body.printing-report .mr-act{ display:none !important; }
+  .mr-edit-btn{ border:none; background:transparent; color:#2563eb; cursor:pointer; padding:2px 6px; border-radius:8px; font-size:13px; }
+  .mr-edit-btn:hover{ background:#eff6ff; }
   /* Dashboard two-column layout — explicit fallback so it never depends on the CDN's responsive scan */
   .dash-grid { display:grid; grid-template-columns:1fr; gap:1.5rem; align-items:stretch; }
   @media (min-width:1024px){ .dash-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .dash-wide { grid-column:span 2 / span 2; } }
@@ -129,6 +133,29 @@
         </div>
       </div>
 
+      <!-- Charts & insights -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px" class="mb-6">
+        <div class="bg-white rounded-2xl shadow p-6">
+          <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-2">Income by category <span id="charts-year-lab1" class="text-gray-300 normal-case"></span></p>
+          <div id="chart-income" class="mb-3"></div>
+          <div id="chart-income-lg" class="space-y-0.5"></div>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-6">
+          <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-2">Expenses by category <span id="charts-year-lab2" class="text-gray-300 normal-case"></span></p>
+          <div id="chart-expense" class="mb-3"></div>
+          <div id="chart-expense-lg" class="space-y-0.5"></div>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-6">
+          <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-2">Membership health <span class="text-gray-300 normal-case">· now</span></p>
+          <div id="chart-mem" class="mb-3"></div>
+          <div id="chart-mem-lg" class="space-y-0.5"></div>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-6">
+          <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-2">Families who paid, by year <span class="text-gray-300 normal-case">· of <span id="chart-paid-total"></span> families · click a bar</span></p>
+          <div id="chart-growth" class="mt-2"></div>
+        </div>
+      </div>
+
       <!-- Trend + side panel -->
       <div class="dash-grid grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         <div class="dash-wide lg:col-span-2 bg-white rounded-2xl shadow flex flex-col overflow-hidden">
@@ -141,15 +168,9 @@
 
         <div class="bg-white rounded-2xl shadow p-6 flex flex-col gap-6">
           <div>
-            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-3">Funds on hand (now) <span class="text-gray-300 normal-case">· click to drill in</span></p>
-            <div class="space-y-1.5">
-              <div onclick="openFundDrill('cash')" class="flex justify-between items-baseline cursor-pointer hover:bg-gray-50 rounded px-1"><span class="text-gray-500 text-sm">Cash on hand</span><span id="s-cash" class="text-lg font-semibold text-emerald-700">$0</span></div>
-              <div onclick="openFundDrill('undeposited')" class="flex justify-between items-baseline cursor-pointer hover:bg-gray-50 rounded px-1"><span class="text-gray-500 text-sm">Checks (undeposited)</span><span id="s-undep" class="text-lg font-semibold text-amber-600">$0</span></div>
-              <div onclick="openFundDrill('bank')" class="flex justify-between items-baseline cursor-pointer hover:bg-gray-50 rounded px-1"><span class="text-gray-500 text-sm">PNC Bank</span><span id="s-bank" class="text-lg font-semibold text-sky-700">$0</span></div>
-              <div onclick="openFundDrill('bank2')" class="flex justify-between items-baseline cursor-pointer hover:bg-gray-50 rounded px-1"><span class="text-gray-500 text-sm">River City Bank</span><span id="s-bank2" class="text-lg font-semibold text-cyan-700">$0</span></div>
-              <div onclick="openFundDrill('bank3')" class="flex justify-between items-baseline cursor-pointer hover:bg-gray-50 rounded px-1"><span class="text-gray-500 text-sm">Rivercity - Mortgage</span><span id="s-bank3" class="text-lg font-semibold text-teal-700">$0</span></div>
-              <div class="flex justify-between items-baseline border-t pt-2.5"><span class="text-gray-600 text-sm font-medium">Total</span><span id="s-funds-b" class="text-xl font-bold text-indigo-700">$0</span></div>
-            </div>
+            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-2">Funds on hand <span id="s-funds-when">(now)</span> <span class="text-gray-300 normal-case">· hover or click a slice to drill in</span></p>
+            <div id="s-funds-chart" class="mb-3"></div>
+            <div id="s-funds-legend" class="space-y-0.5"></div>
           </div>
           <div>
             <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-3">Net assets</p>
@@ -211,7 +232,10 @@
 
     <!-- COLLECTIONS -->
     <section id="collections-page" class="p-8 hidden">
-      <div class="grid md:grid-cols-2 gap-6">
+      <div class="flex justify-end" style="margin-bottom:-6px">
+        <button id="col-recent-toggle" onclick="toggleRecent()" class="text-sm text-indigo-600 hover:text-indigo-800"><i class="fa-solid fa-eye-slash"></i> Hide recent collections</button>
+      </div>
+      <div id="col-grid" class="grid md:grid-cols-2 gap-6 mt-2">
         <div class="bg-white rounded-3xl shadow p-8">
           <h3 class="text-lg font-semibold mb-6">Record a Collection (income)</h3>
           <!-- Historical entry: lock a month/year so you only type the day (accountant only) -->
@@ -223,7 +247,8 @@
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div><label class="block text-xs font-medium text-gray-600 mb-1">Receipt #</label>
-              <input id="col-receipt" class="w-full border rounded-2xl px-4 py-3" placeholder="e.g. 1024"></div>
+              <input id="col-receipt" class="w-full border rounded-2xl px-4 py-3" placeholder="e.g. 1024" oninput="checkReceiptLive()" onblur="checkReceiptLive()">
+              <div id="col-receipt-warn" style="display:none;color:#dc2626;font-size:12px;font-weight:600;margin-top:4px"></div></div>
             <div><label id="col-date-label" class="block text-xs font-medium text-gray-600 mb-1">Date</label>
               <input id="col-date" type="date" class="w-full border rounded-2xl px-4 py-3">
               <input id="col-day" type="number" min="1" max="31" oninput="clampDay(this)" class="w-full border rounded-2xl px-4 py-3 hidden" placeholder="Day (1–31)"></div>
@@ -292,12 +317,14 @@
             <select id="col-method" class="w-full border rounded-2xl px-4 py-3"><option>Cash</option><option>Check</option><option>Square</option><option>Other</option></select></div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Note / intention (optional)</label>
           <input id="col-note" class="w-full border rounded-2xl px-4 py-3 mb-5" placeholder="e.g. prayer request for…, in memory of…">
-          <div class="flex gap-3">
-            <button id="col-save-btn" onclick="saveCollection()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-semibold">Save Collection</button>
-            <button type="button" onclick="cancelCollectionEdit()" class="px-5 bg-gray-200 hover:bg-gray-300 rounded-2xl font-semibold">Cancel</button>
+          <div style="position:sticky;bottom:0;background:#fff;margin:0 -2rem -2rem;padding:0.75rem 2rem 0.75rem;box-shadow:0 -8px 14px -10px rgba(0,0,0,.18);border-radius:0 0 1.5rem 1.5rem;z-index:5">
+            <div class="flex gap-3">
+              <button id="col-save-btn" onclick="saveCollection()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-semibold">Save Collection</button>
+              <button type="button" onclick="cancelCollectionEdit()" class="px-5 bg-gray-200 hover:bg-gray-300 rounded-2xl font-semibold">Cancel</button>
+            </div>
+            <p id="col-edit-banner" class="hidden text-center text-sm font-semibold text-indigo-600 mt-2"></p>
+            <p id="col-saved-flash" class="text-center text-sm font-semibold text-emerald-600 mt-1" style="visibility:hidden">Saved ✓</p>
           </div>
-          <p id="col-edit-banner" class="hidden text-center text-sm font-semibold text-indigo-600 mt-2"></p>
-          <p id="col-saved-flash" class="text-center text-sm font-semibold text-emerald-600 mt-2" style="visibility:hidden">Saved ✓</p>
         </div>
         <!-- Cashier: member membership status shows here when a member is selected -->
         <div id="col-member-card" class="hidden bg-white rounded-3xl shadow overflow-hidden"></div>
@@ -791,10 +818,10 @@ const BS_SEED = [
   ['3000','Net Assets / Fund Balance','equity','netassets']
 ];
 const IE_SEED = [
-  ['4100','Membership Fees','income',''],['4110','Sunday Offering (መባእ)','income',''],['4120','Tithe','income',''],
+  ['4100','Membership Fees','income',''],['4110','Collection box','income',''],['4120','Tithe','income',''],
   ['4200','General Donation','income',''],['4210','One-time Gift','income',''],['4220','Prayer Request Offering','income',''],['4230','Vow / Pledge (ስለት)','income',''],
-  ['4300','Baptism','income',''],['4310','Wedding','income',''],['4320','Funeral / Memorial (ተዝካር)','income',''],['4330','Candle & Incense','income',''],
-  ['4400','Building Fund','income',''],['4410','Holiday Collection (Meskel, Timket)','income',''],['4420','Fundraising','income',''],['4900','Other Income','income',''],
+  ['4310','Wedding','income',''],['4320','Funeral / Memorial (ተዝካር)','income',''],['4330','Gift shop','income',''],
+  ['4400','Building maintenance fund','income',''],['4420','Fundraising','income',''],['4500','Holy Water Service','income',''],['4900','Other Income','income',''],
   ['6100','Clergy Stipend','expense',''],['6110','Salaries & Wages','expense',''],['6120','Bonus','expense',''],['6200','Rent / Mortgage','expense',''],['6210','Utilities','expense',''],
   ['6220','Maintenance & Repairs','expense',''],['6230','Construction','expense',''],['6300','Supplies','expense',''],['6310','Liturgical Supplies','expense',''],['6400','Events & Hospitality','expense',''],
   ['6500','Charity / Outreach','expense',''],['6600','Bank & Admin Fees','expense',''],['6900','Other Expense','expense','']
@@ -896,12 +923,31 @@ function load(){
   ensureTwoBanks();
   ensureAccount('6120','Bonus','expense');
   ensureAccount('6230','Construction','expense');
+  migrateCOA();
   migrateTx();
 }
 // Add a chart-of-accounts account if it isn't already present (by code)
 function ensureAccount(code,name,type){
   if(accounts.some(a=>String(a.code)===String(code))) return;
   accounts.push({id:900700+accounts.length,code,name,type,link:'',balance:0});
+}
+// Chart-of-accounts updates (July 2026): rename 4110/4300/4400, add 4500, retire 4410
+function migrateCOA(){
+  const ren={'4110':'Collection box','4330':'Gift shop','4400':'Building maintenance fund'};
+  Object.keys(ren).forEach(code=>{
+    const a=accounts.find(x=>String(x.code)===code);
+    if(a){ a.name=ren[code]; transactions.forEach(t=>{ if(t.acctId===a.id || String(t.acct)===code) t.category=ren[code]; }); }
+  });
+  ensureAccount('4500','Holy Water Service','income');
+  // Retire these income accounts; move any tagged entries to Other Income so totals are preserved
+  const other=accounts.find(x=>String(x.code)==='4900');
+  ['4300','4410'].forEach(code=>{
+    const old=accounts.find(x=>String(x.code)===code);
+    if(old){
+      transactions.forEach(t=>{ if(t.acctId===old.id || String(t.acct)===code){ if(other){ t.acctId=other.id; t.acct=other.code; t.category=other.name; } } });
+      accounts=accounts.filter(x=>x!==old);
+    }
+  });
 }
 const LEGACY_MAP = {'Membership Fees':'4100','Sunday Offering':'4110','Tithe':'4120','Donation':'4200','General Donation':'4200','Special Gift':'4210','One-time Gift':'4210','Fundraising':'4420','Other Income':'4900','Clergy Stipend':'6100','Salaries':'6110','Rent / Mortgage':'6200','Utilities':'6210','Maintenance':'6220','Supplies':'6300','Events':'6400','Charity / Outreach':'6500','Bank / Fees':'6600','Other Expense':'6900'};
 function migrateTx(){
@@ -944,7 +990,7 @@ function showPage(page){
   $('page-title').textContent = titles[page];
   if(page==='dashboard') renderDashboard();
   if(page==='families') renderFamilies();
-  if(page==='collections'){ fillAccountSelect($('col-cat'),'income'); fillFromSelect(); colCatChange(); renderRecentCollections();
+  if(page==='collections'){ fillAccountSelect($('col-cat'),'income'); fillFromSelect(); colCatChange(); renderRecentCollections(); applyRecentLayout();
     const cb=$('cash-member-block'); if(cb) cb.classList.toggle('hidden', currentRole!=='cashier'); fillCashMem(); renderCashierMemberCard();
     const cashier=currentRole==='cashier';
     const lb=$('col-lock-bar'); if(lb) lb.classList.toggle('hidden', cashier);   // cashier can't back-date
@@ -1065,10 +1111,7 @@ function populateColMembership(){
   // keep the member combobox's visible text in step with the current hidden id
   const hid=$('col-mem'); if(hid){ const f=hid.value?families.find(x=>x.id===+hid.value):null; if($('col-mem-search')) $('col-mem-search').value=f?famLabel(f):''; }
   const s=$('col-mstart'), e=$('col-mend');
-  if(s && e && !s.options.length){ const y=curYear();
-    for(let yy=Math.min(2010, y-20); yy<=y+1; yy++){ for(let m=0;m<12;m++){ const v=`${MONTHS[m]} ${yy}`; s.appendChild(new Option(v,v)); e.appendChild(new Option(v,v)); } }
-    const cur=`${MONTHS[new Date().getMonth()]} ${y}`; s.value=cur; e.value=cur;
-  }
+  if(s && e){ fillColMstart(); rebuildColEnd(); }
   colMemStatus();
 }
 // Accountant's member picker: same type-to-filter dropdown as the cashier's
@@ -1114,6 +1157,16 @@ function openMemberReport(id){
   $('member-report-modal').classList.remove('hidden');
 }
 function closeMemberReport(){ $('member-report-modal').classList.add('hidden'); }
+// Edit a collection / membership payment straight from the member statement (accountant only)
+let _statementReturn=null;
+function editFromStatement(id){
+  if(currentRole!=='accountant'){ alert('Editing is done from the accountant login.'); return; }
+  _statementReturn = mrFamilyId;          // remember which statement to reopen after the edit
+  closeMemberReport();
+  startEditCollection(id);
+}
+// After an edit (or cancel) that began from a member statement, reopen that statement
+function returnToStatement(){ if(_statementReturn==null) return; const id=_statementReturn; _statementReturn=null; openMemberReport(id); }
 function printMemberReport(){ document.body.classList.add('printing-report'); window.print(); setTimeout(function(){ document.body.classList.remove('printing-report'); }, 400); }
 function renderMemberReport(){
   const f=families.find(x=>x.id===mrFamilyId); if(!f) return;
@@ -1125,17 +1178,19 @@ function renderMemberReport(){
     +`<p class="text-xs text-gray-400">${yr?('Year '+yr):'All years'} · generated ${fmtDate(todayISO())}</p></div>`;
   if(!txs.length){ $('mr-body').innerHTML = html + `<p class="text-sm text-gray-400 py-6 text-center">No giving recorded${yr?(' in '+yr):''}.</p>`; return; }
   const byYear={}; txs.forEach(t=>{ const y=t.date.slice(0,4); (byYear[y]=byYear[y]||[]).push(t); });
+  const canEdit = currentRole==='accountant';
+  const cols = canEdit?6:5;
   let grand=0;
-  html+=`<table class="w-full text-sm"><thead><tr class="text-xs text-gray-400 border-b" style="text-align:left"><th class="py-2 pr-3">Date</th><th class="py-2 pr-3">Receipt #</th><th class="py-2 pr-3">For</th><th class="py-2 pr-3">Month(s) paid for</th><th class="py-2" style="text-align:right">Amount</th></tr></thead><tbody>`;
+  html+=`<table class="w-full text-sm"><thead><tr class="text-xs text-gray-400 border-b" style="text-align:left"><th class="py-2 pr-3">Date</th><th class="py-2 pr-3">Receipt #</th><th class="py-2 pr-3">For</th><th class="py-2 pr-3">Month(s) paid for</th><th class="py-2" style="text-align:right">Amount</th>${canEdit?'<th class="mr-act"></th>':''}</tr></thead><tbody>`;
   Object.keys(byYear).sort().forEach(y=>{
     let sub=0;
-    if(!yr) html+=`<tr class="bg-gray-50"><td colspan="5" class="py-1.5 pr-3 font-semibold text-gray-600">${y}</td></tr>`;
+    if(!yr) html+=`<tr class="bg-gray-50"><td colspan="${cols}" class="py-1.5 pr-3 font-semibold text-gray-600">${y}</td></tr>`;
     byYear[y].forEach(t=>{ sub+=t.amount; grand+=t.amount;
-      html+=`<tr class="border-b"><td class="py-1.5 pr-3 whitespace-nowrap text-gray-600">${fmtDate(t.date)}</td><td class="py-1.5 pr-3 text-gray-600">${esc(t.receiptNo||'—')}</td><td class="py-1.5 pr-3">${esc(t.category||'')}</td><td class="py-1.5 pr-3 text-gray-600">${esc(t.period||'—')}</td><td class="py-1.5 text-right font-medium text-emerald-700">${money(t.amount)}</td></tr>`;
+      html+=`<tr class="border-b"><td class="py-1.5 pr-3 whitespace-nowrap text-gray-600">${fmtDate(t.date)}</td><td class="py-1.5 pr-3 text-gray-600">${esc(t.receiptNo||'—')}</td><td class="py-1.5 pr-3">${esc(t.category||'')}</td><td class="py-1.5 pr-3 text-gray-600">${esc(t.period||'—')}</td><td class="py-1.5 text-right font-medium text-emerald-700">${money(t.amount)}</td>${canEdit?`<td class="mr-act py-1.5 pl-2 text-right"><button type="button" class="mr-edit-btn" title="Edit this entry" onclick="editFromStatement(${t.id})"><i class="fa-solid fa-pen"></i></button></td>`:''}</tr>`;
     });
-    html+=`<tr><td colspan="4" class="py-1.5 pr-3 text-right font-semibold text-gray-600">${y} total</td><td class="py-1.5 text-right font-bold">${money(sub)}</td></tr>`;
+    html+=`<tr><td colspan="4" class="py-1.5 pr-3 text-right font-semibold text-gray-600">${y} total</td><td class="py-1.5 text-right font-bold">${money(sub)}</td>${canEdit?'<td class="mr-act"></td>':''}</tr>`;
   });
-  html+=`</tbody><tfoot><tr style="border-top:2px solid #333"><td colspan="4" class="py-2 pr-3 text-right font-bold text-gray-700">${yr?('Total '+yr):'Grand total'}</td><td class="py-2 text-right font-bold text-emerald-700">${money(grand)}</td></tr></tfoot></table>`;
+  html+=`</tbody><tfoot><tr style="border-top:2px solid #333"><td colspan="4" class="py-2 pr-3 text-right font-bold text-gray-700">${yr?('Total '+yr):'Grand total'}</td><td class="py-2 text-right font-bold text-emerald-700">${money(grand)}</td>${canEdit?'<td class="mr-act"></td>':''}</tr></tfoot></table>`;
   $('mr-body').innerHTML=html;
 }
 // Furthest month a family has paid through, parsed from each entry's period ("June 2024" or "April 2024 to June 2024")
@@ -1268,7 +1323,7 @@ function renderCashierMemberCard(){
   const card=$('col-member-card'), recent=$('col-recent-card'); if(!card) return;
   const id = (currentRole==='cashier' && $('cash-mem')) ? (parseInt($('cash-mem').value)||null) : null;
   const f = id?families.find(x=>x.id===id):null;
-  if(!f){ card.className='hidden'; card.innerHTML=''; if(recent) recent.classList.remove('hidden'); return; }
+  if(!f){ card.className='hidden'; card.innerHTML=''; if(recent) recent.classList.toggle('hidden', wantRecentHidden()); return; }
   const st=computeMemberStatus(f), c=toneColors(st.tone);
   card.className='bg-white rounded-3xl shadow overflow-hidden';
   if(recent) recent.classList.add('hidden');   // paid-through replaces recent collections for the cashier
@@ -1294,7 +1349,7 @@ function cashSavePaidThrough(){
   save(); colMemStatus(); renderCashierMemberCard();
 }
 // Income types that are usually not tied to a person → default "Received from" to Anonymous
-const ANON_CODES=['4110','4200','4330','4410','4900'];
+const ANON_CODES=['4110','4200','4330','4900'];
 function colAmtBlur(){ const el=$('col-amount'); if(el && el.value!=='') el.value=(parseFloat(el.value)||0).toFixed(2); }
 function colCatChange(){
   const mem=isMembershipCat(), amt=$('col-amount'), lbl=$('col-amount-label');
@@ -1319,9 +1374,25 @@ function rebuildColEnd(){
   const s=$('col-mstart'), e=$('col-mend'); if(!s||!e||!s.value) return;
   const startOrd=monthOrd(s.value), prev=e.value;
   e.innerHTML='';
-  for(const o of s.options){ if(monthOrd(o.value)>startOrd) e.appendChild(new Option(o.value,o.value)); }
+  // "To month" covers up to a 24-month span from the From month (e.g. Jan 2013 → up to Dec 2014)
+  for(let ord=startOrd+1; ord<=startOrd+23; ord++) e.appendChild(new Option(ordToLabel(ord), ordToLabel(ord)));
   if(prev && [...e.options].some(o=>o.value===prev)) e.value=prev;
   else if(e.options.length) e.value=e.options[0].value;
+}
+// Reference month = the locked month/year, else the entry date, else the current month
+function colRefOrd(){
+  if(lockedYM) return lockedYM.year*12 + lockedYM.month;
+  const dv=($('col-date') && $('col-date').value) ? $('col-date').value : '';
+  if(dv){ const d=dv.split('-'); return (+d[0])*12 + ((+d[1])-1); }
+  const n=new Date(); return n.getFullYear()*12 + n.getMonth();
+}
+// From-month list: the 12 months up to and including the reference (locked) month
+function fillColMstart(){
+  const s=$('col-mstart'); if(!s) return;
+  const prev=s.value, ref=colRefOrd();
+  s.innerHTML='';
+  for(let ord=ref-11; ord<=ref; ord++) s.appendChild(new Option(ordToLabel(ord), ordToLabel(ord)));
+  s.value = (prev && [...s.options].some(o=>o.value===prev)) ? prev : ordToLabel(ref);
 }
 // "Paying for multiple months" checkbox → drives the hidden col-mmode value
 function colMultiToggle(){ if($('col-mmode')) $('col-mmode').value = ($('col-mmulti') && $('col-mmulti').checked) ? 'multi' : 'one'; colMonthModeChange(); }
@@ -1365,6 +1436,7 @@ function toggleDateLock(){
   else {
     lockedYM=null; $('col-lock-label').textContent='';
     $('col-day').classList.add('hidden'); $('col-date').classList.remove('hidden'); $('col-date-label').textContent='Date';
+    if(isMembershipCat()){ fillColMstart(); rebuildColEnd(); }   // rebuild From-months from the current date
   }
 }
 function applyDateLock(){
@@ -1375,6 +1447,7 @@ function applyDateLock(){
   $('col-date').classList.add('hidden'); $('col-day').classList.remove('hidden'); $('col-date-label').textContent='Day of month';
   const dim=daysInMonth(y,m), dEl=$('col-day');   // restrict the day to this month's day count
   if(dEl){ dEl.max=dim; dEl.placeholder='Day (1–'+dim+')'; if(+dEl.value>dim) dEl.value=dim; }
+  if(isMembershipCat()){ fillColMstart(); rebuildColEnd(); }   // From-month = 12 months back from the locked month
   syncMembershipPeriodToLock();   // default the membership From/To to the locked month
 }
 // When the received month/year is locked, set the membership period to that same month
@@ -1440,6 +1513,7 @@ function selectNewMemberInCollections(id){
 function saveMembershipCollection(){
   const id=parseInt($('col-mem').value); if(!id) return alert('Select a member.');
   const total=parseFloat($('col-amount').value); if(!total) return alert('Enter the total amount.');
+  if(!receiptOK()) return;
   const f=families.find(x=>x.id===id);
   const ms=$('col-mstart').value, me=$('col-mend').value;
   const oneMonth=($('col-mmode') && $('col-mmode').value==='one') || ms===me;
@@ -1448,9 +1522,12 @@ function saveMembershipCollection(){
   const a=acctById(+$('col-cat').value);
   const fields={receiptNo:$('col-receipt').value.trim(),date,amount:total,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Membership Fees',familyId:id,family:famLabel(f),period,method:$('col-method').value,fund:'cash',note:$('col-note').value.trim()};
   if(editTxId){                                  // update existing membership entry
-    const t=transactions.find(x=>x.id===editTxId); if(t) Object.assign(t, fields);
-    if(f){ f.lastPayment=fmtDate(date); f.lastPaidFor=period; f.lastAmount=total; }
-    save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); colMemStatus(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓'); returnToDrill();
+    const id=editTxId;
+    runUpdate(function(){
+      const t=transactions.find(x=>x.id===id); if(t) Object.assign(t, fields);
+      if(f){ f.lastPayment=fmtDate(date); f.lastPaidFor=period; f.lastAmount=total; }
+      save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); colMemStatus(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓'); returnToDrill(); returnToStatement();
+    });
     return;
   }
   const tx={id:Date.now(),kind:'fee',dir:'in',...fields};
@@ -1471,10 +1548,35 @@ function saveMembershipCollection(){
       colMemStatus();
     }
     else { flashSaved('Membership payment saved ✓'); }   // cashier: keep member selected so the updated status shows
+    scrollCollectionsTop();
   });
 }
 // After a save, bump a numeric receipt number to the next one for fast consecutive entry.
-function advanceReceipt(){ const el=$('col-receipt'); if(!el) return; const v=el.value.trim(); if(/^\d+$/.test(v)) el.value=String(+v+1); }
+function advanceReceipt(){ const el=$('col-receipt'); if(!el) return; const v=el.value.trim(); if(/^\d+$/.test(v)) el.value=String(+v+1); try{ checkReceiptLive(); }catch(e){} }
+// ---- Duplicate receipt number guard (collections / membership fees) ----
+// Returns the first existing collection/fee transaction that already uses this receipt number
+// (ignoring blanks and the record currently being edited), or null if the number is free.
+function dupReceiptTx(no){
+  const r=String(no||'').trim(); if(!r) return null;
+  return transactions.find(t=>(t.kind==='collection'||t.kind==='fee') && t.id!==editTxId && String(t.receiptNo||'').trim()===r) || null;
+}
+// Hard block on save: returns true if OK to save, false if the user should be stopped.
+function receiptOK(){
+  const el=$('col-receipt'); const no=el?el.value.trim():''; if(!no) return true;
+  const dup=dupReceiptTx(no); if(!dup) return true;
+  const who=dup.donor||dup.family||dup.category||'another entry';
+  const dt=dup.date?fmtDate(dup.date):'';
+  alert('Receipt #'+no+' is already used'+(dt?(' on '+dt):'')+(who?(' — '+who):'')+' ('+money(dup.amount)+').\n\nEnter a different receipt number.');
+  if(el){ el.focus(); el.select(); }
+  return false;
+}
+// Live inline warning as the receipt field is typed/blurred.
+function checkReceiptLive(){
+  const el=$('col-receipt'), warn=$('col-receipt-warn'); if(!warn) return;
+  const dup=dupReceiptTx(el?el.value:'');
+  if(dup){ const dt=dup.date?fmtDate(dup.date):''; warn.textContent='⚠ Already used'+(dt?(' on '+dt):'')+' — '+money(dup.amount); warn.style.display='block'; if(el) el.style.borderColor='#dc2626'; }
+  else { warn.textContent=''; warn.style.display='none'; if(el) el.style.borderColor=''; }
+}
 // ---- Cash & Bank ----
 const FUND_LABEL={cash:'Cash',bank:'PNC Bank',bank2:'River City Bank',bank3:'Rivercity - Mortgage',undeposited:'Checks'};
 function xferLabel(t){ const base=`${FUND_LABEL[t.fromFund]||t.fromFund} → ${FUND_LABEL[t.toFund]||t.toFund}`; return t.method ? `${base} · ${t.method}` : base; }
@@ -1666,6 +1768,223 @@ function yoyBadge(cur, prev, prevYear, higherIsGood){
   const cls = good ? 'text-emerald-600' : 'text-red-600';
   return `<span class="${cls}">${up?'▲':'▼'} ${Math.abs(d).toFixed(0)}%</span> <span class="text-gray-400">vs ${prevYear}</span>`;
 }
+// ---- Interactive "Funds on hand" donut chart (inline SVG, no external library) ----
+let _fundsPie=null;
+function _pol(cx,cy,r,a){ return {x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)}; }
+function _donutArc(cx,cy,R,r,a0,a1){
+  const large=(a1-a0)>Math.PI?1:0;
+  const o0=_pol(cx,cy,R,a0), o1=_pol(cx,cy,R,a1), i1=_pol(cx,cy,r,a1), i0=_pol(cx,cy,r,a0);
+  return `M ${o0.x.toFixed(2)} ${o0.y.toFixed(2)} A ${R} ${R} 0 ${large} 1 ${o1.x.toFixed(2)} ${o1.y.toFixed(2)} L ${i1.x.toFixed(2)} ${i1.y.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${i0.x.toFixed(2)} ${i0.y.toFixed(2)} Z`;
+}
+function renderFundsChart(b, when){
+  const host=$('s-funds-chart'); if(!host) return;
+  if($('s-funds-when') && when!=null) $('s-funds-when').textContent=when;
+  // validated categorical palette (dataviz skill, slots 1–5), identity also carried by the legend + amounts
+  const funds=[
+    {k:'cash',        label:'Cash on hand',         v:b.cash,        c:'#2a78d6'},
+    {k:'undeposited', label:'Checks (undeposited)', v:b.undeposited, c:'#eb6834'},
+    {k:'bank',        label:'PNC Bank',             v:b.bank,        c:'#1baf7a'},
+    {k:'bank2',       label:'River City Bank',      v:b.bank2,       c:'#eda100'},
+    {k:'bank3',       label:'Rivercity - Mortgage', v:b.bank3,       c:'#e87ba4'}
+  ];
+  const total=funds.reduce((a,f)=>a+f.v,0);
+  _fundsPie={funds, total};
+  const sum=funds.reduce((a,f)=>a+Math.max(0,f.v),0);   // slices sized by positive values only
+  const cx=90,cy=90,R=80,inner=50;
+  let svg=`<svg viewBox="0 0 180 180" width="100%" style="max-width:210px;display:block;margin:0 auto" role="img" aria-label="Funds on hand breakdown. Total ${money0(total)}.">`;
+  if(sum<=0){
+    svg+=`<circle cx="${cx}" cy="${cy}" r="${(R+inner)/2}" fill="none" stroke="#e5e7eb" stroke-width="${R-inner}"/>`;
+  } else {
+    let a0=-Math.PI/2;
+    funds.forEach(f=>{ const frac=Math.max(0,f.v)/sum; if(frac<=0) return;
+      let a1=a0+frac*2*Math.PI;
+      const attrs=`class="fund-slice" data-k="${f.k}" fill="${f.c}" stroke="#ffffff" stroke-width="2" style="cursor:pointer;transition:opacity .12s" onmouseover="fundSliceHover('${f.k}')" onmouseout="fundSliceOut()" onclick="openFundDrill('${f.k}')"><title>${esc(f.label)} — ${money0(f.v)}</title`;
+      if(frac>=0.9999){
+        // single fund fills the ring: draw as a stroked circle
+        svg+=`<circle class="fund-slice" data-k="${f.k}" cx="${cx}" cy="${cy}" r="${(R+inner)/2}" fill="none" stroke="${f.c}" stroke-width="${R-inner}" style="cursor:pointer;transition:opacity .12s" onmouseover="fundSliceHover('${f.k}')" onmouseout="fundSliceOut()" onclick="openFundDrill('${f.k}')"><title>${esc(f.label)} — ${money0(f.v)}</title></circle>`;
+      } else {
+        svg+=`<path d="${_donutArc(cx,cy,R,inner,a0,a1)}" ${attrs}></path>`;
+      }
+      a0=a1;
+    });
+  }
+  svg+=`<text id="s-pie-c1" x="90" y="85" text-anchor="middle" style="font-size:11px;fill:#9ca3af">Total</text>`;
+  svg+=`<text id="s-pie-c2" x="90" y="106" text-anchor="middle" style="font-size:18px;font-weight:700;fill:#4f46e5">${money0(total)}</text>`;
+  svg+=`</svg>`;
+  host.innerHTML=svg;
+  const lg=$('s-funds-legend'); if(lg){
+    lg.innerHTML = funds.map(f=>{ const pct = (sum>0 && f.v>0) ? Math.round(f.v/sum*100) : 0;
+      return `<div class="fund-leg" data-k="${f.k}" onmouseover="fundSliceHover('${f.k}')" onmouseout="fundSliceOut()" onclick="openFundDrill('${f.k}')" style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;padding:3px 4px;border-radius:6px">`
+        +`<span style="display:flex;align-items:center;gap:7px;min-width:0"><span style="width:10px;height:10px;border-radius:2px;background:${f.c};flex:none"></span><span style="font-size:13px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.label)}</span></span>`
+        +`<span style="font-size:13px;font-weight:600;color:#374151;white-space:nowrap">${money0(f.v)}${f.v>0?` · <span style="color:#9ca3af;font-weight:500">${pct}%</span>`:''}</span></div>`;
+    }).join('')
+    + `<div style="display:flex;justify-content:space-between;border-top:1px solid #e5e7eb;margin-top:4px;padding:7px 4px 0"><span style="font-size:13px;font-weight:600;color:#4b5563">Total</span><span style="font-size:15px;font-weight:700;color:#4f46e5">${money0(total)}</span></div>`;
+  }
+}
+function fundSliceHover(k){
+  if(!_fundsPie) return; const f=_fundsPie.funds.find(x=>x.k===k); if(!f) return;
+  document.querySelectorAll('.fund-slice').forEach(el=>{ el.style.opacity = (el.getAttribute('data-k')===k)?'1':'0.28'; });
+  document.querySelectorAll('.fund-leg').forEach(el=>{ el.style.background = (el.getAttribute('data-k')===k)?'#f3f4f6':''; });
+  const sum=_fundsPie.funds.reduce((a,x)=>a+Math.max(0,x.v),0);
+  const pct=(sum>0 && f.v>0)?Math.round(f.v/sum*100):0;
+  const c1=$('s-pie-c1'), c2=$('s-pie-c2');
+  if(c1){ c1.textContent = f.v>0 ? `${f.label.length>17?f.label.slice(0,16)+'…':f.label} · ${pct}%` : f.label; c1.setAttribute('fill','#6b7280'); }
+  if(c2){ c2.textContent=money0(f.v); c2.setAttribute('fill', f.c); }
+}
+function fundSliceOut(){
+  document.querySelectorAll('.fund-slice').forEach(el=>el.style.opacity='1');
+  document.querySelectorAll('.fund-leg').forEach(el=>el.style.background='');
+  const c1=$('s-pie-c1'), c2=$('s-pie-c2');
+  if(c1){ c1.textContent='Total'; c1.setAttribute('fill','#9ca3af'); }
+  if(c2 && _fundsPie){ c2.textContent=money0(_fundsPie.total); c2.setAttribute('fill','#4f46e5'); }
+}
+
+// ================= CHARTS / INSIGHTS PAGE =================
+let _chartsYear=null;
+const _donuts={};
+// validated categorical palette (dataviz skill, 8 slots); extras fold into grey "Other"
+const CHART_PALETTE=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#6250d6','#e34948'];
+function _foldOther(items,n){
+  if(items.length<=n) return items;
+  const top=items.slice(0,n-1), rest=items.slice(n-1);
+  top.push({key:'__other',label:'Other',value:rest.reduce((a,x)=>a+x.value,0),_other:true});
+  return top;
+}
+function _assignColors(items){ return items.map((it,i)=> it._other ? Object.assign({},it,{color:'#9ca3af'}) : Object.assign({},it,{color:CHART_PALETTE[i%CHART_PALETTE.length]})); }
+// Generic interactive donut: items=[{key,label,value,color}]; opts={center,fmt,click}
+function drawDonut(hostId, legendId, items, opts){
+  opts=opts||{}; const fmt=opts.fmt||money0; const host=$(hostId); if(!host) return;
+  const total=items.reduce((a,x)=>a+x.value,0);
+  _donuts[hostId]={items,total,fmt,center:opts.center||'Total'};
+  const sum=items.reduce((a,x)=>a+Math.max(0,x.value),0);
+  const cx=90,cy=90,R=80,inner=50;
+  let svg=`<svg viewBox="0 0 180 180" width="100%" style="max-width:200px;display:block;margin:0 auto" role="img" aria-label="${esc(opts.center||'Chart')} breakdown">`;
+  if(sum<=0){
+    svg+=`<circle cx="${cx}" cy="${cy}" r="${(R+inner)/2}" fill="none" stroke="#e5e7eb" stroke-width="${R-inner}"/>`;
+  } else {
+    let a0=-Math.PI/2;
+    items.forEach(f=>{ const frac=Math.max(0,f.value)/sum; if(frac<=0) return; const a1=a0+frac*2*Math.PI;
+      const ev=`onmouseover="donutHover('${hostId}','${f.key}')" onmouseout="donutOut('${hostId}')" ${opts.click?`onclick="${opts.click}('${f.key}')" style="cursor:pointer;transition:opacity .12s"`:`style="transition:opacity .12s"`}`;
+      if(frac>=0.9999){
+        svg+=`<circle class="dn-${hostId}" data-k="${esc(f.key)}" cx="${cx}" cy="${cy}" r="${(R+inner)/2}" fill="none" stroke="${f.color}" stroke-width="${R-inner}" ${ev}><title>${esc(f.label)} — ${fmt(f.value)}</title></circle>`;
+      } else {
+        svg+=`<path class="dn-${hostId}" data-k="${esc(f.key)}" d="${_donutArc(cx,cy,R,inner,a0,a1)}" fill="${f.color}" stroke="#ffffff" stroke-width="2" ${ev}><title>${esc(f.label)} — ${fmt(f.value)}</title></path>`;
+      }
+      a0=a1;
+    });
+  }
+  svg+=`<text id="${hostId}-c1" x="90" y="85" text-anchor="middle" style="font-size:11px;fill:#9ca3af">${esc(opts.center||'Total')}</text>`;
+  svg+=`<text id="${hostId}-c2" x="90" y="106" text-anchor="middle" style="font-size:16px;font-weight:700;fill:#4f46e5">${fmt(total)}</text></svg>`;
+  host.innerHTML=svg;
+  if(legendId){ const lg=$(legendId); if(lg){
+    lg.innerHTML = (items.length? items.map(f=>{ const pct=(sum>0&&f.value>0)?Math.round(f.value/sum*100):0;
+      return `<div class="lg-${hostId}" data-k="${esc(f.key)}" onmouseover="donutHover('${hostId}','${f.key}')" onmouseout="donutOut('${hostId}')" ${opts.click?`onclick="${opts.click}('${f.key}')"`:''} style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:${opts.click?'pointer':'default'};padding:3px 4px;border-radius:6px">`
+        +`<span style="display:flex;align-items:center;gap:7px;min-width:0"><span style="width:10px;height:10px;border-radius:2px;background:${f.color};flex:none"></span><span style="font-size:13px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.label)}</span></span>`
+        +`<span style="font-size:13px;font-weight:600;color:#374151;white-space:nowrap">${fmt(f.value)}${f.value>0?` · <span style="color:#9ca3af;font-weight:500">${pct}%</span>`:''}</span></div>`;
+    }).join('') : `<p style="font-size:13px;color:#9ca3af;text-align:center;padding:8px">Nothing recorded</p>`)
+    + (items.length? `<div style="display:flex;justify-content:space-between;border-top:1px solid #e5e7eb;margin-top:4px;padding:7px 4px 0"><span style="font-size:13px;font-weight:600;color:#4b5563">${esc(opts.center||'Total')}</span><span style="font-size:15px;font-weight:700;color:#4f46e5">${fmt(total)}</span></div>`:'');
+  }}
+}
+function donutHover(hostId,k){ const d=_donuts[hostId]; if(!d) return; const f=d.items.find(x=>String(x.key)===String(k)); if(!f) return;
+  document.querySelectorAll('.dn-'+hostId).forEach(el=>el.style.opacity=(el.getAttribute('data-k')===String(k))?'1':'0.28');
+  document.querySelectorAll('.lg-'+hostId).forEach(el=>el.style.background=(el.getAttribute('data-k')===String(k))?'#f3f4f6':'');
+  const sum=d.items.reduce((a,x)=>a+Math.max(0,x.value),0); const pct=(sum>0&&f.value>0)?Math.round(f.value/sum*100):0;
+  const c1=$(hostId+'-c1'), c2=$(hostId+'-c2');
+  if(c1) c1.textContent = (f.label.length>18?f.label.slice(0,17)+'…':f.label) + (f.value>0?` · ${pct}%`:'');
+  if(c2){ c2.textContent=d.fmt(f.value); c2.setAttribute('fill', f.color); }
+}
+function donutOut(hostId){ const d=_donuts[hostId]; if(!d) return;
+  document.querySelectorAll('.dn-'+hostId).forEach(el=>el.style.opacity='1');
+  document.querySelectorAll('.lg-'+hostId).forEach(el=>el.style.background='');
+  const c1=$(hostId+'-c1'), c2=$(hostId+'-c2');
+  if(c1) c1.textContent=d.center; if(c2){ c2.textContent=d.fmt(d.total); c2.setAttribute('fill','#4f46e5'); }
+}
+// ---- Income / expense by category (year-bound) ----
+function _catItems(dir, year){
+  const map={};
+  transactions.forEach(t=>{ if(t.dir!==dir || t.kind==='transfer') return; if((+String(t.date).slice(0,4))!==year) return;
+    const a=acctById(t.acctId); const code=String(a?a.code:(t.acct||'—')); const name=a?a.name:(t.category||'Other');
+    if(!map[code]) map[code]={key:code,label:name,value:0}; map[code].value+=(+t.amount||0);
+  });
+  let items=Object.values(map).filter(x=>x.value!==0).sort((a,b)=>b.value-a.value);
+  return _assignColors(_foldOther(items,8));
+}
+function chartIncome(y){ drawDonut('chart-income','chart-income-lg', _catItems('in',y), {center:'Income', fmt:money0, click:'drillIncomeCat'}); }
+function chartExpense(y){ drawDonut('chart-expense','chart-expense-lg', _catItems('out',y), {center:'Expenses', fmt:money0, click:'drillExpenseCat'}); }
+function drillIncomeCat(code){ if(code==='__other'){ openDrill(_chartsYear,0,'income'); return; } drillAcctYear('in', _chartsYear, code); }
+function drillExpenseCat(code){ if(code==='__other'){ openDrill(_chartsYear,0,'expense'); return; } drillAcctYear('out', _chartsYear, code); }
+function drillAcctYear(dir, year, code){
+  const rows=transactions.filter(t=> t.dir===dir && t.kind!=='transfer' && (+String(t.date).slice(0,4))===(+year) && String((acctById(t.acctId)||{}).code || t.acct)===String(code)).sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+  const a=accounts.find(x=>String(x.code)===String(code)); const color=dir==='in'?'text-emerald-700':'text-red-600';
+  const tot=rows.reduce((s,t)=>s+(+t.amount||0),0);
+  let h=`<div class="mb-2"><div class="flex items-center justify-between mb-1"><span class="font-semibold text-gray-700">${rows.length} entr${rows.length===1?'y':'ies'}</span><span class="font-bold ${color}">${money(tot)}</span></div>`;
+  if(!rows.length) h+=`<p class="text-sm text-gray-400 py-2">None in this period.</p>`;
+  else { h+=`<table class="w-full text-sm"><tbody>`;
+    rows.forEach(t=>{ h+=`<tr class="border-b"><td class="py-1.5 pr-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="py-1.5 pr-2">${esc(txDesc(t))}</td><td class="py-1.5 text-right font-medium ${color}">${money(t.amount)}</td><td class="py-1.5 pl-2 text-center"><button onclick="drillEdit(${t.id})" class="text-indigo-400 hover:text-indigo-600" title="Edit"><i class="fa-solid fa-pen"></i></button></td></tr>`; });
+    h+=`</tbody></table>`;
+  }
+  h+=`</div>`;
+  _drill={year:+year, month:0, type:dir==='in'?'income':'expense', acctCode:String(code)};
+  $('drill-title').textContent = a?`${a.code} — ${a.name}`:code;
+  $('drill-sub').textContent = `${dir==='in'?'Income':'Expenses'} · ${year}`;
+  $('drill-body').innerHTML=h;
+  if($('drill-ledger-btn')) $('drill-ledger-btn').classList.remove('hidden');
+  $('drill-modal').classList.remove('hidden');
+}
+// ---- Membership health (now) ----
+function chartMembership(){
+  let ok=0,behind=0,none=0;
+  families.forEach(f=>{ const tone=computeMemberStatus(f).tone; if(tone==='ok')ok++; else if(tone==='behind')behind++; else none++; });
+  const items=[
+    {key:'ok',     label:'Current',          value:ok,     color:'#1baf7a'},
+    {key:'behind', label:'Behind',           value:behind, color:'#eda100'},
+    {key:'none',   label:'No payments yet',  value:none,   color:'#e34948'}
+  ].filter(x=>x.value>0);
+  drawDonut('chart-mem','chart-mem-lg', items, {center:'Families', fmt:(v=>String(v)), click:'drillMemberHealth'});
+}
+function showFamilyListDrill(title, sub, list){
+  list=list.slice().sort((a,b)=>famLabel(a).localeCompare(famLabel(b)));
+  let h=`<div class="mb-2"><div class="font-semibold text-gray-700 mb-1">${list.length} famil${list.length===1?'y':'ies'}</div>`;
+  if(!list.length) h+=`<p class="text-sm text-gray-400 py-2">None.</p>`;
+  else { h+=`<table class="w-full text-sm"><tbody>`;
+    list.forEach(f=>{ const st=computeMemberStatus(f); h+=`<tr class="border-b"><td class="py-1.5 pr-2">${esc(famLabel(f))}</td><td class="py-1.5 pr-2 text-gray-500">${esc(st.badge)}</td><td class="py-1.5 pr-2 text-gray-400 whitespace-nowrap">Paid through ${esc(st.paidLabel)}</td><td class="py-1.5 pl-2 text-center"><button onclick="closeDrill();openMemberReport(${f.id})" class="text-indigo-400 hover:text-indigo-600" title="Statement"><i class="fa-solid fa-file-lines"></i></button></td></tr>`; });
+    h+=`</tbody></table>`;
+  }
+  h+=`</div>`;
+  _drill=null;
+  $('drill-title').textContent=title; $('drill-sub').textContent=sub; $('drill-body').innerHTML=h;
+  if($('drill-ledger-btn')) $('drill-ledger-btn').classList.add('hidden');
+  $('drill-modal').classList.remove('hidden');
+}
+function drillMemberHealth(key){
+  const want = key==='ok'?'ok':key==='behind'?'behind':'warn';
+  const title = key==='ok'?'Current families':key==='behind'?'Families behind':'Families with no payments yet';
+  showFamilyListDrill(title, 'Membership standing (now)', families.filter(f=>computeMemberStatus(f).tone===want));
+}
+// ---- Families who paid, by year (distinct contributing families each year, out of the total) ----
+function _payersByYear(){
+  const byYear={};
+  transactions.forEach(t=>{ if(t.dir!=='in' || t.kind==='transfer') return; let fid=t.familyId; if(!fid && t.family){ const m=families.find(x=>famLabel(x)===t.family); if(m) fid=m.id; } if(!fid) return;
+    const y=+String(t.date).slice(0,4); if(!y) return; (byYear[y]=byYear[y]||new Set()).add(fid); });
+  return byYear;
+}
+function chartGrowth(){
+  const host=$('chart-growth'); if(!host) return;
+  const total=families.length; const lab=$('chart-paid-total'); if(lab) lab.textContent=total;
+  const byYear=_payersByYear();
+  const years=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+  if(!years.length){ host.innerHTML='<p class="text-sm text-gray-400 py-6 text-center">No family payments yet.</p>'; return; }
+  const denom=Math.max(1,total);
+  host.innerHTML = years.map(y=>{ const paid=byYear[y].size, w=Math.min(100, paid/denom*100)||0, pct=total?Math.round(paid/total*100):0;
+    return `<div onclick="drillYearPayers(${y})" style="display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 2px;cursor:pointer;border-radius:6px" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''"><div style="width:42px;color:#6b7280;flex:none">${y}</div>`
+      +`<div style="flex:1;background:#f3f4f6;border-radius:4px;overflow:hidden"><div title="${y}: ${paid} of ${total} families paid (${pct}%)" style="width:${w}%;min-width:${paid?'3px':'0'};height:14px;background:#2a78d6;border-radius:4px"></div></div>`
+      +`<div style="width:96px;text-align:right;color:#374151;font-weight:600;flex:none;white-space:nowrap">${paid}/${total} <span style="color:#2a78d6;font-weight:600">${pct}%</span></div></div>`;
+  }).join('');
+}
+function drillYearPayers(y){
+  const byYear=_payersByYear(); const set=byYear[+y]||new Set();
+  showFamilyListDrill(`Families who paid in ${y}`, `${set.size} of ${families.length} families paid`, families.filter(f=>set.has(f.id)));
+}
 function renderDashboard(){
   // year selector (built once, current year first), drives every panel
   const ySel=$('dash-year');
@@ -1686,12 +2005,10 @@ function renderDashboard(){
   const b=balances();
   $('s-funds').textContent=money0(b.total);
   $('s-funds-sub').innerHTML=`Cash ${money0(b.cash)} · Banks ${money0(b.bank+b.bank2+b.bank3)} · Checks ${money0(b.undeposited)}`;
-  if($('s-cash')) $('s-cash').textContent=money0(b.cash);
-  if($('s-undep')) $('s-undep').textContent=money0(b.undeposited);
-  if($('s-bank')) $('s-bank').textContent=money0(b.bank);
-  if($('s-bank2')) $('s-bank2').textContent=money0(b.bank2);
-  if($('s-bank3')) $('s-bank3').textContent=money0(b.bank3);
-  if($('s-funds-b')) $('s-funds-b').textContent=money0(b.total);
+  // Pie chart follows the selected year: current snapshot for this (or a future) year, else balances as of Dec 31 of that year
+  const curY=curYear();
+  const fundsAsOf = (y>=curY) ? '' : asOfCutoff(y);
+  renderFundsChart(balances(fundsAsOf), (y>=curY)?'(now)':('(end of '+y+')'));
   const TA=totalAssets(), TL=totalLiabilities();
   if($('s-assets')) $('s-assets').textContent=money0(TA);
   if($('s-liab')) $('s-liab').textContent=money0(TL);
@@ -1716,6 +2033,12 @@ function renderDashboard(){
 
   // members by paid-through year (with drill-down)
   renderPaidThroughChart();
+
+  // category & membership charts (share the dashboard's selected year)
+  _chartsYear=y;
+  if($('charts-year-lab1')) $('charts-year-lab1').textContent='· '+y;
+  if($('charts-year-lab2')) $('charts-year-lab2').textContent='· '+y;
+  chartIncome(y); chartExpense(y); chartMembership(); chartGrowth();
 
   // recent transactions (latest overall)
   const tb=$('recent-tbody'); tb.innerHTML='';
@@ -1840,8 +2163,15 @@ async function saveFamily(){
   }
 }
 function deleteFamily(id){
-  const f=families.find(x=>x.id===id);
-  if(!confirm(`Delete family "${famLabel(f)}"? Their recorded payments stay in the ledger.`)) return;
+  const f=families.find(x=>x.id===id); if(!f) return;
+  // Block deletion when the family has recorded collections / membership payments
+  const recs=memberTx(f);
+  if(recs.length){
+    const total=recs.reduce((s,t)=>s+(Number(t.amount)||0),0);
+    alert(`Can't delete "${famLabel(f)}" — they have ${recs.length} recorded ${recs.length===1?'payment':'payments'} (${money(total)}).\n\nThose records are linked to this family. Reassign or remove the payments first if you really need to delete the family.`);
+    return;
+  }
+  if(!confirm(`Delete family "${famLabel(f)}"? They have no recorded payments.`)) return;
   families=families.filter(x=>x.id!==id); save(); renderFamilies();
 }
 
@@ -1987,19 +2317,23 @@ function fillSelect(sel,arr){ sel.innerHTML=''; arr.forEach(x=>sel.appendChild(n
 async function saveCollection(){
   if(isMembershipCat()) return saveMembershipCollection();
   const amount=parseFloat($('col-amount').value); if(!amount) return alert('Enter an amount.');
+  if(!receiptOK()) return;
   const a=acctById(+$('col-cat').value);
   const from=$('col-from').value; let familyId=null, donor='';
   if(from==='onetime'){ donor=$('col-donor').value.trim(); }
   else if(from && from!=='anon'){ familyId=+from.slice(1); const f=families.find(x=>x.id===familyId); donor=f?famLabel(f):''; }
   const fields={receiptNo:$('col-receipt').value.trim(),date:collectionDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',familyId,donor,method:$('col-method').value,fund:'cash',note:$('col-note').value.trim()};
   if(editTxId){                                  // update existing entry
-    const t=transactions.find(x=>x.id===editTxId); if(t) Object.assign(t, fields);
-    save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓'); returnToDrill();
+    const id=editTxId;
+    runUpdate(function(){
+      const t=transactions.find(x=>x.id===id); if(t) Object.assign(t, fields);
+      save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓'); returnToDrill(); returnToStatement();
+    });
     return;
   }
   const t={id:Date.now(),kind:'collection',dir:'in',...fields};
   transactions.push(t); save(); resetCollectionForm();   // reset all fields except Receipt #
-  renderRecentCollections(); flashSaved('Collection saved ✓'); await gsSend('addCollection',t);
+  renderRecentCollections(); flashSaved('Collection saved ✓'); scrollCollectionsTop(); await gsSend('addCollection',t);
 }
 // Brief, non-blocking confirmation under the Save button (replaces the old alert dialog)
 let _savedFlashTimer=null;
@@ -2022,8 +2356,23 @@ function exitEditMode(){
   const b=$('col-save-btn'); if(b) b.textContent='Save Collection';
   const banner=$('col-edit-banner'); if(banner){ banner.classList.add('hidden'); banner.textContent=''; }
 }
-function cancelCollectionEdit(){ exitEditMode(); clearCollectionForm(); flashSaved('Cleared'); returnToDrill(); }
+function cancelCollectionEdit(){ exitEditMode(); clearCollectionForm(); flashSaved('Cleared'); returnToDrill(); returnToStatement(); }
+// Show "Updating …" on the Save button, let it paint, then run the (synchronous) update
+function runUpdate(fn){
+  const b=$('col-save-btn');
+  if(b){ b.textContent='Updating …'; b.disabled=true; b.style.opacity='0.7'; b.style.cursor='wait'; }
+  setTimeout(function(){
+    try{ fn(); }
+    finally{ if(b){ b.disabled=false; b.style.opacity=''; b.style.cursor=''; } }   // exitEditMode() inside fn restores the label
+  }, 200);
+}
 // After a save: reset every field to blank/default, keeping only the Receipt # (bumped to the next number)
+// After saving, jump the Collections screen back to the top for the next entry
+function scrollCollectionsTop(){
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){ try{ window.scrollTo(0,0); }catch(_){} }
+  let el=$('collections-page'); el=el?el.parentElement:null;
+  while(el){ if(el.scrollHeight>el.clientHeight+10){ try{ el.scrollTo({top:0,behavior:'smooth'}); }catch(e){ el.scrollTop=0; } } el=el.parentElement; }
+}
 function resetCollectionForm(){
   advanceReceipt();                                   // keep & increment the receipt number
   if($('col-cat')) $('col-cat').selectedIndex=0;      // income type back to the first
@@ -2082,6 +2431,17 @@ function byReceiptDesc(a,b){
   if(!av && bv) return 1;
   if(av && bv){ const c = bv.localeCompare(av, undefined, {numeric:true, sensitivity:'base'}); if(c) return c; }
   return b.date.localeCompare(a.date) || b.id-a.id;
+}
+// Show/hide the Recent collections panel to give the entry form more room (saved per device)
+function wantRecentHidden(){ try{ return localStorage.getItem('hideRecentCol')==='1'; }catch(e){ return false; } }
+function applyRecentLayout(){   // grid width + toggle-button label (card visibility is handled by renderCashierMemberCard)
+  const grid=$('col-grid'), btn=$('col-recent-toggle'); const hide=wantRecentHidden();
+  if(grid) grid.style.gridTemplateColumns = hide ? 'minmax(0,1fr)' : '';   // '' reverts to the md:grid-cols-2 class
+  if(btn) btn.innerHTML = hide ? '<i class="fa-solid fa-eye"></i> Show recent collections' : '<i class="fa-solid fa-eye-slash"></i> Hide recent collections';
+}
+function toggleRecent(){
+  try{ localStorage.setItem('hideRecentCol', wantRecentHidden()?'0':'1'); }catch(e){}
+  applyRecentLayout(); renderCashierMemberCard();
 }
 function renderRecentCollections(){
   if(!$('col-date').value) $('col-date').value=todayISO();
@@ -2387,6 +2747,7 @@ function drillToLedger(){
   if($('led-year')) $('led-year').value=String(d.year);
   if($('led-month')) $('led-month').value = d.month ? String(d.month) : '';
   if($('led-type')) $('led-type').value = d.type==='expense' ? 'expense' : '';
+  if(d.acctCode){ const a=accounts.find(x=>String(x.code)===String(d.acctCode)); if(a && $('led-acct') && [...$('led-acct').options].some(o=>String(o.value)===String(a.id))) $('led-acct').value=String(a.id); }
   renderLedger();
 }
 function printLedger(){
@@ -2668,7 +3029,7 @@ function applyLoaded(d){
   families=d.families||[]; transactions=d.transactions||[];
   if(d.accounts && d.accounts.length) accounts=d.accounts;
   if(!accounts || !accounts.length) seedAccounts();
-  ensureBS(); ensureTwoBanks(); ensureAccount('6120','Bonus','expense'); ensureAccount('6230','Construction','expense');
+  ensureBS(); ensureTwoBanks(); ensureAccount('6120','Bonus','expense'); ensureAccount('6230','Construction','expense'); migrateCOA();
   if(d.settings){ if(d.settings.name) settings.name=d.settings.name; if(d.settings.address) settings.address=d.settings.address;
     if('openingCash' in d.settings) settings.openingCash=+d.settings.openingCash||0;
     if('openingBank' in d.settings) settings.openingBank=+d.settings.openingBank||0;
