@@ -107,13 +107,13 @@
 
       <!-- KPI row: this year vs last year -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-5 mb-6">
-        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-emerald-400">
-          <p class="text-xs text-gray-500">Income (<span class="dash-year-label"></span>)</p>
+        <div onclick="drillYear('income')" class="bg-white rounded-2xl shadow p-5 border-l-4 border-emerald-400 cursor-pointer hover:shadow-md" title="Click to see the income behind this">
+          <p class="text-xs text-gray-500">Income (<span class="dash-year-label"></span>) <i class="fa-solid fa-magnifying-glass text-[10px] text-gray-300"></i></p>
           <p id="s-income" class="text-2xl font-bold text-emerald-600">$0</p>
           <p id="s-income-yoy" class="text-xs mt-1 text-gray-400"></p>
         </div>
-        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-red-400">
-          <p class="text-xs text-gray-500">Expenses (<span class="dash-year-label"></span>)</p>
+        <div onclick="drillYear('expense')" class="bg-white rounded-2xl shadow p-5 border-l-4 border-red-400 cursor-pointer hover:shadow-md" title="Click to see the expenses behind this">
+          <p class="text-xs text-gray-500">Expenses (<span class="dash-year-label"></span>) <i class="fa-solid fa-magnifying-glass text-[10px] text-gray-300"></i></p>
           <p id="s-expense" class="text-2xl font-bold text-red-500">$0</p>
           <p id="s-expense-yoy" class="text-xs mt-1 text-gray-400"></p>
         </div>
@@ -122,8 +122,8 @@
           <p id="s-net" class="text-2xl font-bold text-gray-800">$0</p>
           <p id="s-net-yoy" class="text-xs mt-1 text-gray-400"></p>
         </div>
-        <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-sky-400">
-          <p class="text-xs text-gray-500">Total funds (now)</p>
+        <div onclick="showPage('cashbank')" class="bg-white rounded-2xl shadow p-5 border-l-4 border-sky-400 cursor-pointer hover:shadow-md" title="Open Cash & Bank">
+          <p class="text-xs text-gray-500">Total funds (now) <i class="fa-solid fa-magnifying-glass text-[10px] text-gray-300"></i></p>
           <p id="s-funds" class="text-2xl font-bold text-indigo-700">$0</p>
           <p id="s-funds-sub" class="text-xs mt-1 text-gray-400"></p>
         </div>
@@ -141,11 +141,13 @@
 
         <div class="bg-white rounded-2xl shadow p-6 flex flex-col gap-6">
           <div>
-            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-3">Funds on hand (now)</p>
-            <div class="space-y-2.5">
-              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Cash</span><span id="s-cash" class="text-lg font-semibold text-emerald-700">$0</span></div>
-              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Checks (undeposited)</span><span id="s-undep" class="text-lg font-semibold text-amber-600">$0</span></div>
-              <div class="flex justify-between items-baseline"><span class="text-gray-500 text-sm">Bank</span><span id="s-bank" class="text-lg font-semibold text-sky-700">$0</span></div>
+            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-3">Funds on hand (now) <span class="text-gray-300 normal-case">· click to drill in</span></p>
+            <div class="space-y-1.5">
+              <div onclick="openFundDrill('cash')" class="flex justify-between items-baseline cursor-pointer hover:bg-gray-50 rounded px-1"><span class="text-gray-500 text-sm">Cash on hand</span><span id="s-cash" class="text-lg font-semibold text-emerald-700">$0</span></div>
+              <div onclick="openFundDrill('undeposited')" class="flex justify-between items-baseline cursor-pointer hover:bg-gray-50 rounded px-1"><span class="text-gray-500 text-sm">Checks (undeposited)</span><span id="s-undep" class="text-lg font-semibold text-amber-600">$0</span></div>
+              <div onclick="openFundDrill('bank')" class="flex justify-between items-baseline cursor-pointer hover:bg-gray-50 rounded px-1"><span class="text-gray-500 text-sm">PNC Bank</span><span id="s-bank" class="text-lg font-semibold text-sky-700">$0</span></div>
+              <div onclick="openFundDrill('bank2')" class="flex justify-between items-baseline cursor-pointer hover:bg-gray-50 rounded px-1"><span class="text-gray-500 text-sm">River City Bank</span><span id="s-bank2" class="text-lg font-semibold text-cyan-700">$0</span></div>
+              <div onclick="openFundDrill('bank3')" class="flex justify-between items-baseline cursor-pointer hover:bg-gray-50 rounded px-1"><span class="text-gray-500 text-sm">Rivercity - Mortgage</span><span id="s-bank3" class="text-lg font-semibold text-teal-700">$0</span></div>
               <div class="flex justify-between items-baseline border-t pt-2.5"><span class="text-gray-600 text-sm font-medium">Total</span><span id="s-funds-b" class="text-xl font-bold text-indigo-700">$0</span></div>
             </div>
           </div>
@@ -519,6 +521,7 @@
         <select id="led-month" onchange="renderLedger()" class="border rounded-xl px-4 py-2"></select>
         <input id="led-search" oninput="renderLedger()" placeholder="Search…" class="border rounded-xl px-4 py-2 flex-1 min-w-[160px]">
         <button onclick="printLedger()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm whitespace-nowrap"><i class="fa-solid fa-print"></i> Print</button>
+        <button onclick="openBulkDate()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm whitespace-nowrap"><i class="fa-solid fa-calendar-day"></i> Fix dates</button>
         <span id="led-summary" class="text-sm text-gray-600 ml-auto"></span>
       </div>
       <div class="bg-white rounded-2xl shadow overflow-hidden">
@@ -699,6 +702,42 @@
   </div>
 </div>
 
+<!-- DASHBOARD DRILL-DOWN -->
+<div id="drill-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-auto">
+    <div class="flex items-center justify-between mb-1">
+      <h3 id="drill-title" class="text-lg font-semibold text-gray-800">Detail</h3>
+      <button onclick="closeDrill()" class="text-gray-400"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <p id="drill-sub" class="text-xs text-gray-400 mb-4"></p>
+    <div id="drill-body"></div>
+    <div class="flex gap-3 mt-5">
+      <button id="drill-ledger-btn" onclick="drillToLedger()" class="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-semibold"><i class="fa-solid fa-list"></i> Open in Ledger</button>
+      <button onclick="closeDrill()" class="flex-1 bg-gray-200 py-3 rounded-2xl font-semibold">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK DATE FIX -->
+<div id="bulkdate-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl p-6 max-w-md w-full">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-lg font-semibold text-gray-800"><i class="fa-solid fa-calendar-day text-amber-500"></i> Fix a wrong date</h3>
+      <button onclick="closeBulkDate()" class="text-gray-400"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <p class="text-sm text-gray-500 mb-4">Move every entry recorded on one date to the correct date. This changes all transaction types on that date (collections, payments, deposits).</p>
+    <label class="block text-xs text-gray-600 mb-1">Wrong date (currently on the entries)</label>
+    <input id="bd-from" type="date" onchange="bulkDatePreview()" class="w-full border rounded-xl px-3 py-2 mb-3">
+    <label class="block text-xs text-gray-600 mb-1">Correct date (move them to)</label>
+    <input id="bd-to" type="date" onchange="bulkDatePreview()" class="w-full border rounded-xl px-3 py-2 mb-3">
+    <div id="bd-preview" class="text-sm bg-gray-50 rounded-xl p-3 mb-4 text-gray-600">Pick the wrong date to see how many entries will move.</div>
+    <div class="flex gap-3">
+      <button id="bd-apply" onclick="applyBulkDate()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-2xl font-semibold" disabled>Move entries</button>
+      <button onclick="closeBulkDate()" class="flex-1 bg-gray-200 py-3 rounded-2xl font-semibold">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- RECEIPT MODAL -->
 <!-- MEMBER STATEMENT / REPORT CARD -->
 <div id="member-report-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
@@ -776,6 +815,12 @@ function ensureTwoBanks(){
     const idx=accounts.findIndex(a=>a.link==='bank2');
     if(idx>=0) accounts.splice(idx+1,0,acc); else accounts.unshift(acc);
   }
+  if(!accounts.some(a=>a.link==='undeposited')){
+    const acc={id:900602,code:'1020',name:'Undeposited Funds (Checks)',type:'asset',link:'undeposited',balance:0};
+    const idx=accounts.findIndex(a=>a.link==='bank3'); const idx2=accounts.findIndex(a=>a.link==='bank');
+    const at=(idx>=0?idx:idx2);
+    if(at>=0) accounts.splice(at+1,0,acc); else accounts.unshift(acc);
+  }
 }
 const acctById = id => accounts.find(a=>a.id===id);
 const incomeAccounts = () => accounts.filter(a=>a.type==='income').sort((a,b)=>String(a.code).localeCompare(String(b.code)));
@@ -785,9 +830,8 @@ function feeAccountId(){ const a=accounts.find(x=>x.code==='4100') || incomeAcco
 // Funds: cash, bank, and undeposited (checks received but not yet banked).
 // A check RECEIVED (income) is undeposited; a check WRITTEN (expense) comes out of the bank.
 function fundFromMethod(m, dir){
-  if(m==='Cash') return 'cash';
-  if(m==='Check') return dir==='out' ? 'bank' : 'undeposited';
-  return 'bank';   // Card/Online, Bank Transfer
+  if(dir==='out'){ return m==='Cash' ? 'cash' : 'bank'; }   // expenses: cash from cash, everything else from a bank
+  return 'cash';   // all collections/income land in Cash on Hand (never undeposited)
 }
 function fundOf(t){ return t.fund || fundFromMethod(t.method, t.dir); }
 // Signed effect of a transaction on one fund bucket (cash/bank/bank2/undeposited)
@@ -1406,7 +1450,7 @@ function saveMembershipCollection(){
   if(editTxId){                                  // update existing membership entry
     const t=transactions.find(x=>x.id===editTxId); if(t) Object.assign(t, fields);
     if(f){ f.lastPayment=fmtDate(date); f.lastPaidFor=period; f.lastAmount=total; }
-    save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); colMemStatus(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓');
+    save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); colMemStatus(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓'); returnToDrill();
     return;
   }
   const tx={id:Date.now(),kind:'fee',dir:'in',...fields};
@@ -1527,6 +1571,7 @@ function cancelTransferEdit(){
   const b=$('tr-save-btn'); if(b) b.textContent='Save deposit';
   if($('tr-cancel-btn')) $('tr-cancel-btn').classList.add('hidden');
   if($('tr-edit-banner')) $('tr-edit-banner').classList.add('hidden');
+  returnToDrill();
 }
 // ---- Chart of accounts editor ----
 function acctActivity(a,yr,mo){
@@ -1640,10 +1685,12 @@ function renderDashboard(){
   // funds + net assets (current snapshot, not year-bound)
   const b=balances();
   $('s-funds').textContent=money0(b.total);
-  $('s-funds-sub').innerHTML=`Cash ${money0(b.cash)} · Bank ${money0(b.bank)} · Checks ${money0(b.undeposited)}`;
+  $('s-funds-sub').innerHTML=`Cash ${money0(b.cash)} · Banks ${money0(b.bank+b.bank2+b.bank3)} · Checks ${money0(b.undeposited)}`;
   if($('s-cash')) $('s-cash').textContent=money0(b.cash);
   if($('s-undep')) $('s-undep').textContent=money0(b.undeposited);
   if($('s-bank')) $('s-bank').textContent=money0(b.bank);
+  if($('s-bank2')) $('s-bank2').textContent=money0(b.bank2);
+  if($('s-bank3')) $('s-bank3').textContent=money0(b.bank3);
   if($('s-funds-b')) $('s-funds-b').textContent=money0(b.total);
   const TA=totalAssets(), TL=totalLiabilities();
   if($('s-assets')) $('s-assets').textContent=money0(TA);
@@ -1658,7 +1705,8 @@ function renderDashboard(){
   const max=Math.max(1,...mi,...me);
   const ch=$('dash-trend'); if(ch){ ch.innerHTML='';
     for(let m=0;m<12;m++){
-      ch.innerHTML+=`<div class="flex items-center gap-2 text-xs"><div class="w-8 text-gray-500">${MONTHS[m].slice(0,3)}</div>
+      const clickable = (mi[m]||me[m]) ? `onclick="openDrill(${y},${m+1},'both')" style="cursor:pointer" class="flex items-center gap-2 text-xs rounded-lg hover:bg-gray-50 px-1 py-0.5" title="Click for ${MONTHS[m]} detail"` : `class="flex items-center gap-2 text-xs px-1 py-0.5"`;
+      ch.innerHTML+=`<div ${clickable}><div class="w-8 text-gray-500">${MONTHS[m].slice(0,3)}</div>
         <div class="flex-1"><div class="h-3 rounded-sm" style="width:${(mi[m]/max*100)||0}%;background:#059669;min-width:${mi[m]?'2px':'0'}"></div>
         <div class="h-3 rounded-sm mt-0.5" style="width:${(me[m]/max*100)||0}%;background:#dc2626;min-width:${me[m]?'2px':'0'}"></div></div>
         <div class="w-28 text-right text-gray-400">${mi[m]?money0(mi[m]):''}${me[m]?' / '+money0(me[m]):''}</div></div>`;
@@ -1946,7 +1994,7 @@ async function saveCollection(){
   const fields={receiptNo:$('col-receipt').value.trim(),date:collectionDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',familyId,donor,method:$('col-method').value,fund:'cash',note:$('col-note').value.trim()};
   if(editTxId){                                  // update existing entry
     const t=transactions.find(x=>x.id===editTxId); if(t) Object.assign(t, fields);
-    save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓');
+    save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓'); returnToDrill();
     return;
   }
   const t={id:Date.now(),kind:'collection',dir:'in',...fields};
@@ -1974,7 +2022,7 @@ function exitEditMode(){
   const b=$('col-save-btn'); if(b) b.textContent='Save Collection';
   const banner=$('col-edit-banner'); if(banner){ banner.classList.add('hidden'); banner.textContent=''; }
 }
-function cancelCollectionEdit(){ exitEditMode(); clearCollectionForm(); flashSaved('Cleared'); }
+function cancelCollectionEdit(){ exitEditMode(); clearCollectionForm(); flashSaved('Cleared'); returnToDrill(); }
 // After a save: reset every field to blank/default, keeping only the Receipt # (bumped to the next number)
 function resetCollectionForm(){
   advanceReceipt();                                   // keep & increment the receipt number
@@ -2124,6 +2172,7 @@ function cancelExpenseEdit(){
   const b=$('exp-save-btn'); if(b) b.textContent='Save Expense';
   if($('exp-cancel-btn')) $('exp-cancel-btn').classList.add('hidden');
   const bn=$('exp-edit-banner'); if(bn) bn.classList.add('hidden');
+  returnToDrill();
 }
 function renderRecentExpenses(){
   if(!$('exp-date').value) $('exp-date').value=todayISO();
@@ -2220,6 +2269,126 @@ function renderLedger(){
   if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">No matching transactions.</td></tr>';
 }
 function deleteTx(id){ const t=transactions.find(x=>x.id===id); if(!confirm(`Delete this ${t.kind} of ${money(t.amount)} on ${fmtDate(t.date)}?`)) return; transactions=transactions.filter(x=>x.id!==id); save(); renderLedger(); }
+// ---- Bulk date fix: move every entry from one date to another ----
+function openBulkDate(){
+  if(currentRole!=='accountant'){ alert('This is done from the accountant login.'); return; }
+  $('bd-from').value=''; $('bd-to').value='';
+  $('bd-preview').textContent='Pick the wrong date to see how many entries will move.';
+  $('bd-apply').disabled=true;
+  $('bulkdate-modal').classList.remove('hidden');
+}
+function closeBulkDate(){ $('bulkdate-modal').classList.add('hidden'); }
+function bulkDateMatches(){ const from=$('bd-from').value; return from ? transactions.filter(t=>t.date===from) : []; }
+function bulkDatePreview(){
+  const from=$('bd-from').value, to=$('bd-to').value;
+  const list=bulkDateMatches();
+  const kinds={}; list.forEach(t=>{ const k=t.kind==='fee'?'membership':t.kind; kinds[k]=(kinds[k]||0)+1; });
+  const parts=Object.keys(kinds).map(k=>`${kinds[k]} ${k}${kinds[k]>1?'s':''}`);
+  let msg;
+  if(!from){ msg='Pick the wrong date to see how many entries will move.'; }
+  else if(!list.length){ msg=`No entries are dated ${fmtDate(from)}.`; }
+  else { msg=`${list.length} entr${list.length>1?'ies':'y'} dated ${fmtDate(from)}${parts.length?(' ('+parts.join(', ')+')'):''}`+(to?` will move to ${fmtDate(to)}.`:' — now pick the correct date.'); }
+  $('bd-preview').textContent=msg;
+  $('bd-apply').disabled = !(from && to && list.length && from!==to);
+}
+function applyBulkDate(){
+  const from=$('bd-from').value, to=$('bd-to').value;
+  const list=bulkDateMatches();
+  if(!from||!to||!list.length||from===to) return;
+  if(!confirm(`Move ${list.length} entr${list.length>1?'ies':'y'} from ${fmtDate(from)} to ${fmtDate(to)}?`)) return;
+  list.forEach(t=>{ t.date=to; });
+  save();
+  closeBulkDate();
+  renderLedger(); if(typeof renderDashboard==='function' && !$('dashboard-page').classList.contains('hidden')) renderDashboard();
+  alert(`Moved ${list.length} entr${list.length>1?'ies':'y'} to ${fmtDate(to)}.`);
+}
+// ---- Dashboard drill-down: see the transactions behind income / expense ----
+let _drill=null, _drillReturn=null;
+function drillYear(type){ const y=+(($('dash-year')&&$('dash-year').value)||curYear()); openDrill(y,0,type); }
+// Edit a transaction from the drill pop-up, and come back to the pop-up when done
+function drillEdit(id){
+  _drillReturn=_drill; closeDrill();
+  const t=transactions.find(x=>x.id===id); if(!t){ _drillReturn=null; return; }
+  if(t.kind==='collection'||t.kind==='fee') startEditCollection(id);
+  else if(t.kind==='expense') startEditExpense(id);
+  else if(t.kind==='transfer') startEditTransfer(id);
+  else _drillReturn=null;
+}
+function returnToDrill(){ if(!_drillReturn) return; const d=_drillReturn; _drillReturn=null; if(d.fund) openFundDrill(d.fund); else openDrill(d.year,d.month,d.type); }
+// Fund drill pop-up: running-balance register for cash/a bank/undeposited, with edit pencils
+function openFundDrill(link){
+  ensureTwoBanks();
+  const a=accounts.find(x=>x.link===link); if(!a){ showPage('cashbank'); return; }
+  _drill={fund:link};
+  const od=settings.openingDate||'';
+  let opening=0;
+  if(link==='cash') opening=+settings.openingCash||0;
+  else if(link==='bank') opening=+settings.openingBank||0;
+  else if(link==='bank2') opening=+settings.openingBank2||0;
+  else if(link==='bank3') opening=+settings.openingBank3||0;
+  const list=transactions.filter(t=> fundDelta(t,link)!==0 && (!od||t.date>=od)).sort((x,y)=>x.date.localeCompare(y.date)||x.id-y.id);
+  let run=opening;
+  let h=`<table class="w-full text-sm"><thead><tr class="text-xs text-gray-400 border-b" style="text-align:left"><th class="py-2 pr-2">Date</th><th class="py-2 pr-2">Description</th><th class="py-2 pr-2" style="text-align:right">In</th><th class="py-2 pr-2" style="text-align:right">Out</th><th class="py-2 pr-2" style="text-align:right">Balance</th><th></th></tr></thead><tbody>`;
+  h+=`<tr class="bg-gray-50"><td class="py-1.5 pr-2 text-gray-500 whitespace-nowrap">${od?fmtDate(od):''}</td><td class="py-1.5 pr-2 italic text-gray-500">Opening balance</td><td></td><td></td><td class="py-1.5 pr-2 text-right font-semibold">${money(run)}</td><td></td></tr>`;
+  list.forEach(t=>{ const d=fundDelta(t,link); run+=d; const inA=d>0?d:0, outA=d<0?-d:0;
+    h+=`<tr class="border-b"><td class="py-1.5 pr-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="py-1.5 pr-2">${esc(txDesc(t))}</td><td class="py-1.5 pr-2 text-right text-emerald-600">${inA?money(inA):''}</td><td class="py-1.5 pr-2 text-right text-red-600">${outA?money(outA):''}</td><td class="py-1.5 pr-2 text-right font-semibold">${money(run)}</td><td class="py-1.5 pl-2 text-center"><button onclick="drillEdit(${t.id})" class="text-indigo-400 hover:text-indigo-600" title="Edit"><i class="fa-solid fa-pen"></i></button></td></tr>`;
+  });
+  h+=`</tbody></table>`;
+  if(!list.length) h=`<p class="text-sm text-gray-400 py-4">No movements in this fund yet.</p>`;
+  $('drill-title').textContent=a.code+' — '+a.name;
+  $('drill-sub').textContent=`Running balance · current ${money(run)}`;
+  $('drill-body').innerHTML=h;
+  $('drill-modal').classList.remove('hidden');
+}
+// Drill a fund (cash/bank/bank2/bank3/undeposited) into its running-balance ledger page
+function drillFund(link){
+  ensureTwoBanks();   // make sure the cash/bank/undeposited accounts exist
+  const a=accounts.find(x=>x.link===link); if(!a){ showPage('cashbank'); return; }
+  showPage('ledger');
+  if($('led-acct')) $('led-acct').value=String(a.id);
+  if($('led-type')) $('led-type').value='';
+  if($('led-year')){ $('led-year').dataset.filled=''; $('led-year').value=''; }
+  if($('led-month')) $('led-month').value='';
+  if($('led-search')) $('led-search').value='';
+  renderLedger();
+}
+function openDrill(year, month, type){
+  _drill={year:+year, month:+month||0, type};
+  const inPeriod=t=>{ if((+String(t.date).slice(0,4))!==+year) return false; if(month && (+String(t.date).slice(5,7))!==+month) return false; return true; };
+  const byDate=(a,b)=>a.date.localeCompare(b.date)||a.id-b.id;
+  const inc = transactions.filter(t=> t.dir==='in' && t.kind!=='transfer' && inPeriod(t)).sort(byDate);
+  const exp = transactions.filter(t=> t.dir==='out' && inPeriod(t)).sort(byDate);
+  const periodLabel = month ? `${MONTHS[month-1]} ${year}` : `Full year ${year}`;
+  const section=(title,list,color)=>{
+    const tot=list.reduce((s,t)=>s+(+t.amount||0),0);
+    let h=`<div class="mb-4"><div class="flex items-center justify-between mb-1"><span class="font-semibold text-gray-700">${title}</span><span class="font-bold ${color}">${money(tot)}</span></div>`;
+    if(!list.length){ h+=`<p class="text-sm text-gray-400 py-2">None in this period.</p></div>`; return h; }
+    h+=`<table class="w-full text-sm"><tbody>`;
+    list.forEach(t=>{ h+=`<tr class="border-b"><td class="py-1.5 pr-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="py-1.5 pr-2">${esc(txDesc(t))}</td><td class="py-1.5 pr-2 text-gray-400 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="py-1.5 text-right font-medium ${color}">${money(t.amount)}</td><td class="py-1.5 pl-2 text-center"><button onclick="drillEdit(${t.id})" class="text-indigo-400 hover:text-indigo-600" title="Edit"><i class="fa-solid fa-pen"></i></button></td></tr>`; });
+    h+=`</tbody></table></div>`; return h;
+  };
+  let body='';
+  if(type==='income'||type==='both') body+=section(`Income — ${inc.length} entr${inc.length===1?'y':'ies'}`, inc, 'text-emerald-700');
+  if(type==='expense'||type==='both') body+=section(`Expenses — ${exp.length} entr${exp.length===1?'y':'ies'}`, exp, 'text-red-600');
+  $('drill-title').textContent = type==='income'?'Income detail':type==='expense'?'Expense detail':'Income & expense detail';
+  $('drill-sub').textContent = periodLabel;
+  $('drill-body').innerHTML=body;
+  $('drill-modal').classList.remove('hidden');
+}
+function closeDrill(){ $('drill-modal').classList.add('hidden'); }
+function drillToLedger(){
+  if(!_drill) return; const d=_drill;
+  closeDrill();
+  if(d.fund){ drillFund(d.fund); return; }
+  showPage('ledger');
+  if($('led-acct')) $('led-acct').value='';
+  if($('led-year')) $('led-year').dataset.filled='';
+  renderLedger();   // rebuilds the year options
+  if($('led-year')) $('led-year').value=String(d.year);
+  if($('led-month')) $('led-month').value = d.month ? String(d.month) : '';
+  if($('led-type')) $('led-type').value = d.type==='expense' ? 'expense' : '';
+  renderLedger();
+}
 function printLedger(){
   renderLedger();   // make sure the view is current
   const accSel=$('led-acct'); const acctLabelText = (accSel && accSel.value) ? (accSel.options[accSel.selectedIndex].text) : 'All accounts';
