@@ -422,8 +422,8 @@
           </div>
         </div>
         <div class="bg-white rounded-3xl shadow p-6">
-          <h3 class="font-semibold text-gray-700 mb-1">Deposit to bank</h3>
-          <p class="text-xs text-gray-400 mb-4">Move money from Cash on Hand into a bank account. This credits (reduces) Cash on Hand and debits (increases) the bank you pick. It isn't income or expense — it just moves money you've already received.</p>
+          <h3 class="font-semibold text-gray-700 mb-1">Deposit / transfer</h3>
+          <p class="text-xs text-gray-400 mb-4">Move money between funds — e.g. Cash on Hand → a bank (a deposit), or one bank → another (a bank transfer). It reduces the <b>From</b> account and increases the <b>To</b> account. It isn't income or expense — it just moves money you already have.</p>
           <div id="tr-lock-bar" class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
             <label class="flex items-center gap-2 cursor-pointer"><input id="tr-lock" type="checkbox" onchange="trToggleDateLock()"> <span class="font-medium text-amber-700"><i class="fa-solid fa-lock"></i> Lock month/year</span></label>
             <select id="tr-lock-month" class="border rounded-lg px-2 py-1 hidden bg-white" onchange="trApplyDateLock()"></select>
@@ -436,11 +436,16 @@
               <input id="tr-day" type="number" min="1" max="31" oninput="clampDay(this)" class="w-full border rounded-xl px-3 py-2 hidden" placeholder="Day (1–31)"></div>
             <div><label class="block text-xs text-gray-600 mb-1">Amount ($)</label><input id="tr-amount" type="number" class="w-full border rounded-xl px-3 py-2"></div>
           </div>
+          <div class="grid grid-cols-2 gap-4 mt-3">
+            <div><label class="block text-xs text-gray-600 mb-1">From account</label>
+              <select id="tr-from" class="w-full border rounded-xl px-3 py-2 bg-white"><option value="cash" selected>Cash on Hand</option><option value="bank">PNC Bank</option><option value="bank2">River City Bank</option><option value="bank3">Rivercity - Mortgage</option><option value="undeposited">Checks (undeposited)</option></select></div>
+            <div><label class="block text-xs text-gray-600 mb-1">To account</label>
+              <select id="tr-to" class="w-full border rounded-xl px-3 py-2 bg-white"><option value="bank" selected>PNC Bank</option><option value="bank2">River City Bank</option><option value="bank3">Rivercity - Mortgage</option><option value="cash">Cash on Hand</option><option value="undeposited">Checks (undeposited)</option></select></div>
+          </div>
           <div class="grid grid-cols-2 gap-4 mt-3 mb-3">
-            <div><label class="block text-xs text-gray-600 mb-1">Deposit to bank</label>
-              <select id="tr-to" class="w-full border rounded-xl px-3 py-2 bg-white"><option value="bank">PNC Bank</option><option value="bank2">River City Bank</option><option value="bank3">Rivercity - Mortgage</option></select></div>
             <div><label class="block text-xs text-gray-600 mb-1">Type</label>
               <select id="tr-method" class="w-full border rounded-xl px-3 py-2 bg-white"><option>Cash</option><option>Check</option><option>Square</option><option>Other</option></select></div>
+            <div></div>
           </div>
           <label class="block text-xs text-gray-600 mb-1">Note (optional)</label>
           <input id="tr-note" class="w-full border rounded-xl px-3 py-2 mb-4" placeholder="e.g. deposited Sunday cash">
@@ -450,9 +455,32 @@
             <span id="tr-edit-banner" class="hidden text-sm font-semibold text-indigo-600 self-center">Editing a deposit</span>
           </div>
         </div>
+        <div class="bg-white rounded-3xl shadow p-6">
+          <h3 class="font-semibold text-gray-700 mb-1">Bank interest / income</h3>
+          <p class="text-xs text-gray-400 mb-4">Record income paid straight into a bank — e.g. monthly interest. This increases the bank you pick <b>and</b> your income (no cash involved). It posts to the income account you choose.</p>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-xs text-gray-600 mb-1">Date</label>
+              <input id="bi-date" type="date" class="w-full border rounded-xl px-3 py-2"></div>
+            <div><label class="block text-xs text-gray-600 mb-1">Amount ($)</label>
+              <input id="bi-amount" type="number" step="0.01" class="w-full border rounded-xl px-3 py-2"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4 mt-3 mb-3">
+            <div><label class="block text-xs text-gray-600 mb-1">Into bank</label>
+              <select id="bi-bank" class="w-full border rounded-xl px-3 py-2 bg-white"><option value="bank">PNC Bank</option><option value="bank2">River City Bank</option><option value="bank3">Rivercity - Mortgage</option></select></div>
+            <div><label class="block text-xs text-gray-600 mb-1">Income type</label>
+              <select id="bi-cat" class="w-full border rounded-xl px-3 py-2 bg-white"></select></div>
+          </div>
+          <label class="block text-xs text-gray-600 mb-1">Note (optional)</label>
+          <input id="bi-note" class="w-full border rounded-xl px-3 py-2 mb-4" placeholder="e.g. October interest">
+          <div class="flex gap-2">
+            <button id="bi-save-btn" onclick="saveBankIncome()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm">Save income</button>
+            <button id="bi-cancel-btn" onclick="cancelBankIncomeEdit()" class="hidden bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm">Cancel</button>
+            <span id="bi-edit-banner" class="hidden text-sm font-semibold text-indigo-600 self-center">Editing an income entry</span>
+          </div>
+        </div>
       </div>
       <div class="bg-white rounded-2xl shadow overflow-hidden mt-6">
-        <div class="px-6 py-3 border-b font-semibold text-gray-700">Recent deposits &amp; transfers</div>
+        <div class="px-6 py-3 border-b font-semibold text-gray-700">Recent deposits, transfers &amp; bank income</div>
         <table class="w-full text-sm"><tbody id="tr-recent" class="divide-y"></tbody></table>
       </div>
     </section>
@@ -821,7 +849,7 @@ const IE_SEED = [
   ['4100','Membership Fees','income',''],['4110','Collection box','income',''],['4120','Tithe','income',''],
   ['4200','General Donation','income',''],['4210','One-time Gift','income',''],['4220','Prayer Request Offering','income',''],['4230','Vow / Pledge (ስለት)','income',''],
   ['4310','Wedding','income',''],['4320','Funeral / Memorial (ተዝካር)','income',''],['4330','Gift shop','income',''],
-  ['4400','Building maintenance fund','income',''],['4420','Fundraising','income',''],['4500','Holy Water Service','income',''],['4900','Other Income','income',''],
+  ['4400','Building maintenance fund','income',''],['4420','Fundraising','income',''],['4500','Holy Water Service','income',''],['4510','Interest Income','income',''],['4900','Other Income','income',''],
   ['6100','Clergy Stipend','expense',''],['6110','Salaries & Wages','expense',''],['6120','Bonus','expense',''],['6200','Rent / Mortgage','expense',''],['6210','Utilities','expense',''],
   ['6220','Maintenance & Repairs','expense',''],['6230','Construction','expense',''],['6300','Supplies','expense',''],['6310','Liturgical Supplies','expense',''],['6400','Events & Hospitality','expense',''],
   ['6500','Charity / Outreach','expense',''],['6600','Bank & Admin Fees','expense',''],['6900','Other Expense','expense','']
@@ -939,6 +967,7 @@ function migrateCOA(){
     if(a){ a.name=ren[code]; transactions.forEach(t=>{ if(t.acctId===a.id || String(t.acct)===code) t.category=ren[code]; }); }
   });
   ensureAccount('4500','Holy Water Service','income');
+  ensureAccount('4510','Interest Income','income');
   // Retire these income accounts; move any tagged entries to Other Income so totals are preserved
   const other=accounts.find(x=>String(x.code)==='4900');
   ['4300','4410'].forEach(code=>{
@@ -1386,12 +1415,12 @@ function colRefOrd(){
   if(dv){ const d=dv.split('-'); return (+d[0])*12 + ((+d[1])-1); }
   const n=new Date(); return n.getFullYear()*12 + n.getMonth();
 }
-// From-month list: the 12 months up to and including the reference (locked) month
+// From-month list: 24 months back (back-dues) through 12 months forward (prepay) around the reference (locked) month
 function fillColMstart(){
   const s=$('col-mstart'); if(!s) return;
   const prev=s.value, ref=colRefOrd();
   s.innerHTML='';
-  for(let ord=ref-11; ord<=ref; ord++) s.appendChild(new Option(ordToLabel(ord), ordToLabel(ord)));
+  for(let ord=ref-23; ord<=ref+12; ord++) s.appendChild(new Option(ordToLabel(ord), ordToLabel(ord)));
   s.value = (prev && [...s.options].some(o=>o.value===prev)) ? prev : ordToLabel(ref);
 }
 // "Paying for multiple months" checkbox → drives the hidden col-mmode value
@@ -1588,9 +1617,15 @@ function renderCashBank(){
   const u=$('cb-undep'); if(u) u.textContent=money(b.undeposited);
   $('op-cash').value=settings.openingCash||0; $('op-bank').value=settings.openingBank||0; if($('op-bank2')) $('op-bank2').value=settings.openingBank2||0; if($('op-bank3')) $('op-bank3').value=settings.openingBank3||0; $('op-date').value=settings.openingDate||'';
   if(!$('tr-date').value) $('tr-date').value=todayISO();
+  if($('bi-date') && !$('bi-date').value) $('bi-date').value=todayISO();
+  fillBankIncomeCat();
   const tb=$('tr-recent'); tb.innerHTML='';
-  transactions.filter(t=>t.kind==='transfer').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,15).forEach(t=>{
-    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-6 py-2">${xferLabel(t)}${t.note?' · '+esc(t.note):''}</td><td class="px-6 py-2 text-right font-semibold">${money(t.amount)}</td><td class="px-6 py-2 text-center whitespace-nowrap"><button onclick="startEditTransfer(${t.id})" class="text-indigo-400 hover:text-indigo-600 mr-2" title="Edit"><i class="fa-solid fa-pen"></i></button><button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+  transactions.filter(t=>t.kind==='transfer'||t.kind==='income').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,15).forEach(t=>{
+    const isInc=t.kind==='income';
+    const desc = isInc ? `${esc(txDesc(t))}` : `${xferLabel(t)}${t.note?' · '+esc(t.note):''}`;
+    const amtCls = isInc ? 'text-emerald-700' : '';
+    const editFn = isInc ? `startEditBankIncome(${t.id})` : `startEditTransfer(${t.id})`;
+    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-6 py-2">${desc}</td><td class="px-6 py-2 text-right font-semibold ${amtCls}">${isInc?'+':''}${money(t.amount)}</td><td class="px-6 py-2 text-center whitespace-nowrap"><button onclick="${editFn}" class="text-indigo-400 hover:text-indigo-600 mr-2" title="Edit"><i class="fa-solid fa-pen"></i></button><button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
   });
   if(!tb.innerHTML) tb.innerHTML='<tr><td class="px-6 py-6 text-center text-gray-400">No transfers yet.</td></tr>';
 }
@@ -1640,8 +1675,9 @@ function depositDate(){
 let editTrId=null;
 async function saveTransfer(){
   const amt=parseFloat($('tr-amount').value); if(!amt) return alert('Enter an amount.');
-  const to=$('tr-to').value;
-  const fields={date:depositDate(),amount:amt,fromFund:'cash',toFund:to,category:'Transfer',method:($('tr-method')?$('tr-method').value:''),note:$('tr-note').value.trim()};
+  const from=($('tr-from')?$('tr-from').value:'cash'), to=$('tr-to').value;
+  if(from===to) return alert('Choose two different accounts — the From and To cannot be the same.');
+  const fields={date:depositDate(),amount:amt,fromFund:from,toFund:to,category:'Transfer',method:($('tr-method')?$('tr-method').value:''),note:$('tr-note').value.trim()};
   if(editTrId){
     const t=transactions.find(x=>x.id===editTrId); if(t) Object.assign(t,fields);
     save(); cancelTransferEdit(); renderCashBank(); if($('ledger-tbody')) renderLedger();
@@ -1659,7 +1695,8 @@ function startEditTransfer(id){
   if($('tr-lock')){ $('tr-lock').checked=false; trToggleDateLock(); }
   if($('tr-date')) $('tr-date').value=t.date;
   $('tr-amount').value=(Number(t.amount)||0).toFixed(2);
-  if($('tr-to')) $('tr-to').value=(t.toFund==='bank2'||t.toFund==='bank3')?t.toFund:'bank';
+  if($('tr-from')) $('tr-from').value=t.fromFund||'cash';
+  if($('tr-to')) $('tr-to').value=t.toFund||'bank';
   if($('tr-method')) $('tr-method').value=t.method||'Cash';
   $('tr-note').value=t.note||'';
   const b=$('tr-save-btn'); if(b) b.textContent='Update deposit';
@@ -1674,6 +1711,52 @@ function cancelTransferEdit(){
   if($('tr-cancel-btn')) $('tr-cancel-btn').classList.add('hidden');
   if($('tr-edit-banner')) $('tr-edit-banner').classList.add('hidden');
   returnToDrill();
+}
+// ---- Bank interest / income: income paid straight into a bank (no cash) ----
+let editBiId=null;
+function fillBankIncomeCat(){
+  const sel=$('bi-cat'); if(!sel) return; const prev=sel.value;
+  sel.innerHTML='';
+  incomeAccounts().forEach(a=>sel.appendChild(new Option(`${a.code} — ${a.name}`, a.id)));
+  const interest=accounts.find(a=>String(a.code)==='4510');
+  sel.value = (prev && [...sel.options].some(o=>o.value===prev)) ? prev : (interest?String(interest.id):(sel.options[0]?sel.options[0].value:''));
+}
+async function saveBankIncome(){
+  const amt=parseFloat($('bi-amount').value); if(!amt) return alert('Enter an amount.');
+  const a=acctById(+$('bi-cat').value);
+  const fund=$('bi-bank').value;
+  const date=$('bi-date').value||todayISO();
+  const fields={date,amount:amt,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Interest Income',fund,method:'',note:$('bi-note').value.trim()};
+  if(editBiId){
+    const t=transactions.find(x=>x.id===editBiId); if(t) Object.assign(t,fields);
+    save(); cancelBankIncomeEdit(); renderCashBank(); if($('ledger-tbody')) renderLedger(); returnToDrill();
+    return;
+  }
+  const t={id:Date.now(),kind:'income',dir:'in',...fields};
+  transactions.push(t); save(); $('bi-amount').value=''; $('bi-note').value='';
+  renderCashBank(); if($('ledger-tbody')) renderLedger(); await gsSend('addIncome',t);
+}
+function startEditBankIncome(id){
+  if(currentRole!=='accountant'){ alert('Editing is done from the accountant login.'); return; }
+  const t=transactions.find(x=>x.id===id); if(!t||t.kind!=='income'){ alert('Income entry not found.'); return; }
+  showPage('cashbank'); editBiId=id; fillBankIncomeCat();
+  if($('bi-date')) $('bi-date').value=t.date;
+  $('bi-amount').value=(Number(t.amount)||0).toFixed(2);
+  const ac=(t.acctId!=null && acctById(t.acctId))?acctById(t.acctId):acctByCode(t.acct);
+  if(ac && $('bi-cat')) $('bi-cat').value=String(ac.id);
+  if($('bi-bank')) $('bi-bank').value=(t.fund==='bank2'||t.fund==='bank3')?t.fund:'bank';
+  $('bi-note').value=t.note||'';
+  const b=$('bi-save-btn'); if(b) b.textContent='Update income';
+  if($('bi-cancel-btn')) $('bi-cancel-btn').classList.remove('hidden');
+  if($('bi-edit-banner')) $('bi-edit-banner').classList.remove('hidden');
+  window.scrollTo(0,0);
+}
+function cancelBankIncomeEdit(){
+  editBiId=null;
+  $('bi-amount').value=''; $('bi-note').value='';
+  const b=$('bi-save-btn'); if(b) b.textContent='Save income';
+  if($('bi-cancel-btn')) $('bi-cancel-btn').classList.add('hidden');
+  if($('bi-edit-banner')) $('bi-edit-banner').classList.add('hidden');
 }
 // ---- Chart of accounts editor ----
 function acctActivity(a,yr,mo){
@@ -2055,6 +2138,7 @@ function txDesc(t){
   if(t.kind==='transfer') return `Transfer ${xferLabel(t)}${t.note?' ('+t.note+')':''}`;
   if(t.kind==='fee') return `${t.family} — fees (${t.period||''})`;
   if(t.kind==='collection'){ const who=t.donor?` — ${t.donor}`:''; return `${t.category}${who}${t.note?' ('+t.note+')':''}`; }
+  if(t.kind==='income'){ const dest=FUND_LABEL[t.fund]||''; return `${t.category}${dest?(' → '+dest):''}${t.note?' ('+t.note+')':''}`; }
   return `${t.category}${t.payee?' — '+t.payee:''}${t.note?' ('+t.note+')':''}`;
 }
 
@@ -2567,7 +2651,7 @@ function renderLedger(){
   const od=settings.openingDate||'';
   const matchQ=t=> !q || (txDesc(t).toLowerCase().includes(q)||(t.category||'').toLowerCase().includes(q));
   const matchTy=t=> !ty || t.kind===ty;
-  const editBtnOf=t=>{ let fn=''; if(t.kind==='collection'||t.kind==='fee') fn=`startEditCollection(${t.id})`; else if(t.kind==='expense') fn=`startEditExpense(${t.id})`; else if(t.kind==='transfer') fn=`startEditTransfer(${t.id})`; return fn?`<button onclick="${fn}" class="text-indigo-500 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>`:''; };
+  const editBtnOf=t=>{ let fn=''; if(t.kind==='collection'||t.kind==='fee') fn=`startEditCollection(${t.id})`; else if(t.kind==='expense') fn=`startEditExpense(${t.id})`; else if(t.kind==='transfer') fn=`startEditTransfer(${t.id})`; else if(t.kind==='income') fn=`startEditBankIncome(${t.id})`; return fn?`<button onclick="${fn}" class="text-indigo-500 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>`:''; };
   const tb=$('ledger-tbody'); tb.innerHTML='';
 
   if(selAcct){
@@ -2591,15 +2675,16 @@ function renderLedger(){
     let run=bf, debSum=0, creSum=0;
     const startLabel = periodStart ? 'Balance brought forward' : 'Opening balance';
     const startDate = periodStart || od;
-    tb.innerHTML+=`<tr class="bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${startDate?fmtDate(startDate):''}</td><td class="px-4 py-2 italic text-gray-500">${startLabel}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(selAcct.code+' — '+selAcct.name)}</td><td class="px-4 py-2"></td><td class="px-4 py-2"></td><td class="px-4 py-2 text-right font-semibold">${money(run)}</td><td class="px-4 py-2"></td></tr>`;
+    let h=`<tr class="bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${startDate?fmtDate(startDate):''}</td><td class="px-4 py-2 italic text-gray-500">${startLabel}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(selAcct.code+' — '+selAcct.name)}</td><td class="px-4 py-2"></td><td class="px-4 py-2"></td><td class="px-4 py-2 text-right font-semibold">${money(run)}</td><td class="px-4 py-2"></td></tr>`;
     disp.forEach(t=>{
       const eff=delta(t); run+=eff;                 // eff = increase to this account's natural balance
       let deb=0, cre=0;
       if(debitNormal){ if(eff>0) deb=eff; else cre=-eff; }
       else { if(eff>0) cre=eff; else deb=-eff; }
       debSum+=deb; creSum+=cre;
-      tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-4 py-2">${esc(txDesc(t))}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="px-4 py-2 text-right text-gray-800">${deb?money(deb):''}</td><td class="px-4 py-2 text-right text-gray-800">${cre?money(cre):''}</td><td class="px-4 py-2 text-right font-semibold">${money(run)}</td><td class="px-4 py-2 text-center whitespace-nowrap">${editBtnOf(t)}<button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+      h+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-4 py-2">${esc(txDesc(t))}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="px-4 py-2 text-right text-gray-800">${deb?money(deb):''}</td><td class="px-4 py-2 text-right text-gray-800">${cre?money(cre):''}</td><td class="px-4 py-2 text-right font-semibold">${money(run)}</td><td class="px-4 py-2 text-center whitespace-nowrap">${editBtnOf(t)}<button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
     });
+    tb.innerHTML=h;
     const sideNote = debitNormal ? 'debit balance' : 'credit balance';
     $('led-summary').innerHTML=`Debits: <b>${money(debSum)}</b> &nbsp; Credits: <b>${money(creSum)}</b> &nbsp; Ending balance: <b>${money(run)}</b> <span class="text-gray-400">(${sideNote})</span>`;
   } else {
@@ -2612,6 +2697,7 @@ function renderLedger(){
       if(!matchQ(t)) return false;
       return true;
     }).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+    let h='';
     rows.forEach(t=>{
       // Place each entry on its account's normal side: income → credit, expense → debit; transfers are internal
       let deb=0, cre=0, gray=false;
@@ -2622,8 +2708,9 @@ function renderLedger(){
       if(!gray){ debSum+=deb; creSum+=cre; }
       const debCell = deb?`<span class="${gray?'text-gray-400':'text-gray-800'}">${money(deb)}</span>`:'';
       const creCell = cre?`<span class="text-gray-800">${money(cre)}</span>`:'';
-      tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-4 py-2">${esc(txDesc(t))}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="px-4 py-2 text-right">${debCell}</td><td class="px-4 py-2 text-right">${creCell}</td><td class="px-4 py-2"></td><td class="px-4 py-2 text-center whitespace-nowrap">${editBtnOf(t)}<button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+      h+=`<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-4 py-2">${esc(txDesc(t))}</td><td class="px-4 py-2 text-gray-500 whitespace-nowrap">${esc(acctLabel(t))}</td><td class="px-4 py-2 text-right">${debCell}</td><td class="px-4 py-2 text-right">${creCell}</td><td class="px-4 py-2"></td><td class="px-4 py-2 text-center whitespace-nowrap">${editBtnOf(t)}<button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
     });
+    tb.innerHTML=h;
     $('led-summary').innerHTML=`Debits: <b>${money(debSum)}</b> &nbsp; Credits: <b>${money(creSum)}</b> &nbsp; Net: <b>${money(creSum-debSum)}</b>`;
   }
   if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">No matching transactions.</td></tr>';
@@ -2672,6 +2759,7 @@ function drillEdit(id){
   if(t.kind==='collection'||t.kind==='fee') startEditCollection(id);
   else if(t.kind==='expense') startEditExpense(id);
   else if(t.kind==='transfer') startEditTransfer(id);
+  else if(t.kind==='income') startEditBankIncome(id);
   else _drillReturn=null;
 }
 function returnToDrill(){ if(!_drillReturn) return; const d=_drillReturn; _drillReturn=null; if(d.fund) openFundDrill(d.fund); else openDrill(d.year,d.month,d.type); }
