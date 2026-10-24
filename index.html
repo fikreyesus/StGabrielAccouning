@@ -849,7 +849,7 @@ const IE_SEED = [
   ['4100','Membership Fees','income',''],['4110','Collection box','income',''],['4120','Tithe','income',''],
   ['4200','General Donation','income',''],['4210','One-time Gift','income',''],['4220','Prayer Request Offering','income',''],['4230','Vow / Pledge (ስለት)','income',''],
   ['4310','Wedding','income',''],['4320','Funeral / Memorial (ተዝካር)','income',''],['4330','Gift shop','income',''],
-  ['4400','Building maintenance fund','income',''],['4420','Fundraising','income',''],['4500','Holy Water Service','income',''],['4510','Interest Income','income',''],['4900','Other Income','income',''],
+  ['4400','Building maintenance fund','income',''],['4410','Holiday Preparation Fund','income',''],['4420','Fundraising','income',''],['4500','Holy Water Service','income',''],['4510','Interest Income','income',''],['4900','Other Income','income',''],
   ['6100','Clergy Stipend','expense',''],['6110','Salaries & Wages','expense',''],['6120','Bonus','expense',''],['6200','Rent / Mortgage','expense',''],['6210','Utilities','expense',''],
   ['6220','Maintenance & Repairs','expense',''],['6230','Construction','expense',''],['6300','Supplies','expense',''],['6310','Liturgical Supplies','expense',''],['6400','Events & Hospitality','expense',''],
   ['6500','Charity / Outreach','expense',''],['6600','Bank & Admin Fees','expense',''],['6900','Other Expense','expense','']
@@ -961,16 +961,17 @@ function ensureAccount(code,name,type){
 }
 // Chart-of-accounts updates (July 2026): rename 4110/4300/4400, add 4500, retire 4410
 function migrateCOA(){
-  const ren={'4110':'Collection box','4330':'Gift shop','4400':'Building maintenance fund'};
+  const ren={'4110':'Collection box','4330':'Gift shop','4400':'Building maintenance fund','4410':'Holiday Preparation Fund'};
   Object.keys(ren).forEach(code=>{
     const a=accounts.find(x=>String(x.code)===code);
     if(a){ a.name=ren[code]; transactions.forEach(t=>{ if(t.acctId===a.id || String(t.acct)===code) t.category=ren[code]; }); }
   });
   ensureAccount('4500','Holy Water Service','income');
   ensureAccount('4510','Interest Income','income');
+  ensureAccount('4410','Holiday Preparation Fund','income');   // restored: no longer retired
   // Retire these income accounts; move any tagged entries to Other Income so totals are preserved
   const other=accounts.find(x=>String(x.code)==='4900');
-  ['4300','4410'].forEach(code=>{
+  ['4300'].forEach(code=>{
     const old=accounts.find(x=>String(x.code)===code);
     if(old){
       transactions.forEach(t=>{ if(t.acctId===old.id || String(t.acct)===code){ if(other){ t.acctId=other.id; t.acct=other.code; t.category=other.name; } } });
@@ -1401,12 +1402,12 @@ function monthOrd(v){ const p=String(v||'').split(' '); return (+p[1]||0)*12 + M
 // Rebuild the "To month" list so it only offers months AFTER the selected From month
 function rebuildColEnd(){
   const s=$('col-mstart'), e=$('col-mend'); if(!s||!e||!s.value) return;
-  const startOrd=monthOrd(s.value), prev=e.value;
+  const startOrd=monthOrd(s.value);
   e.innerHTML='';
   // "To month" covers up to a 24-month span from the From month (e.g. Jan 2013 → up to Dec 2014)
   for(let ord=startOrd+1; ord<=startOrd+23; ord++) e.appendChild(new Option(ordToLabel(ord), ordToLabel(ord)));
-  if(prev && [...e.options].some(o=>o.value===prev)) e.value=prev;
-  else if(e.options.length) e.value=e.options[0].value;
+  // To month always defaults to the month right after From (e.g. From Jan 2026 → To Feb 2026)
+  if(e.options.length) e.value=e.options[0].value;
 }
 // Reference month = the locked month/year, else the entry date, else the current month
 function colRefOrd(){
