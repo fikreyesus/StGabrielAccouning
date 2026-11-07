@@ -189,7 +189,10 @@
 
       <!-- Members by last paid-through year (click a bar to drill into the members) -->
       <div class="bg-white rounded-2xl shadow p-6 mt-6">
-        <p class="font-semibold text-gray-700 mb-1">Members by last paid-through year</p>
+        <div class="flex items-center justify-between mb-1">
+          <p class="font-semibold text-gray-700">Members by last paid-through year</p>
+          <button onclick="printPaidThroughGrouped()" class="bg-gray-200 hover:bg-gray-300 px-3 py-1.5 rounded-xl text-sm"><i class="fa-solid fa-print"></i> Print</button>
+        </div>
         <p class="text-xs text-gray-400 mb-4">Each member counted in the year of the furthest month they've paid membership through. Click a bar to list those members.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div id="dash-pt-chart" class="space-y-1"></div>
@@ -214,7 +217,8 @@
       <div class="flex justify-between items-center mb-5">
         <input id="fam-search" oninput="renderFamilies()" placeholder="Search families…" class="border rounded-xl px-4 py-2 w-72">
         <div class="flex gap-2">
-          <button onclick="printFamilies()" class="bg-gray-200 hover:bg-gray-300 px-4 py-3 rounded-xl text-sm"><i class="fa-solid fa-print"></i> Print</button>
+          <button onclick="printFamilies()" class="bg-gray-200 hover:bg-gray-300 px-4 py-3 rounded-xl text-sm"><i class="fa-solid fa-print"></i> Print list</button>
+          <button onclick="printPaidUp()" class="bg-gray-200 hover:bg-gray-300 px-4 py-3 rounded-xl text-sm"><i class="fa-solid fa-print"></i> Print paid-up</button>
           <button onclick="openFamilyModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><i class="fa-solid fa-plus"></i> Add Family</button>
         </div>
       </div>
@@ -232,6 +236,20 @@
 
     <!-- COLLECTIONS -->
     <section id="collections-page" class="p-8 hidden">
+      <!-- Cashier: member name + live membership status in ONE compact bar (no empty column) -->
+      <div id="cash-top-row" class="hidden bg-white rounded-3xl shadow mb-6" style="display:flex;flex-wrap:wrap;gap:24px;align-items:center;padding:18px 24px">
+        <div style="flex:1 1 260px;min-width:220px">
+          <div class="flex items-center justify-between mb-1"><label class="block text-sm font-semibold text-gray-700">Member name</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
+          <div style="position:relative">
+            <input id="cash-mem-search" oninput="cashMemFilter()" onfocus="cashMemFilter();this.select()" onblur="setTimeout(function(){var e=document.getElementById('cash-mem-results');if(e)e.classList.add('hidden')},150)" autocomplete="off" placeholder="Type or pick the member's name…" class="w-full border rounded-2xl px-4 py-3 bg-white" style="cursor:pointer;padding-right:3.6rem">
+            <button type="button" onmousedown="event.preventDefault()" onclick="cashClearMember()" title="Clear" style="position:absolute;right:36px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:20px;line-height:1">&times;</button>
+            <i class="fa-solid fa-chevron-down" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#9ca3af;pointer-events:none"></i>
+            <div id="cash-mem-results" class="hidden" style="position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);max-height:230px;overflow-y:auto;background:#fff;border:1px solid #e5e7eb;border-radius:0.9rem;box-shadow:0 8px 24px rgba(0,0,0,.14)"></div>
+            <input type="hidden" id="cash-mem">
+          </div>
+        </div>
+        <div id="col-member-card" style="flex:2 1 380px"></div>
+      </div>
       <div class="flex justify-end" style="margin-bottom:-6px">
         <button id="col-recent-toggle" onclick="toggleRecent()" class="text-sm text-indigo-600 hover:text-indigo-800"><i class="fa-solid fa-eye-slash"></i> Hide recent collections</button>
       </div>
@@ -247,7 +265,7 @@
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div><label class="block text-xs font-medium text-gray-600 mb-1">Receipt #</label>
-              <input id="col-receipt" class="w-full border rounded-2xl px-4 py-3" placeholder="e.g. 1024" oninput="checkReceiptLive()" onblur="checkReceiptLive()">
+              <input id="col-receipt" class="w-full border rounded-2xl px-4 py-3" placeholder="e.g. 1024" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'');checkReceiptLive()" onblur="checkReceiptLive()">
               <div id="col-receipt-warn" style="display:none;color:#dc2626;font-size:12px;font-weight:600;margin-top:4px"></div></div>
             <div><label id="col-date-label" class="block text-xs font-medium text-gray-600 mb-1">Date</label>
               <input id="col-date" type="date" class="w-full border rounded-2xl px-4 py-3">
@@ -259,18 +277,6 @@
               <input id="col-amount" type="number" step="0.01" onblur="colAmtBlur()" class="w-full border rounded-2xl px-4 py-3"></div>
             <div><label class="block text-xs font-medium text-gray-600 mb-1">Income type</label>
               <select id="col-cat" onchange="colCatChange()" class="w-full border rounded-2xl px-4 py-3"></select></div>
-          </div>
-
-          <!-- Cashier: pick the member (after the income type) to check their membership status -->
-          <div id="cash-member-block" class="hidden mb-5 bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
-            <div class="flex items-center justify-between mb-1"><label class="block text-xs font-medium text-gray-600">Member</label><button type="button" onclick="addMemberFromCollection()" class="text-xs text-indigo-600 font-medium hover:underline"><i class="fa-solid fa-user-plus"></i> Add member</button></div>
-            <div style="position:relative">
-              <input id="cash-mem-search" oninput="cashMemFilter()" onfocus="cashMemFilter();this.select()" onblur="setTimeout(function(){var e=document.getElementById('cash-mem-results');if(e)e.classList.add('hidden')},150)" autocomplete="off" placeholder="Select a member…" class="w-full border rounded-2xl px-4 py-3 bg-white" style="cursor:pointer;padding-right:3.6rem">
-              <button type="button" onmousedown="event.preventDefault()" onclick="cashClearMember()" title="Clear" style="position:absolute;right:36px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:20px;line-height:1">&times;</button>
-              <i class="fa-solid fa-chevron-down" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#9ca3af;pointer-events:none"></i>
-              <div id="cash-mem-results" class="hidden" style="position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);max-height:230px;overflow-y:auto;background:#fff;border:1px solid #e5e7eb;border-radius:0.9rem;box-shadow:0 8px 24px rgba(0,0,0,.14)"></div>
-              <input type="hidden" id="cash-mem">
-            </div>
           </div>
 
           <!-- Membership fee panel — shows only when income type = Membership Fees -->
@@ -286,20 +292,17 @@
               </div>
               <div id="col-mem-status" class="hidden"></div>
             </div>
-            <div id="col-monthly-wrap" class="grid grid-cols-2 gap-3">
-              <div><label class="block text-xs font-medium text-gray-600 mb-1">Monthly fee ($)</label>
-                <input id="col-monthly" type="number" value="50" oninput="colCalc()" class="w-full border rounded-2xl px-4 py-3 bg-white"></div>
-              <div class="flex items-end"><p id="col-mcount" class="text-sm text-gray-500 pb-3"></p></div>
-            </div>
-            <label class="flex items-center gap-2 text-sm font-semibold text-indigo-700 mt-3 cursor-pointer bg-white border-2 border-indigo-300 rounded-xl px-3 py-2.5"><input id="col-mmulti" type="checkbox" onchange="colMultiToggle()" style="width:20px;height:20px;accent-color:#4f46e5"> <span>Paying for multiple months</span></label>
+            <label class="flex items-center gap-2 text-sm font-semibold text-indigo-700 cursor-pointer bg-white border-2 border-indigo-300 rounded-xl px-3 py-2.5"><input id="col-mmulti" type="checkbox" onchange="colMultiToggle()" style="width:20px;height:20px;accent-color:#4f46e5"> <span>Paying for multiple months</span></label>
             <input type="hidden" id="col-mmode" value="one">
-            <div class="grid grid-cols-2 gap-3 mt-3">
+            <div id="col-month-row" class="grid gap-3 mt-3" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
               <div><label id="col-mstart-label" class="block text-xs font-medium text-gray-600 mb-1">Month</label>
                 <select id="col-mstart" onchange="colStartChange()" class="w-full border rounded-2xl px-4 py-3 bg-white"></select></div>
               <div id="col-mend-wrap" class="hidden"><label class="block text-xs font-medium text-gray-600 mb-1">To month</label>
                 <select id="col-mend" onchange="colCalc()" class="w-full border rounded-2xl px-4 py-3 bg-white"></select></div>
+              <div id="col-method-slot"></div>
             </div>
-            <p class="text-[11px] text-indigo-500 mt-2">Type the <b>Total</b> (top) the member paid for the From–To period. The member's Last Payment is updated.</p>
+            <p id="col-mcount" class="text-[11px] text-indigo-500 font-medium mt-2"></p>
+            <p class="text-[11px] text-indigo-500 mt-1">Type the <b>Total</b> (top) the member paid for the From–To period. The member's Last Payment is updated.</p>
           </div>
 
           <div id="col-from-row">
@@ -313,8 +316,10 @@
             </div>
             <input id="col-donor" class="w-full border rounded-2xl px-4 py-3 mb-4 hidden" placeholder="One-time donor's name">
           </div>
-          <div class="mb-4"><label class="block text-xs font-medium text-gray-600 mb-1">Method</label>
-            <select id="col-method" class="w-full border rounded-2xl px-4 py-3"><option>Cash</option><option>Check</option><option>Square</option><option>Other</option></select></div>
+          <div id="col-method-home" class="mb-4">
+            <div id="col-method-wrap"><label class="block text-xs font-medium text-gray-600 mb-1">Method</label>
+              <select id="col-method" class="w-full border rounded-2xl px-4 py-3 bg-white"><option>Cash</option><option>Check</option><option>Square</option><option>Other</option></select></div>
+          </div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Note / intention (optional)</label>
           <input id="col-note" class="w-full border rounded-2xl px-4 py-3 mb-5" placeholder="e.g. prayer request for…, in memory of…">
           <div style="position:sticky;bottom:0;background:#fff;margin:0 -2rem -2rem;padding:0.75rem 2rem 0.75rem;box-shadow:0 -8px 14px -10px rgba(0,0,0,.18);border-radius:0 0 1.5rem 1.5rem;z-index:5">
@@ -324,10 +329,9 @@
             </div>
             <p id="col-edit-banner" class="hidden text-center text-sm font-semibold text-indigo-600 mt-2"></p>
             <p id="col-saved-flash" class="text-center text-sm font-semibold text-emerald-600 mt-1" style="visibility:hidden">Saved ✓</p>
+            <div id="col-receipt-prompt" class="hidden text-center mt-1"><button type="button" onclick="printLastReceipt()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-xl text-sm font-semibold"><i class="fa-solid fa-print"></i> Print receipt?</button></div>
           </div>
         </div>
-        <!-- Cashier: member membership status shows here when a member is selected -->
-        <div id="col-member-card" class="hidden bg-white rounded-3xl shadow overflow-hidden"></div>
         <div id="col-recent-card" class="bg-white rounded-3xl shadow overflow-hidden">
           <div class="px-6 py-3 border-b flex flex-wrap items-center gap-2">
             <span class="font-semibold text-gray-700">Recent collections</span>
@@ -349,7 +353,10 @@
 
     <!-- EXPENSES -->
     <section id="expenses-page" class="p-8 hidden">
-      <div class="grid md:grid-cols-2 gap-6">
+      <div class="flex justify-end" style="margin-bottom:-6px">
+        <button id="exp-recent-toggle" onclick="toggleExpRecent()" class="text-sm text-indigo-600 hover:text-indigo-800"><i class="fa-solid fa-eye-slash"></i> Hide recent expenses</button>
+      </div>
+      <div id="exp-grid" class="grid md:grid-cols-2 gap-6 mt-2">
         <div class="bg-white rounded-3xl shadow p-8">
           <h3 class="text-lg font-semibold mb-6">Record an Expense (money out)</h3>
           <div class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
@@ -361,16 +368,20 @@
           <label id="exp-date-label" class="block text-xs font-medium text-gray-600 mb-1">Date</label>
           <input id="exp-date" type="date" class="w-full border rounded-2xl px-4 py-3 mb-4">
           <input id="exp-day" type="number" min="1" max="31" oninput="clampDay(this)" class="w-full border rounded-2xl px-4 py-3 mb-4 hidden" placeholder="Day (1–31)">
-          <label class="block text-xs font-medium text-gray-600 mb-1">Account (expense type)</label>
+          <label class="flex items-center gap-2 mb-3 text-sm text-gray-700 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 cursor-pointer">
+            <input id="exp-receivable" type="checkbox" onchange="expReceivableToggle()" class="w-4 h-4">
+            <span>This is a <strong>receivable</strong> (advance / loan) — money leaves the bank but it is <strong>not</strong> an expense</span>
+          </label>
+          <label id="exp-cat-label" class="block text-xs font-medium text-gray-600 mb-1">Account (expense type)</label>
           <select id="exp-cat" class="w-full border rounded-2xl px-4 py-3 mb-4"></select>
           <div class="grid grid-cols-2 gap-4">
             <div><label class="block text-xs font-medium text-gray-600 mb-1">Amount ($)</label>
               <input id="exp-amount" type="number" class="w-full border rounded-2xl px-4 py-3"></div>
-            <div><label class="block text-xs font-medium text-gray-600 mb-1">Method</label>
-              <select id="exp-method" onchange="expBankToggle()" class="w-full border rounded-2xl px-4 py-3"><option>Cash</option><option>Check</option><option>Square</option><option>Other</option></select></div>
+            <div><label class="block text-xs font-medium text-gray-600 mb-1">Pay from which bank?</label>
+              <select id="exp-bank" class="w-full border rounded-2xl px-4 py-3"><option value="bank">PNC Bank — Checking</option><option value="bank2" selected>River City Bank — Checking</option><option value="bank3">Rivercity - Mortgage</option></select></div>
           </div>
-          <div id="exp-bank-wrap" class="mt-4 hidden"><label class="block text-xs font-medium text-gray-600 mb-1">Pay from which bank?</label>
-            <select id="exp-bank" class="w-full border rounded-2xl px-4 py-3"><option value="bank">PNC Bank — Checking</option><option value="bank2">River City Bank — Checking</option><option value="bank3">Rivercity - Mortgage</option></select></div>
+          <div id="exp-checkno-wrap" class="mt-4 hidden"><label class="block text-xs font-medium text-gray-600 mb-1">Check number</label>
+            <input id="exp-checkno" inputmode="numeric" class="w-full border rounded-2xl px-4 py-3" placeholder="e.g. 1042"></div>
           <label class="block text-xs font-medium text-gray-600 mb-1 mt-4">Paid to (payee)</label>
           <div class="flex gap-2 mb-4">
             <input id="exp-payee" list="exp-payee-list" class="flex-1 border rounded-2xl px-4 py-3" placeholder="Pick or type a name / organization…" autocomplete="off">
@@ -386,9 +397,9 @@
           </div>
           <p id="exp-edit-banner" class="hidden text-center text-sm font-semibold text-indigo-600 mt-2"></p>
         </div>
-        <div class="bg-white rounded-3xl shadow overflow-hidden">
-          <div class="px-6 py-3 border-b font-semibold text-gray-700">Recent expenses</div>
-          <table class="w-full text-sm"><tbody id="exp-recent" class="divide-y"></tbody></table>
+        <div id="exp-recent-card" class="bg-white rounded-3xl shadow overflow-hidden">
+          <div class="px-6 py-3 border-b font-semibold text-gray-700">Recent expenses <span class="text-xs font-normal text-gray-400">· newest date first</span></div>
+          <div style="max-height:560px;overflow-y:auto"><table class="w-full text-sm"><tbody id="exp-recent" class="divide-y"></tbody></table></div>
         </div>
       </div>
     </section>
@@ -840,7 +851,7 @@ const KEY = 'church_acct_v1';
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 let accounts = [];  // {id, code, name, type:'asset'|'liability'|'equity'|'income'|'expense', balance, link}
 const BS_SEED = [
-  ['1000','Cash on Hand','asset','cash'],['1010','PNC Bank — Checking','asset','bank'],['1011','River City Bank — Checking','asset','bank2'],['1012','Rivercity - Mortgage','asset','bank3'],['1020','Undeposited Funds (Checks)','asset','undeposited'],['1100','Pledges / Receivable','asset',''],
+  ['1000','Cash on Hand','asset','cash'],['1010','PNC Bank — Checking','asset','bank'],['1011','River City Bank — Checking','asset','bank2'],['1012','Rivercity - Mortgage','asset','bank3'],['1020','Undeposited Funds (Checks)','asset','undeposited'],['1100','Pledges / Receivable','asset',''],['1110','Other receivables','asset',''],
   ['1200','Land','asset',''],['1210','Building','asset',''],['1220','Furniture & Equipment','asset',''],
   ['2000','Accounts Payable','liability',''],['2100','Loan / Mortgage Payable','liability',''],['2200','Accrued Salaries / Stipend','liability',''],
   ['3000','Net Assets / Fund Balance','equity','netassets']
@@ -880,6 +891,11 @@ function ensureTwoBanks(){
 const acctById = id => accounts.find(a=>a.id===id);
 const incomeAccounts = () => accounts.filter(a=>a.type==='income').sort((a,b)=>String(a.code).localeCompare(String(b.code)));
 const expenseAccounts = () => accounts.filter(a=>a.type==='expense').sort((a,b)=>String(a.code).localeCompare(String(b.code)));
+// Receivable accounts = asset accounts NOT tied to a cash/bank fund (e.g. advances, loans receivable)
+const FUND_LINKS = ['cash','bank','bank2','bank3','undeposited','netassets'];
+const receivableAccounts = () => accounts.filter(a=>a.type==='asset' && !FUND_LINKS.includes(a.link)).sort((a,b)=>String(a.code).localeCompare(String(b.code)));
+// Net effect of kind='receivable' transactions tagged to an account: out (payment) increases it, in (repayment) decreases it
+function receivableDelta(acctId){ let d=0; transactions.forEach(t=>{ if(t.kind!=='receivable'||t.acctId!==acctId) return; d += t.dir==='out'? t.amount : t.dir==='in'? -t.amount : 0; }); return d; }
 function acctLabel(t){ const a=acctById(t.acctId); const code=a?a.code:(t.acct||''); const name=a?a.name:(t.category||''); return code? `${code} — ${name}` : (name||'—'); }
 function feeAccountId(){ const a=accounts.find(x=>x.code==='4100') || incomeAccounts()[0]; return a?a.id:null; }
 // Funds: cash, bank, and undeposited (checks received but not yet banked).
@@ -903,6 +919,16 @@ function bankFund(method, dir, selId){
 }
 function colBankToggle(){ const m=document.getElementById('col-method'); const w=document.getElementById('col-bank-wrap'); if(!m||!w) return; w.classList.toggle('hidden', fundFromMethod(m.value,'in')!=='bank'); }
 function expBankToggle(){ const m=document.getElementById('exp-method'); const w=document.getElementById('exp-bank-wrap'); if(!m||!w) return; w.classList.toggle('hidden', fundFromMethod(m.value,'out')!=='bank'); }
+function expIsReceivable(){ const c=document.getElementById('exp-receivable'); return !!(c&&c.checked); }
+function expReceivableToggle(){
+  const rec=expIsReceivable();
+  const sel=document.getElementById('exp-cat'), lbl=document.getElementById('exp-cat-label');
+  if(sel){ const cur=sel.value; sel.innerHTML=''; (rec?receivableAccounts():expenseAccounts()).forEach(a=>sel.appendChild(new Option(`${a.code} — ${a.name}`, a.id))); if(cur&&sel.querySelector(`option[value="${cur}"]`)) sel.value=cur; }
+  if(lbl) lbl.textContent = rec ? 'Receivable account (debit this)' : 'Account (expense type)';
+  const cw=document.getElementById('exp-checkno-wrap'); if(cw) cw.classList.toggle('hidden', !rec);
+  const btn=document.getElementById('exp-save-btn'); if(btn && !editExpId){ btn.textContent = rec ? 'Save Receivable' : 'Save Expense'; }
+  if(rec && receivableAccounts().length===0){ const sel2=document.getElementById('exp-cat'); if(sel2){ sel2.innerHTML='<option value="">No receivable accounts — add an asset account first</option>'; } }
+}
 function balances(asOf){
   let cash=+settings.openingCash||0, bank=+settings.openingBank||0, bank2=+settings.openingBank2||0, bank3=+settings.openingBank3||0, undep=0; const od=settings.openingDate||'';
   const inc=(f,a)=>{ if(f==='cash') cash+=a; else if(f==='undeposited') undep+=a; else if(f==='bank2') bank2+=a; else if(f==='bank3') bank3+=a; else bank+=a; };
@@ -921,7 +947,7 @@ function asOfCutoff(year, month){
   return `${year}-${m}-${String(last).padStart(2,'0')}`;
 }
 function txYears(){ return [...new Set(transactions.map(t=>String(t.date||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort((a,b)=>b.localeCompare(a)); }
-function acctBalance(a){ if(a.link==='cash') return balances().cash; if(a.link==='bank') return balances().bank; if(a.link==='bank2') return balances().bank2; if(a.link==='bank3') return balances().bank3; if(a.link==='undeposited') return balances().undeposited; if(a.link==='netassets') return totalAssets()-totalLiabilities(); return +a.balance||0; }
+function acctBalance(a){ if(a.link==='cash') return balances().cash; if(a.link==='bank') return balances().bank; if(a.link==='bank2') return balances().bank2; if(a.link==='bank3') return balances().bank3; if(a.link==='undeposited') return balances().undeposited; if(a.link==='netassets') return totalAssets()-totalLiabilities(); return (+a.balance||0) + (a.type==='asset'? receivableDelta(a.id) : 0); }
 function totalAssets(){ return accounts.filter(a=>a.type==='asset').reduce((s,a)=>s+acctBalance(a),0); }
 function totalLiabilities(){ return accounts.filter(a=>a.type==='liability').reduce((s,a)=>s+acctBalance(a),0); }
 
@@ -1020,8 +1046,10 @@ function showPage(page){
   $('page-title').textContent = titles[page];
   if(page==='dashboard') renderDashboard();
   if(page==='families') renderFamilies();
-  if(page==='collections'){ fillAccountSelect($('col-cat'),'income'); fillFromSelect(); colCatChange(); renderRecentCollections(); applyRecentLayout();
-    const cb=$('cash-member-block'); if(cb) cb.classList.toggle('hidden', currentRole!=='cashier'); fillCashMem(); renderCashierMemberCard();
+  if(page==='collections'){ fillAccountSelect($('col-cat'),'income'); fillFromSelect();
+    if(currentRole==='cashier'){ const sel=$('col-cat'); if(sel){ if(![...sel.options].some(o=>o.value==='')) sel.insertBefore(new Option('— Choose income type —',''), sel.firstChild); sel.value=''; } }
+    fillFromSelect(); colCatChange(); renderRecentCollections(); applyRecentLayout();
+    fillCashMem(); renderCashierMemberCard(); colCatChange();   // cash-top-row shows only when Membership Fees is selected
     const cashier=currentRole==='cashier';
     const lb=$('col-lock-bar'); if(lb) lb.classList.toggle('hidden', cashier);   // cashier can't back-date
     if(cashier){
@@ -1032,7 +1060,7 @@ function showPage(page){
     }
     const mr=$('col-mem-row'); if(mr) mr.classList.toggle('hidden', cashier);   // member picked at top; this dropdown is redundant for cashier
   }
-  if(page==='expenses'){ fillAccountSelect($('exp-cat'),'expense'); fillPayeeList(); renderRecentExpenses(); }
+  if(page==='expenses'){ fillAccountSelect($('exp-cat'),'expense'); fillPayeeList(); renderRecentExpenses(); applyExpRecentLayout(); }
   if(page==='cashbank') renderCashBank();
   if(page==='accounts') renderAccounts();
   if(page==='ledger') renderLedger();
@@ -1079,7 +1107,7 @@ function trialData(asOf){
   const liveByLink={cash:b.cash,bank:b.bank,bank2:b.bank2,bank3:b.bank3,undeposited:b.undeposited};
   accounts.filter(a=>a.type==='asset').forEach(a=>{
     const forced = a.link==='cash'||a.link==='bank'||a.link==='bank2'||a.link==='bank3';
-    let d = (a.link && a.link in liveByLink) ? liveByLink[a.link] : (+a.balance||0);   // cash/bank/undeposited use live balances (as-of cutoff)
+    let d = (a.link && a.link in liveByLink) ? liveByLink[a.link] : ((+a.balance||0) + (outByAcct[a.id]||0) - (inByAcct[a.id]||0));   // cash/bank/undeposited use live balances; other assets add receivable net (as-of cutoff)
     if(forced||Math.abs(d)>0.005) rows.push({code:a.code,name:a.name,debit:d,credit:0,az:forced});
   });
   expenseAccounts().forEach(a=>{ const d=outByAcct[a.id]||0; if(d>0.005) rows.push({code:a.code,name:a.name,debit:d,credit:0}); });
@@ -1137,6 +1165,12 @@ function colFromClear(){ setColFrom('anon'); if($('col-donor')) $('col-donor').v
 function toggleDonor(){ $('col-donor').classList.toggle('hidden', $('col-from').value!=='onetime'); }
 // ---- Collections: membership-fee mode (income type = Membership Fees, code 4100) ----
 function isMembershipCat(){ const a=acctById(+$('col-cat').value); return !!(a && a.code==='4100'); }
+// Put the Method field on the membership Month row when collecting Membership Fees, otherwise back on its own row
+function placeMethod(){
+  const wrap=$('col-method-wrap'); if(!wrap) return;
+  const target = isMembershipCat() ? $('col-method-slot') : $('col-method-home');
+  if(target && wrap.parentElement!==target) target.appendChild(wrap);
+}
 function populateColMembership(){
   // keep the member combobox's visible text in step with the current hidden id
   const hid=$('col-mem'); if(hid){ const f=hid.value?families.find(x=>x.id===+hid.value):null; if($('col-mem-search')) $('col-mem-search').value=f?famLabel(f):''; }
@@ -1273,14 +1307,15 @@ function cashRebuildMonths(f, st){
   const s=$('col-mstart'), e=$('col-mend'); if(!s||!e||!f) return;
   st = st || computeMemberStatus(f);
   const nowOrd=new Date().getFullYear()*12+new Date().getMonth();
-  const startOrd = st.pt.ord>=0 ? st.pt.ord+1 : nowOrd;   // next unpaid month, or this month if no history
-  const hiOrd = Math.max(startOrd, nowOrd) + 12;          // allow up to a year ahead for prepayment
+  const nextDue = st.pt.ord>=0 ? st.pt.ord+1 : nowOrd;    // their next unpaid month (the default pick)
+  const loOrd = Math.min(nextDue, nowOrd-23);             // allow back-period up to 24 months before now
+  const hiOrd = Math.max(nextDue, nowOrd) + 12;           // and up to a year ahead for prepayment
   const sameMember = (cashMonthsFor===f.id); cashMonthsFor=f.id;
   const prevStart=s.value;
   s.innerHTML=''; e.innerHTML='';
-  for(let o=startOrd;o<=hiOrd;o++){ const v=ordToLabel(o); s.appendChild(new Option(v,v)); e.appendChild(new Option(v,v)); }
+  for(let o=loOrd;o<=hiOrd;o++){ const v=ordToLabel(o); s.appendChild(new Option(v,v)); e.appendChild(new Option(v,v)); }
   // same member → keep the cashier's current pick; new member → default to their next-due month
-  s.value = (sameMember && prevStart && [...s.options].some(o=>o.value===prevStart)) ? prevStart : ordToLabel(startOrd);
+  s.value = (sameMember && prevStart && [...s.options].some(o=>o.value===prevStart)) ? prevStart : ordToLabel(nextDue);
   if($('col-mmode') && $('col-mmode').value==='multi'){ rebuildColEnd(); } else { e.value=s.value; }
   colCalc();
 }
@@ -1353,21 +1388,17 @@ function renderCashierMemberCard(){
   const card=$('col-member-card'), recent=$('col-recent-card'); if(!card) return;
   const id = (currentRole==='cashier' && $('cash-mem')) ? (parseInt($('cash-mem').value)||null) : null;
   const f = id?families.find(x=>x.id===id):null;
-  if(!f){ card.className='hidden'; card.innerHTML=''; if(recent) recent.classList.toggle('hidden', wantRecentHidden()); return; }
+  if(recent) recent.classList.toggle('hidden', wantRecentHidden());   // recent list follows its own show/hide toggle
+  if(!f){ card.innerHTML=''; return; }                                 // no member → just the search box in the bar
   const st=computeMemberStatus(f), c=toneColors(st.tone);
-  card.className='bg-white rounded-3xl shadow overflow-hidden';
-  if(recent) recent.classList.add('hidden');   // paid-through replaces recent collections for the cashier
   card.innerHTML = `
-    <div class="px-6 py-3 border-b flex items-center justify-between"><span class="font-semibold text-gray-700">Membership status</span><button type="button" onclick="cashClearMember()" class="text-xs text-gray-400 hover:text-gray-600">Show recent ✕</button></div>
-    <div class="p-6">
-      <p class="text-lg font-bold text-gray-800 mb-2">${esc(famLabel(f))}</p>
-      <div class="inline-block text-sm font-semibold rounded-full px-3 py-1 mb-5" style="background:${c.bg};color:${c.fg}">${st.badge}</div>
-      <div class="space-y-3 text-sm">
-        <div class="flex justify-between border-b pb-2"><span class="text-gray-500">Paid through</span><span class="font-semibold">${esc(st.paidLabel)}</span></div>
-        <div class="flex justify-between border-b pb-2"><span class="text-gray-500">Next payment due</span><span class="font-semibold" style="color:${c.fg}">${st.nextLabel?esc(st.nextLabel):'—'}</span></div>
-        <div class="flex justify-between"><span class="text-gray-500">Last payment</span><span class="font-semibold">${st.lastTxt}</span></div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 28px">
+      <div class="inline-block text-sm font-semibold rounded-full px-3 py-1" style="background:${c.bg};color:${c.fg}">${st.badge}</div>
+      <div>
+        <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Next payment due</p>
+        <p class="text-2xl font-extrabold leading-tight" style="color:${c.fg}">${st.nextLabel?esc(st.nextLabel):'—'}</p>
       </div>
-      ${st.nextLabel?`<p class="text-xs text-gray-500 mt-5">To collect dues, choose <b>Membership Fees</b> as the income type below — the period starts at <b>${esc(st.nextLabel)}</b>.</p>`:''}
+      <div class="text-sm text-gray-500">Last payment<br><span class="font-semibold text-gray-700">${st.lastTxt}</span></div>
     </div>`;
 }
 // Cashier sets/updates a member's "paid through" straight from the status card (no Families page needed)
@@ -1385,15 +1416,18 @@ function colCatChange(){
   const mem=isMembershipCat(), amt=$('col-amount'), lbl=$('col-amount-label');
   $('col-mem-panel').classList.toggle('hidden', !mem);
   $('col-from-row').classList.toggle('hidden', mem);
+  // Cashier member-lookup bar only matters for Membership Fees; hide it for Collection box, Prayer request, Pledge, etc.
+  if($('cash-top-row')) $('cash-top-row').classList.toggle('hidden', !(currentRole==='cashier' && mem));
+  placeMethod();   // Method sits on the Month row for membership, its own row otherwise
   if(mem){ amt.readOnly=false; amt.classList.remove('bg-gray-50'); amt.placeholder=''; if(lbl) lbl.textContent='Total ($)';
-    const mw=$('col-monthly-wrap'); if(mw) mw.classList.toggle('hidden', currentRole==='accountant');  // accountant types the total directly
     populateColMembership();
     // Cashier: carry over the member already chosen in the top picker
     if(currentRole==='cashier' && $('cash-mem') && $('cash-mem').value && $('col-mem')) $('col-mem').value=$('cash-mem').value;
     colMonthModeChange(); colCalc(); colMemStatus(); }
   else { amt.readOnly=false; amt.classList.remove('bg-gray-50'); amt.placeholder=''; if(lbl) lbl.textContent='Amount ($)';
     const a=acctById(+$('col-cat').value);
-    if(a && ANON_CODES.includes(a.code)){ setColFrom('anon'); }
+    if(currentRole==='cashier' && $('cash-mem') && $('cash-mem').value){ setColFrom('m'+$('cash-mem').value); }   // carry the member picked at the top into "Received from"
+    else if(a && ANON_CODES.includes(a.code)){ setColFrom('anon'); }
     else if($('col-from-search')){ setColFrom($('col-from').value||'anon'); }   // refresh the visible text
   }
 }
@@ -1451,10 +1485,7 @@ function colCalc(){
   if(!isMembershipCat()) return;
   const s=$('col-mstart').value, e=$('col-mend').value; if(!s||!e) return;
   const n=monthDiff(s,e);
-  if(currentRole==='accountant'){ if($('col-mcount')) $('col-mcount').textContent=`${n} month${n>1?'s':''}`; return; }  // accountant types the total; show the count only
-  const monthly=parseFloat($('col-monthly').value)||0;
-  $('col-amount').value=(monthly*n).toFixed(2);
-  if($('col-mcount')) $('col-mcount').textContent=`${n} month${n>1?'s':''} • ${money(monthly)}/mo`;
+  if($('col-mcount')) $('col-mcount').textContent=`${n} month${n>1?'s':''} selected — type the total paid`;
 }
 // ---- Date lock: fix a month/year and enter only the day (for historical entry) ----
 function fillLockMonth(){ const s=$('col-lock-month'); if(s && !s.options.length){ MONTHS.forEach((m,i)=>s.appendChild(new Option(m,i))); s.value=0; } }
@@ -1542,7 +1573,7 @@ function selectNewMemberInCollections(id){
 // Membership payment on the Collections page — same confirm-before-print flow as Collect Fees.
 function saveMembershipCollection(){
   const id=parseInt($('col-mem').value); if(!id) return alert('Select a member.');
-  const total=parseFloat($('col-amount').value); if(!total) return alert('Enter the total amount.');
+  const total=parseFloat($('col-amount').value); if(!(total>0)) return alert('Amount must be greater than 0.');
   if(!receiptOK()) return;
   const f=families.find(x=>x.id===id);
   const ms=$('col-mstart').value, me=$('col-mend').value;
@@ -1556,7 +1587,7 @@ function saveMembershipCollection(){
     runUpdate(function(){
       const t=transactions.find(x=>x.id===id); if(t) Object.assign(t, fields);
       if(f){ f.lastPayment=fmtDate(date); f.lastPaidFor=period; f.lastAmount=total; }
-      save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); colMemStatus(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓'); returnToDrill(); returnToStatement();
+      save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); colMemStatus(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓'); returnToDrill(); returnToStatement(); returnToLedger();
     });
     return;
   }
@@ -1577,7 +1608,14 @@ function saveMembershipCollection(){
       flashSaved('Membership payment saved ✓');
       colMemStatus();
     }
-    else { flashSaved('Membership payment saved ✓'); }   // cashier: keep member selected so the updated status shows
+    else {                                               // cashier: reset for the next member
+      setCashMem(null); setColMem(null);                 // clear the member name
+      if($('col-mmulti')) $('col-mmulti').checked=false; // reset "paying for multiple months"
+      if($('col-mmode')) $('col-mmode').value='one';
+      colMonthModeChange(); colMemStatus(); renderCashierMemberCard();
+      flashSaved('Membership payment saved ✓');
+    }
+    offerReceipt(tx);
     scrollCollectionsTop();
   });
 }
@@ -1596,8 +1634,9 @@ function receiptOK(){
   const dup=dupReceiptTx(no); if(!dup) return true;
   const who=dup.donor||dup.family||dup.category||'another entry';
   const dt=dup.date?fmtDate(dup.date):'';
-  alert('Receipt #'+no+' is already used'+(dt?(' on '+dt):'')+(who?(' — '+who):'')+' ('+money(dup.amount)+').\n\nEnter a different receipt number.');
-  if(el){ el.focus(); el.select(); }
+  try{ checkReceiptLive(); }catch(e){}                   // red warning under the receipt field
+  flashError('Receipt #'+no+' already used'+(dt?(' on '+dt):'')+(who?(' — '+who):'')+' — change it. Not saved.');
+  if(el){ try{ el.focus({preventScroll:true}); }catch(e){} }   // focus without scrolling the page
   return false;
 }
 // Live inline warning as the receipt field is typed/blurred.
@@ -1675,7 +1714,7 @@ function depositDate(){
 }
 let editTrId=null;
 async function saveTransfer(){
-  const amt=parseFloat($('tr-amount').value); if(!amt) return alert('Enter an amount.');
+  const amt=parseFloat($('tr-amount').value); if(!(amt>0)) return alert('Amount must be greater than 0.');
   const from=($('tr-from')?$('tr-from').value:'cash'), to=$('tr-to').value;
   if(from===to) return alert('Choose two different accounts — the From and To cannot be the same.');
   const fields={date:depositDate(),amount:amt,fromFund:from,toFund:to,category:'Transfer',method:($('tr-method')?$('tr-method').value:''),note:$('tr-note').value.trim()};
@@ -1711,7 +1750,7 @@ function cancelTransferEdit(){
   const b=$('tr-save-btn'); if(b) b.textContent='Save deposit';
   if($('tr-cancel-btn')) $('tr-cancel-btn').classList.add('hidden');
   if($('tr-edit-banner')) $('tr-edit-banner').classList.add('hidden');
-  returnToDrill();
+  returnToDrill(); returnToLedger();
 }
 // ---- Bank interest / income: income paid straight into a bank (no cash) ----
 let editBiId=null;
@@ -1723,14 +1762,14 @@ function fillBankIncomeCat(){
   sel.value = (prev && [...sel.options].some(o=>o.value===prev)) ? prev : (interest?String(interest.id):(sel.options[0]?sel.options[0].value:''));
 }
 async function saveBankIncome(){
-  const amt=parseFloat($('bi-amount').value); if(!amt) return alert('Enter an amount.');
+  const amt=parseFloat($('bi-amount').value); if(!(amt>0)) return alert('Amount must be greater than 0.');
   const a=acctById(+$('bi-cat').value);
   const fund=$('bi-bank').value;
   const date=$('bi-date').value||todayISO();
   const fields={date,amount:amt,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Interest Income',fund,method:'',note:$('bi-note').value.trim()};
   if(editBiId){
     const t=transactions.find(x=>x.id===editBiId); if(t) Object.assign(t,fields);
-    save(); cancelBankIncomeEdit(); renderCashBank(); if($('ledger-tbody')) renderLedger(); returnToDrill();
+    save(); cancelBankIncomeEdit(); renderCashBank(); if($('ledger-tbody')) renderLedger(); returnToDrill(); returnToLedger();
     return;
   }
   const t={id:Date.now(),kind:'income',dir:'in',...fields};
@@ -1758,6 +1797,7 @@ function cancelBankIncomeEdit(){
   const b=$('bi-save-btn'); if(b) b.textContent='Save income';
   if($('bi-cancel-btn')) $('bi-cancel-btn').classList.add('hidden');
   if($('bi-edit-banner')) $('bi-edit-banner').classList.add('hidden');
+  returnToLedger();
 }
 // ---- Chart of accounts editor ----
 function acctActivity(a,yr,mo){
@@ -1841,7 +1881,7 @@ function renderBalanceSheet(){
 // income/expense totals for one calendar year
 function yearTotals(y){
   let inc=0, exp=0;
-  transactions.forEach(t=>{ if((+t.date.slice(0,4))!==y) return; if(t.dir==='in') inc+=t.amount; else if(t.dir==='out') exp+=t.amount; });
+  transactions.forEach(t=>{ if((+t.date.slice(0,4))!==y) return; if(t.kind==='receivable') return; if(t.dir==='in') inc+=t.amount; else if(t.dir==='out') exp+=t.amount; });
   return {inc, exp, net:inc-exp};
 }
 // year-over-year badge: compares cur vs prev; higherIsGood decides the colour
@@ -2102,14 +2142,17 @@ function renderDashboard(){
 
   // 12-month income vs expense trend for the selected year
   const mi=Array(12).fill(0), me=Array(12).fill(0);
-  transactions.forEach(t=>{ if((+t.date.slice(0,4))!==y) return; const m=(+t.date.slice(5,7))-1; if(t.dir==='in')mi[m]+=t.amount; else if(t.dir==='out')me[m]+=t.amount; });
+  transactions.forEach(t=>{ if((+t.date.slice(0,4))!==y) return; if(t.kind==='receivable') return; const m=(+t.date.slice(5,7))-1; if(t.dir==='in')mi[m]+=t.amount; else if(t.dir==='out')me[m]+=t.amount; });
   const max=Math.max(1,...mi,...me);
   const ch=$('dash-trend'); if(ch){ ch.innerHTML='';
     for(let m=0;m<12;m++){
-      const clickable = (mi[m]||me[m]) ? `onclick="openDrill(${y},${m+1},'both')" style="cursor:pointer" class="flex items-center gap-2 text-xs rounded-lg hover:bg-gray-50 px-1 py-0.5" title="Click for ${MONTHS[m]} detail"` : `class="flex items-center gap-2 text-xs px-1 py-0.5"`;
-      ch.innerHTML+=`<div ${clickable}><div class="w-8 text-gray-500">${MONTHS[m].slice(0,3)}</div>
-        <div class="flex-1"><div class="h-3 rounded-sm" style="width:${(mi[m]/max*100)||0}%;background:#059669;min-width:${mi[m]?'2px':'0'}"></div>
-        <div class="h-3 rounded-sm mt-0.5" style="width:${(me[m]/max*100)||0}%;background:#dc2626;min-width:${me[m]?'2px':'0'}"></div></div>
+      const monLbl = (mi[m]||me[m])
+        ? `<div onclick="openDrill(${y},${m+1},'both')" style="cursor:pointer" class="w-8 text-gray-500 hover:text-indigo-600" title="All ${MONTHS[m]} activity">${MONTHS[m].slice(0,3)}</div>`
+        : `<div class="w-8 text-gray-500">${MONTHS[m].slice(0,3)}</div>`;
+      const incBar = `<div ${mi[m]?`onclick="openDrill(${y},${m+1},'income')" style="cursor:pointer" title="Income for ${MONTHS[m]}"`:''}><div class="h-3 rounded-sm" style="width:${(mi[m]/max*100)||0}%;background:#059669;min-width:${mi[m]?'2px':'0'}"></div></div>`;
+      const expBar = `<div ${me[m]?`onclick="openDrill(${y},${m+1},'expense')" style="cursor:pointer" title="Expenses for ${MONTHS[m]}"`:''} class="mt-0.5"><div class="h-3 rounded-sm" style="width:${(me[m]/max*100)||0}%;background:#dc2626;min-width:${me[m]?'2px':'0'}"></div></div>`;
+      ch.innerHTML+=`<div class="flex items-center gap-2 text-xs px-1 py-0.5">${monLbl}
+        <div class="flex-1">${incBar}${expBar}</div>
         <div class="w-28 text-right text-gray-400">${mi[m]?money0(mi[m]):''}${me[m]?' / '+money0(me[m]):''}</div></div>`;
     }
     if(!mi.some(v=>v)&&!me.some(v=>v)) ch.innerHTML=`<p class="text-center text-gray-400 text-sm py-8">No activity recorded in ${y}.</p>`;
@@ -2140,6 +2183,7 @@ function txDesc(t){
   if(t.kind==='fee') return `${t.family} — fees (${t.period||''})`;
   if(t.kind==='collection'){ const who=t.donor?` — ${t.donor}`:''; return `${t.category}${who}${t.note?' ('+t.note+')':''}`; }
   if(t.kind==='income'){ const dest=FUND_LABEL[t.fund]||''; return `${t.category}${dest?(' → '+dest):''}${t.note?' ('+t.note+')':''}`; }
+  if(t.kind==='receivable'){ const who=t.payee?' — '+t.payee:''; const ck=t.checkNo?` · ck#${t.checkNo}`:''; return `Receivable: ${t.category}${who}${ck}${t.note?' ('+t.note+')':''}`; }
   return `${t.category}${t.payee?' — '+t.payee:''}${t.note?' ('+t.note+')':''}`;
 }
 
@@ -2306,7 +2350,7 @@ function cancelPending(){ pendingReceipt=null; $('receipt-modal').classList.add(
 // Collect Fees — prepare payment & preview (does not commit until confirmed).
 function saveFee(){
   const id=parseInt($('fee-family').value); if(!id) return alert('Select a family.');
-  const total=parseFloat($('fee-total').value); if(!total) return alert('Total is zero — check the months/fee.');
+  const total=parseFloat($('fee-total').value); if(!(total>0)) return alert('Amount must be greater than 0 — check the months/fee.');
   const f=families.find(x=>x.id===id);
   const period=`${$('fee-start').value} to ${$('fee-end').value}`;
   const date=$('fee-date').value||todayISO();
@@ -2401,9 +2445,10 @@ function closeReceipt(){ $('receipt-modal').classList.add('hidden'); }
 function fillSelect(sel,arr){ sel.innerHTML=''; arr.forEach(x=>sel.appendChild(new Option(x,x))); }
 async function saveCollection(){
   if(isMembershipCat()) return saveMembershipCollection();
-  const amount=parseFloat($('col-amount').value); if(!amount) return alert('Enter an amount.');
-  if(!receiptOK()) return;
   const a=acctById(+$('col-cat').value);
+  if(!a) return alert('Choose an income type first.');
+  const amount=parseFloat($('col-amount').value); if(!(amount>0)) return alert('Amount must be greater than 0.');
+  if(!receiptOK()) return;
   const from=$('col-from').value; let familyId=null, donor='';
   if(from==='onetime'){ donor=$('col-donor').value.trim(); }
   else if(from && from!=='anon'){ familyId=+from.slice(1); const f=families.find(x=>x.id===familyId); donor=f?famLabel(f):''; }
@@ -2412,22 +2457,30 @@ async function saveCollection(){
     const id=editTxId;
     runUpdate(function(){
       const t=transactions.find(x=>x.id===id); if(t) Object.assign(t, fields);
-      save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓'); returnToDrill(); returnToStatement();
+      save(); exitEditMode(); clearCollectionForm(); renderRecentCollections(); if($('ledger-tbody')) renderLedger(); flashSaved('Entry updated ✓'); returnToDrill(); returnToStatement(); returnToLedger();
     });
     return;
   }
   const t={id:Date.now(),kind:'collection',dir:'in',...fields};
   transactions.push(t); save(); resetCollectionForm();   // reset all fields except Receipt #
-  renderRecentCollections(); flashSaved('Collection saved ✓'); scrollCollectionsTop(); await gsSend('addCollection',t);
+  renderRecentCollections(); flashSaved('Collection saved ✓'); offerReceipt(t); scrollCollectionsTop(); await gsSend('addCollection',t);
 }
 // Brief, non-blocking confirmation under the Save button (replaces the old alert dialog)
 let _savedFlashTimer=null;
-function flashSaved(msg){ const el=$('col-saved-flash'); if(!el) return; el.textContent=msg||'Saved ✓'; el.style.visibility='visible'; clearTimeout(_savedFlashTimer); _savedFlashTimer=setTimeout(function(){ el.style.visibility='hidden'; }, 1800); }
+function flashSaved(msg){ const el=$('col-saved-flash'); if(!el) return; el.textContent=msg||'Saved ✓'; el.style.color=''; el.style.visibility='visible'; clearTimeout(_savedFlashTimer); _savedFlashTimer=setTimeout(function(){ el.style.visibility='hidden'; }, 1800); }
+// Red, non-modal error shown right at the Save button (so the page doesn't jump)
+function flashError(msg){ const el=$('col-saved-flash'); if(!el) return; el.textContent=msg; el.style.color='#dc2626'; el.style.visibility='visible'; clearTimeout(_savedFlashTimer); _savedFlashTimer=setTimeout(function(){ el.style.visibility='hidden'; el.style.color=''; }, 4500); }
+// After a save, offer (don't force) a printable receipt for the just-saved collection
+let _lastSavedCol=null;
+function offerReceipt(t){ _lastSavedCol=t; const el=$('col-receipt-prompt'); if(el) el.classList.remove('hidden'); }
+function hideReceiptPrompt(){ const el=$('col-receipt-prompt'); if(el) el.classList.add('hidden'); }
+function printLastReceipt(){ if(_lastSavedCol && typeof showReceipt==='function') showReceipt(_lastSavedCol); }
 
 // ================= EDIT / CANCEL a collection =================
 let editTxId=null;
 function acctByCode(code){ return accounts.find(a=>String(a.code)===String(code)); }
 function clearCollectionForm(){
+  hideReceiptPrompt();
   $('col-amount').value=''; $('col-note').value='';
   if($('col-donor')) $('col-donor').value='';
   setColFrom('anon');
@@ -2441,7 +2494,7 @@ function exitEditMode(){
   const b=$('col-save-btn'); if(b) b.textContent='Save Collection';
   const banner=$('col-edit-banner'); if(banner){ banner.classList.add('hidden'); banner.textContent=''; }
 }
-function cancelCollectionEdit(){ exitEditMode(); clearCollectionForm(); flashSaved('Cleared'); returnToDrill(); returnToStatement(); }
+function cancelCollectionEdit(){ exitEditMode(); clearCollectionForm(); flashSaved('Cleared'); returnToDrill(); returnToStatement(); returnToLedger(); }
 // Show "Updating …" on the Save button, let it paint, then run the (synchronous) update
 function runUpdate(fn){
   const b=$('col-save-btn');
@@ -2473,6 +2526,7 @@ function resetCollectionForm(){
 }
 // Load an existing collection/fee back into the form to edit it (accountant)
 function startEditCollection(id){
+  hideReceiptPrompt();
   if(currentRole!=='accountant'){ alert('Editing is done from the accountant login.'); return; }
   const t=transactions.find(x=>x.id===id); if(!t){ alert('Entry not found.'); return; }
   if(t.kind!=='collection' && t.kind!=='fee'){ alert('Only collections and membership payments are edited here.'); return; }
@@ -2528,6 +2582,18 @@ function toggleRecent(){
   try{ localStorage.setItem('hideRecentCol', wantRecentHidden()?'0':'1'); }catch(e){}
   applyRecentLayout(); renderCashierMemberCard();
 }
+// Expenses screen: hide/show the Recent expenses panel (saved per device)
+function wantExpRecentHidden(){ try{ return localStorage.getItem('hideRecentExp')==='1'; }catch(e){ return false; } }
+function applyExpRecentLayout(){
+  const grid=$('exp-grid'), btn=$('exp-recent-toggle'), card=$('exp-recent-card'); const hide=wantExpRecentHidden();
+  if(grid) grid.style.gridTemplateColumns = hide ? 'minmax(0,1fr)' : '';   // '' reverts to the md:grid-cols-2 class
+  if(card) card.classList.toggle('hidden', hide);
+  if(btn) btn.innerHTML = hide ? '<i class="fa-solid fa-eye"></i> Show recent expenses' : '<i class="fa-solid fa-eye-slash"></i> Hide recent expenses';
+}
+function toggleExpRecent(){
+  try{ localStorage.setItem('hideRecentExp', wantExpRecentHidden()?'0':'1'); }catch(e){}
+  applyExpRecentLayout();
+}
 function renderRecentCollections(){
   if(!$('col-date').value) $('col-date').value=todayISO();
   const all=transactions.filter(t=>t.kind==='collection'||t.kind==='fee');
@@ -2539,20 +2605,21 @@ function renderRecentCollections(){
   if(yy){ const cur=yy.value; const years=[...new Set(all.map(t=>+t.date.slice(0,4)))].sort((a,b)=>b-a);
     yy.innerHTML='<option value="">All years</option>'; years.forEach(y=>yy.appendChild(new Option(y,y))); if(cur) yy.value=cur; }
   const fMonth=mm?mm.value:'', fYear=yy?yy.value:'', fDate=$('col-f-date')?$('col-f-date').value:'';
-  const tb=$('col-recent'); tb.innerHTML='';
+  const tb=$('col-recent');
   const list=all.filter(t=>{
     if(fDate) return t.date===fDate;                                   // exact date wins
     if(fYear && +t.date.slice(0,4)!==+fYear) return false;
     if(fMonth && +t.date.slice(5,7)!==+fMonth) return false;
     return true;
-  }).sort(byReceiptDesc);                                              // highest receipt # first
+  }).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);             // newest date first (stable across workbook reloads)
+  let h='';
   list.forEach(t=>{
     const who=t.donor||t.family||'';
     const editBtn = (currentRole==='accountant') ? ` <button onclick="startEditCollection(${t.id})" class="text-indigo-400 hover:text-indigo-600 ml-2" title="Edit"><i class="fa-solid fa-pen"></i></button>` : '';
-    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-6 py-2 text-gray-500">${esc(t.receiptNo||'')}</td><td class="px-6 py-2">${esc(t.category)}${who?' · '+esc(who):''}</td><td class="px-6 py-2 text-right font-semibold text-emerald-600 whitespace-nowrap">${money(t.amount)}${editBtn}</td></tr>`;
+    h+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-6 py-2 text-gray-500">${esc(t.receiptNo||'')}</td><td class="px-6 py-2">${esc(t.category)}${who?' · '+esc(who):''}</td><td class="px-6 py-2 text-right font-semibold text-emerald-600 whitespace-nowrap">${money(t.amount)}${editBtn}</td></tr>`;
   });
+  tb.innerHTML = h || '<tr><td colspan="4" class="px-6 py-6 text-center text-gray-400">No collections match.</td></tr>';
   const c=$('col-recent-count'); if(c) c.textContent=list.length?`${list.length} shown`:'';
-  if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="4" class="px-6 py-6 text-center text-gray-400">No collections match.</td></tr>';
 }
 function clearColFilters(){ ['col-f-month','col-f-year','col-f-date'].forEach(id=>{ const e=$(id); if(e) e.value=''; }); renderRecentCollections(); }
 
@@ -2581,52 +2648,63 @@ function addPayeeFromInput(){
 }
 let editExpId=null;
 async function saveExpense(){
-  const amount=parseFloat($('exp-amount').value); if(!amount) return alert('Enter an amount.');
+  const amount=parseFloat($('exp-amount').value); if(!(amount>0)) return alert('Amount must be greater than 0.');
+  const rec=expIsReceivable();
   const a=acctById(+$('exp-cat').value);
+  if(rec && !a) return alert('Pick a receivable account first.');
   const payeeName=$('exp-payee').value.trim();
-  const fields={date:expenseDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',payee:payeeName,method:$('exp-method').value,fund:bankFund($('exp-method').value,'out','exp-bank'),note:$('exp-note').value.trim()};
+  const payFund=($('exp-bank')&&['bank','bank2','bank3'].includes($('exp-bank').value))?$('exp-bank').value:'bank';
+  const checkNo=rec ? (($('exp-checkno')&&$('exp-checkno').value.trim())||'') : '';
+  const fields={date:expenseDate(),amount,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'',payee:payeeName,method:'Bank',fund:payFund,checkNo,note:$('exp-note').value.trim()};
   if(payeeName) rememberPayee(payeeName);   // keep the paid-to name for next time
   if(editExpId){
-    const t=transactions.find(x=>x.id===editExpId); if(t) Object.assign(t,fields);
+    const t=transactions.find(x=>x.id===editExpId); if(t){ Object.assign(t,fields); t.kind=rec?'receivable':'expense'; }
     save(); cancelExpenseEdit(); fillPayeeList(); renderRecentExpenses(); if($('ledger-tbody')) renderLedger();
     return;
   }
-  const t={id:Date.now(),kind:'expense',dir:'out',...fields};
-  transactions.push(t); save(); $('exp-amount').value=''; $('exp-payee').value=''; $('exp-note').value='';
+  const t={id:Date.now(),kind:rec?'receivable':'expense',dir:'out',...fields};
+  transactions.push(t); save(); $('exp-amount').value=''; $('exp-payee').value=''; $('exp-note').value=''; if($('exp-checkno')) $('exp-checkno').value='';
   fillPayeeList(); renderRecentExpenses(); if($('ledger-tbody')) renderLedger(); await gsSend('addExpense',t);
 }
 function startEditExpense(id){
   if(currentRole!=='accountant'){ alert('Editing is done from the accountant login.'); return; }
-  const t=transactions.find(x=>x.id===id); if(!t||t.kind!=='expense'){ alert('Expense not found.'); return; }
+  const t=transactions.find(x=>x.id===id); if(!t||(t.kind!=='expense'&&t.kind!=='receivable')){ alert('Expense not found.'); return; }
   showPage('expenses'); editExpId=id;
   if($('exp-lock')){ $('exp-lock').checked=false; expToggleDateLock&&expToggleDateLock(); }
   if($('exp-date')) $('exp-date').value=t.date;
+  if($('exp-receivable')) $('exp-receivable').checked=(t.kind==='receivable'); expReceivableToggle();
   if($('exp-cat')){ const a=(t.acctId!=null&&acctById(t.acctId))?acctById(t.acctId):acctByCode(t.acct); if(a) $('exp-cat').value=a.id; }
   $('exp-amount').value=(Number(t.amount)||0).toFixed(2);
-  if($('exp-method')) $('exp-method').value=t.method||'Cash';
-  if($('exp-bank')){ const fv=fundOf(t); $('exp-bank').value=(fv==='bank2'||fv==='bank3')?fv:'bank'; } expBankToggle();
+  if($('exp-bank')){ const fv=fundOf(t); $('exp-bank').value=(fv==='bank2'||fv==='bank3')?fv:'bank'; }
+  if($('exp-checkno')) $('exp-checkno').value=t.checkNo||'';
   $('exp-payee').value=t.payee||''; $('exp-note').value=t.note||'';
-  const b=$('exp-save-btn'); if(b) b.textContent='Update expense';
+  const b=$('exp-save-btn'); if(b) b.textContent=(t.kind==='receivable')?'Update receivable':'Update expense';
   if($('exp-cancel-btn')) $('exp-cancel-btn').classList.remove('hidden');
   const bn=$('exp-edit-banner'); if(bn){ bn.textContent='Editing an existing expense'; bn.classList.remove('hidden'); }
   window.scrollTo(0,0);
 }
 function cancelExpenseEdit(){
   editExpId=null;
-  $('exp-amount').value=''; $('exp-payee').value=''; $('exp-note').value='';
+  $('exp-amount').value=''; $('exp-payee').value=''; $('exp-note').value=''; if($('exp-checkno')) $('exp-checkno').value='';
+  if($('exp-receivable')) $('exp-receivable').checked=false; expReceivableToggle();
   const b=$('exp-save-btn'); if(b) b.textContent='Save Expense';
   if($('exp-cancel-btn')) $('exp-cancel-btn').classList.add('hidden');
   const bn=$('exp-edit-banner'); if(bn) bn.classList.add('hidden');
-  returnToDrill();
+  returnToDrill(); returnToLedger();
 }
 function renderRecentExpenses(){
   if(!$('exp-date').value) $('exp-date').value=todayISO();
-  const tb=$('exp-recent'); tb.innerHTML='';
-  transactions.filter(t=>t.kind==='expense').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,12).forEach(t=>{
+  const tb=$('exp-recent');
+  // Newest date first (stable across workbook reloads); all expenses shown in the scroll panel
+  let h='';
+  transactions.filter(t=>t.kind==='expense'||t.kind==='receivable').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).forEach(t=>{
     const act = currentRole==='accountant' ? `<button onclick="startEditExpense(${t.id})" class="text-indigo-400 hover:text-indigo-600 mr-2" title="Edit"><i class="fa-solid fa-pen"></i></button><button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button>` : '';
-    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500">${fmtDate(t.date)}</td><td class="px-6 py-2">${esc(t.category)}${t.payee?' · '+esc(t.payee):''}</td><td class="px-6 py-2 text-right font-semibold text-red-600">${money(t.amount)}</td><td class="px-6 py-2 text-center whitespace-nowrap">${act}</td></tr>`;
+    const rec=t.kind==='receivable';
+    const tag = rec ? ` <span class="text-xs bg-amber-100 text-amber-700 rounded px-1.5 py-0.5 font-medium">receivable</span>` : '';
+    const ck = (rec && t.checkNo) ? ` · ck#${esc(t.checkNo)}` : '';
+    h+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500">${fmtDate(t.date)}</td><td class="px-6 py-2">${esc(t.category)}${tag}${t.payee?' · '+esc(t.payee):''}${ck}</td><td class="px-6 py-2 text-right font-semibold ${rec?'text-amber-600':'text-red-600'}">${money(t.amount)}</td><td class="px-6 py-2 text-center whitespace-nowrap">${act}</td></tr>`;
   });
-  if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="4" class="px-6 py-6 text-center text-gray-400">No expenses yet.</td></tr>';
+  tb.innerHTML = h || '<tr><td colspan="4" class="px-6 py-6 text-center text-gray-400">No expenses yet.</td></tr>';
 }
 
 // ================= LEDGER =================
@@ -2652,7 +2730,7 @@ function renderLedger(){
   const od=settings.openingDate||'';
   const matchQ=t=> !q || (txDesc(t).toLowerCase().includes(q)||(t.category||'').toLowerCase().includes(q));
   const matchTy=t=> !ty || t.kind===ty;
-  const editBtnOf=t=>{ let fn=''; if(t.kind==='collection'||t.kind==='fee') fn=`startEditCollection(${t.id})`; else if(t.kind==='expense') fn=`startEditExpense(${t.id})`; else if(t.kind==='transfer') fn=`startEditTransfer(${t.id})`; else if(t.kind==='income') fn=`startEditBankIncome(${t.id})`; return fn?`<button onclick="${fn}" class="text-indigo-500 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>`:''; };
+  const editBtnOf=t=>{ const can=['collection','fee','expense','transfer','income','receivable'].includes(t.kind); return can?`<button onclick="ledgerEdit(${t.id})" class="text-indigo-500 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>`:''; };
   const tb=$('ledger-tbody'); tb.innerHTML='';
 
   if(selAcct){
@@ -2703,6 +2781,7 @@ function renderLedger(){
       // Place each entry on its account's normal side: income → credit, expense → debit; transfers are internal
       let deb=0, cre=0, gray=false;
       if(t.kind==='expense'){ deb=t.amount; }
+      else if(t.kind==='receivable'){ deb=t.amount; }
       else if(t.kind==='collection'||t.kind==='fee'){ cre=t.amount; }
       else if(t.kind==='transfer'){ deb=t.amount; gray=true; }
       else { if(t.dir==='in') cre=t.amount; else deb=t.amount; }
@@ -2758,12 +2837,24 @@ function drillEdit(id){
   _drillReturn=_drill; closeDrill();
   const t=transactions.find(x=>x.id===id); if(!t){ _drillReturn=null; return; }
   if(t.kind==='collection'||t.kind==='fee') startEditCollection(id);
-  else if(t.kind==='expense') startEditExpense(id);
+  else if(t.kind==='expense'||t.kind==='receivable') startEditExpense(id);
   else if(t.kind==='transfer') startEditTransfer(id);
   else if(t.kind==='income') startEditBankIncome(id);
   else _drillReturn=null;
 }
 function returnToDrill(){ if(!_drillReturn) return; const d=_drillReturn; _drillReturn=null; if(d.fund) openFundDrill(d.fund); else openDrill(d.year,d.month,d.type); }
+// ---- Return to the Ledger after editing a transaction from there ----
+let _ledgerReturn=false;
+function returnToLedger(){ if(!_ledgerReturn) return; _ledgerReturn=false; showPage('ledger'); }
+function ledgerEdit(id){
+  const t=transactions.find(x=>x.id===id); if(!t) return;
+  _ledgerReturn=true;
+  if(t.kind==='collection'||t.kind==='fee') startEditCollection(id);
+  else if(t.kind==='expense'||t.kind==='receivable') startEditExpense(id);
+  else if(t.kind==='transfer') startEditTransfer(id);
+  else if(t.kind==='income') startEditBankIncome(id);
+  else _ledgerReturn=false;
+}
 // Fund drill pop-up: running-balance register for cash/a bank/undeposited, with edit pencils
 function openFundDrill(link){
   ensureTwoBanks();
@@ -2806,7 +2897,7 @@ function openDrill(year, month, type){
   const inPeriod=t=>{ if((+String(t.date).slice(0,4))!==+year) return false; if(month && (+String(t.date).slice(5,7))!==+month) return false; return true; };
   const byDate=(a,b)=>a.date.localeCompare(b.date)||a.id-b.id;
   const inc = transactions.filter(t=> t.dir==='in' && t.kind!=='transfer' && inPeriod(t)).sort(byDate);
-  const exp = transactions.filter(t=> t.dir==='out' && inPeriod(t)).sort(byDate);
+  const exp = transactions.filter(t=> t.dir==='out' && t.kind!=='receivable' && inPeriod(t)).sort(byDate);
   const periodLabel = month ? `${MONTHS[month-1]} ${year}` : `Full year ${year}`;
   const section=(title,list,color)=>{
     const tot=list.reduce((s,t)=>s+(+t.amount||0),0);
@@ -2938,6 +3029,36 @@ function printFamilies(){
   const n=families.length;
   printDoc('Families / Members', `${n} famil${n===1?'y':'ies'}`, c?c.outerHTML:'');
 }
+// Printable: families grouped by their last paid-through year (matches the dashboard chart)
+function printPaidThroughGrouped(){
+  const {map,none}=paidThroughByYear();
+  const years=Object.keys(map).map(Number).sort((a,b)=>b-a);   // most recent year first
+  let body='';
+  years.forEach(y=>{
+    const list=map[y].slice().sort((a,b)=> b.ord-a.ord || famLabel(a.f).localeCompare(famLabel(b.f)));
+    body+=`<h3 class="sec">Paid through ${y} — ${list.length} famil${list.length===1?'y':'ies'}</h3>`;
+    body+=`<table><thead><tr><th>Family</th><th>Last paid up to</th></tr></thead><tbody>`;
+    list.forEach(x=>{ body+=`<tr><td>${esc(famLabel(x.f))}</td><td>${esc(ordToLabel(x.ord))}</td></tr>`; });
+    body+=`</tbody></table>`;
+  });
+  if(none.length){
+    const list=none.slice().sort((a,b)=>famLabel(a.f).localeCompare(famLabel(b.f)));
+    body+=`<h3 class="sec">No payments yet — ${list.length} famil${list.length===1?'y':'ies'}</h3>`;
+    body+=`<table><tbody>`;
+    list.forEach(x=>{ body+=`<tr><td>${esc(famLabel(x.f))}</td></tr>`; });
+    body+=`</tbody></table>`;
+  }
+  printDoc('Members by last paid-through year', `${families.length} famil${families.length===1?'y':'ies'}`, body);
+}
+// Simple printable roster: family name + the month each family is paid up to (membership)
+function printPaidUp(){
+  const yr=curYear();
+  const rows=families.slice().sort((a,b)=>famLabel(a).localeCompare(famLabel(b)));
+  let body=`<table><thead><tr><th>Family</th><th>Last paid up to</th></tr></thead><tbody>`;
+  rows.forEach(f=>{ const o=memberPaidOrd(f); const label=(o>=0)?ordToLabel(o):'—'; body+=`<tr><td>${esc(famLabel(f))}</td><td>${esc(label)}</td></tr>`; });
+  body+=`</tbody></table>`;
+  printDoc('Membership — last paid up to', `${rows.length} famil${rows.length===1?'y':'ies'} · for ${yr}`, body);
+}
 function printReports(){
   renderReports();
   const yr=$('rep-year')?$('rep-year').value:''; const m1=$('rep-m1')?$('rep-m1').value:''; const m2=$('rep-m2')?$('rep-m2').value:'';
@@ -3006,7 +3127,7 @@ function renderReports(){
   const year = +($('rep-year').value||curYear());
   const lo=Math.min(+$('rep-m1').value||1, +$('rep-m2').value||12);
   const hi=Math.max(+$('rep-m1').value||1, +$('rep-m2').value||12);
-  const yr = transactions.filter(t=>{ if((+t.date.slice(0,4))!==year) return false; const m=+t.date.slice(5,7); return m>=lo && m<=hi && repMatch(t); });
+  const yr = transactions.filter(t=>{ if((+t.date.slice(0,4))!==year) return false; if(t.kind==='receivable') return false; const m=+t.date.slice(5,7); return m>=lo && m<=hi && repMatch(t); });
   const inc=yr.filter(t=>t.dir==='in').reduce((a,t)=>a+t.amount,0);
   const exp=yr.filter(t=>t.dir==='out').reduce((a,t)=>a+t.amount,0);
   $('rep-income').textContent=money(inc); $('rep-expense').textContent=money(exp);
@@ -3118,7 +3239,7 @@ function applyLoaded(d){
   families=d.families||[]; transactions=d.transactions||[];
   if(d.accounts && d.accounts.length) accounts=d.accounts;
   if(!accounts || !accounts.length) seedAccounts();
-  ensureBS(); ensureTwoBanks(); ensureAccount('6120','Bonus','expense'); ensureAccount('6230','Construction','expense'); migrateCOA();
+  ensureBS(); ensureTwoBanks(); ensureAccount('6120','Bonus','expense'); ensureAccount('6230','Construction','expense'); ensureAccount('1110','Other receivables','asset'); migrateCOA();
   if(d.settings){ if(d.settings.name) settings.name=d.settings.name; if(d.settings.address) settings.address=d.settings.address;
     if('openingCash' in d.settings) settings.openingCash=+d.settings.openingCash||0;
     if('openingBank' in d.settings) settings.openingBank=+d.settings.openingBank||0;
