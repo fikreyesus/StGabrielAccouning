@@ -33,6 +33,10 @@
   body.cashier-theme aside .text-indigo-300 { color:#6ee7b7 !important; } /* emerald-300 */
   body.cashier-theme .nav-link.active { background:#047857; }            /* emerald-700 */
   body.cashier-theme .nav-link:hover { background-color:#047857 !important; }
+  /* Transactions screen: type picker pills */
+  .tx-tab{ padding:.55rem 1.1rem; border-radius:.9rem; font-size:.9rem; font-weight:600; background:#fff; color:#4b5563; border:1px solid #e5e7eb; cursor:pointer; transition:all .12s; }
+  .tx-tab:hover{ background:#f3f4f6; }
+  .tx-tab.tx-tab-on{ background:#4338ca; color:#fff; border-color:#4338ca; }
 </style>
 </head>
 <body class="bg-gray-100">
@@ -73,7 +77,7 @@
       <a href="#" data-page="dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-house w-5"></i> Dashboard</a>
       <a href="#" data-page="families" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-users w-5"></i> Families</a>
       <a href="#" data-page="collections" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-basket-shopping w-5"></i> Collections</a>
-      <a href="#" data-page="expenses" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-receipt w-5"></i> Expenses</a>
+      <a href="#" data-page="expenses" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-money-bill-transfer w-5"></i> Transactions</a>
       <a href="#" data-page="cashbank" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-wallet w-5"></i> Cash &amp; Bank</a>
       <a href="#" data-page="accounts" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-list-ol w-5"></i> Chart of Accounts</a>
       <a href="#" data-page="ledger" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl mb-1"><i class="fa-solid fa-book w-5"></i> Ledger</a>
@@ -351,55 +355,115 @@
       </div>
     </section>
 
-    <!-- EXPENSES -->
+    <!-- TRANSACTIONS (expense · receivable · transfer · bank income) -->
     <section id="expenses-page" class="p-8 hidden">
-      <div class="flex justify-end" style="margin-bottom:-6px">
-        <button id="exp-recent-toggle" onclick="toggleExpRecent()" class="text-sm text-indigo-600 hover:text-indigo-800"><i class="fa-solid fa-eye-slash"></i> Hide recent expenses</button>
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-5">
+        <div id="tx-picker" class="flex flex-wrap gap-2">
+          <button type="button" data-mode="expense" onclick="setTxMode('expense')" class="tx-tab tx-tab-on"><i class="fa-solid fa-receipt"></i> Expense</button>
+          <button type="button" data-mode="receivable" onclick="setTxMode('receivable')" class="tx-tab"><i class="fa-solid fa-hand-holding-dollar"></i> Receivable</button>
+          <button type="button" data-mode="transfer" onclick="setTxMode('transfer')" class="tx-tab"><i class="fa-solid fa-right-left"></i> Transfer / Deposit</button>
+          <button type="button" data-mode="interest" onclick="setTxMode('interest')" class="tx-tab"><i class="fa-solid fa-percent"></i> Interest / Bank income</button>
+        </div>
+        <button id="exp-recent-toggle" onclick="toggleExpRecent()" class="text-sm text-indigo-600 hover:text-indigo-800"><i class="fa-solid fa-eye-slash"></i> Hide recent</button>
       </div>
-      <div id="exp-grid" class="grid md:grid-cols-2 gap-6 mt-2">
-        <div class="bg-white rounded-3xl shadow p-8">
-          <h3 class="text-lg font-semibold mb-6">Record an Expense (money out)</h3>
-          <div class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-            <label class="flex items-center gap-2 cursor-pointer"><input id="exp-lock" type="checkbox" onchange="expToggleDateLock()"> <span class="font-medium text-amber-700"><i class="fa-solid fa-lock"></i> Lock month/year</span></label>
-            <select id="exp-lock-month" class="border rounded-lg px-2 py-1 hidden bg-white" onchange="expApplyDateLock()"></select>
-            <input id="exp-lock-year" type="number" class="border rounded-lg px-2 py-1 w-24 hidden bg-white" placeholder="Year" onchange="expApplyDateLock()">
-            <span id="exp-lock-label" class="text-xs text-amber-700 font-semibold"></span>
+      <div id="tx-lock-bar" class="flex flex-wrap items-center gap-2 mb-4 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+        <label class="flex items-center gap-2 cursor-pointer"><input id="tx-lock" type="checkbox" onchange="txToggleLock()"> <span class="font-medium text-amber-700"><i class="fa-solid fa-lock"></i> Lock month/year</span></label>
+        <select id="tx-lock-month" class="border rounded-lg px-2 py-1 hidden bg-white" onchange="txApplyLock()"></select>
+        <input id="tx-lock-year" type="number" class="border rounded-lg px-2 py-1 w-24 hidden bg-white" placeholder="Year" onchange="txApplyLock()">
+        <span id="tx-lock-label" class="text-xs text-amber-700 font-semibold"></span>
+      </div>
+      <div id="exp-grid" class="grid md:grid-cols-2 gap-6">
+        <div>
+          <!-- ===== EXPENSE / RECEIVABLE ===== -->
+          <div id="txform-expense" class="bg-white rounded-3xl shadow p-8">
+            <h3 id="exp-form-title" class="text-lg font-semibold mb-6">Record an Expense (money out)</h3>
+            <label id="exp-date-label" class="block text-xs font-medium text-gray-600 mb-1">Date</label>
+            <input id="exp-date" type="date" class="w-full border rounded-2xl px-4 py-3 mb-4">
+            <input id="exp-day" type="number" min="1" max="31" oninput="clampDay(this)" class="w-full border rounded-2xl px-4 py-3 mb-4 hidden" placeholder="Day (1–31)">
+            <input id="exp-receivable" type="checkbox" onchange="expReceivableToggle()" class="hidden">
+            <label id="exp-cat-label" class="block text-xs font-medium text-gray-600 mb-1">Account (expense type)</label>
+            <select id="exp-cat" class="w-full border rounded-2xl px-4 py-3 mb-4"></select>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="block text-xs font-medium text-gray-600 mb-1">Amount ($)</label>
+                <input id="exp-amount" type="number" class="w-full border rounded-2xl px-4 py-3"></div>
+              <div><label class="block text-xs font-medium text-gray-600 mb-1">Pay from which bank?</label>
+                <select id="exp-bank" class="w-full border rounded-2xl px-4 py-3"><option value="bank">PNC Bank — Checking</option><option value="bank2" selected>River City Bank — Checking</option><option value="bank3">Rivercity - Mortgage</option></select></div>
+            </div>
+            <div id="exp-checkno-wrap" class="mt-4 hidden"><label class="block text-xs font-medium text-gray-600 mb-1">Check number</label>
+              <input id="exp-checkno" inputmode="numeric" class="w-full border rounded-2xl px-4 py-3" placeholder="e.g. 1042"></div>
+            <label class="block text-xs font-medium text-gray-600 mb-1 mt-4">Paid to (payee)</label>
+            <div class="flex gap-2 mb-4">
+              <input id="exp-payee" list="exp-payee-list" class="flex-1 border rounded-2xl px-4 py-3" placeholder="Pick or type a name / organization…" autocomplete="off">
+              <datalist id="exp-payee-list"></datalist>
+              <button type="button" onclick="addPayeeFromInput()" class="px-4 bg-gray-200 hover:bg-gray-300 rounded-2xl text-sm font-medium whitespace-nowrap" title="Save this name to your payee list"><i class="fa-solid fa-plus"></i> Save name</button>
+            </div>
+            <p id="exp-payee-flash" class="text-xs text-emerald-600 font-semibold mb-4" style="visibility:hidden">Added to payee list ✓</p>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Note (optional)</label>
+            <input id="exp-note" class="w-full border rounded-2xl px-4 py-3 mb-5">
+            <div class="flex gap-2">
+              <button id="exp-save-btn" onclick="saveExpense()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-semibold">Save Expense</button>
+              <button id="exp-cancel-btn" onclick="cancelExpenseEdit()" class="hidden px-5 bg-gray-200 hover:bg-gray-300 rounded-2xl font-semibold">Cancel</button>
+            </div>
+            <p id="exp-edit-banner" class="hidden text-center text-sm font-semibold text-indigo-600 mt-2"></p>
           </div>
-          <label id="exp-date-label" class="block text-xs font-medium text-gray-600 mb-1">Date</label>
-          <input id="exp-date" type="date" class="w-full border rounded-2xl px-4 py-3 mb-4">
-          <input id="exp-day" type="number" min="1" max="31" oninput="clampDay(this)" class="w-full border rounded-2xl px-4 py-3 mb-4 hidden" placeholder="Day (1–31)">
-          <label class="flex items-center gap-2 mb-3 text-sm text-gray-700 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 cursor-pointer">
-            <input id="exp-receivable" type="checkbox" onchange="expReceivableToggle()" class="w-4 h-4">
-            <span>This is a <strong>receivable</strong> (advance / loan) — money leaves the bank but it is <strong>not</strong> an expense</span>
-          </label>
-          <label id="exp-cat-label" class="block text-xs font-medium text-gray-600 mb-1">Account (expense type)</label>
-          <select id="exp-cat" class="w-full border rounded-2xl px-4 py-3 mb-4"></select>
-          <div class="grid grid-cols-2 gap-4">
-            <div><label class="block text-xs font-medium text-gray-600 mb-1">Amount ($)</label>
-              <input id="exp-amount" type="number" class="w-full border rounded-2xl px-4 py-3"></div>
-            <div><label class="block text-xs font-medium text-gray-600 mb-1">Pay from which bank?</label>
-              <select id="exp-bank" class="w-full border rounded-2xl px-4 py-3"><option value="bank">PNC Bank — Checking</option><option value="bank2" selected>River City Bank — Checking</option><option value="bank3">Rivercity - Mortgage</option></select></div>
+          <!-- ===== TRANSFER / DEPOSIT ===== -->
+          <div id="txform-transfer" class="bg-white rounded-3xl shadow p-8 hidden">
+            <h3 class="text-lg font-semibold mb-1">Deposit / transfer</h3>
+            <p class="text-xs text-gray-400 mb-4">Move money between funds — e.g. Cash on Hand → a bank (a deposit), or one bank → another. It reduces the <b>From</b> account and increases the <b>To</b> account. It isn't income or expense — it just moves money you already have.</p>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label id="tr-date-label" class="block text-xs text-gray-600 mb-1">Date</label>
+                <input id="tr-date" type="date" class="w-full border rounded-2xl px-4 py-3">
+                <input id="tr-day" type="number" min="1" max="31" oninput="clampDay(this)" class="w-full border rounded-2xl px-4 py-3 hidden" placeholder="Day (1–31)"></div>
+              <div><label class="block text-xs text-gray-600 mb-1">Amount ($)</label><input id="tr-amount" type="number" class="w-full border rounded-2xl px-4 py-3"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mt-3">
+              <div><label class="block text-xs text-gray-600 mb-1">From account</label>
+                <select id="tr-from" class="w-full border rounded-2xl px-4 py-3 bg-white"><option value="cash" selected>Cash on Hand</option><option value="bank">PNC Bank — Checking</option><option value="bank2">River City Bank — Checking</option><option value="bank3">Rivercity - Mortgage</option><option value="undeposited">Checks (undeposited)</option></select></div>
+              <div><label class="block text-xs text-gray-600 mb-1">To account</label>
+                <select id="tr-to" class="w-full border rounded-2xl px-4 py-3 bg-white"><option value="bank" selected>PNC Bank — Checking</option><option value="bank2">River City Bank — Checking</option><option value="bank3">Rivercity - Mortgage</option><option value="cash">Cash on Hand</option><option value="undeposited">Checks (undeposited)</option></select></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mt-3 mb-3">
+              <div><label class="block text-xs text-gray-600 mb-1">Type</label>
+                <select id="tr-method" class="w-full border rounded-2xl px-4 py-3 bg-white"><option>Cash</option><option>Check</option><option>Square</option><option>Other</option></select></div>
+              <div></div>
+            </div>
+            <label class="block text-xs text-gray-600 mb-1">Note (optional)</label>
+            <input id="tr-note" class="w-full border rounded-2xl px-4 py-3 mb-4" placeholder="e.g. deposited Sunday cash">
+            <div class="flex gap-2">
+              <button id="tr-save-btn" onclick="saveTransfer()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-semibold">Save deposit</button>
+              <button id="tr-cancel-btn" onclick="cancelTransferEdit()" class="hidden px-5 bg-gray-200 hover:bg-gray-300 rounded-2xl font-semibold">Cancel</button>
+            </div>
+            <p id="tr-edit-banner" class="hidden text-center text-sm font-semibold text-indigo-600 mt-2">Editing a deposit</p>
           </div>
-          <div id="exp-checkno-wrap" class="mt-4 hidden"><label class="block text-xs font-medium text-gray-600 mb-1">Check number</label>
-            <input id="exp-checkno" inputmode="numeric" class="w-full border rounded-2xl px-4 py-3" placeholder="e.g. 1042"></div>
-          <label class="block text-xs font-medium text-gray-600 mb-1 mt-4">Paid to (payee)</label>
-          <div class="flex gap-2 mb-4">
-            <input id="exp-payee" list="exp-payee-list" class="flex-1 border rounded-2xl px-4 py-3" placeholder="Pick or type a name / organization…" autocomplete="off">
-            <datalist id="exp-payee-list"></datalist>
-            <button type="button" onclick="addPayeeFromInput()" class="px-4 bg-gray-200 hover:bg-gray-300 rounded-2xl text-sm font-medium whitespace-nowrap" title="Save this name to your payee list"><i class="fa-solid fa-plus"></i> Save name</button>
+          <!-- ===== BANK INTEREST / INCOME ===== -->
+          <div id="txform-interest" class="bg-white rounded-3xl shadow p-8 hidden">
+            <h3 class="text-lg font-semibold mb-1">Bank interest / income</h3>
+            <p class="text-xs text-gray-400 mb-4">Record income paid straight into a bank — e.g. monthly interest. This increases the bank you pick <b>and</b> your income (no cash involved). It posts to the income account you choose.</p>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label id="bi-date-label" class="block text-xs text-gray-600 mb-1">Date</label>
+                <input id="bi-date" type="date" class="w-full border rounded-2xl px-4 py-3">
+                <input id="bi-day" type="number" min="1" max="31" oninput="clampDay(this)" class="w-full border rounded-2xl px-4 py-3 hidden" placeholder="Day (1–31)"></div>
+              <div><label class="block text-xs text-gray-600 mb-1">Amount ($)</label>
+                <input id="bi-amount" type="number" step="0.01" class="w-full border rounded-2xl px-4 py-3"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mt-3 mb-3">
+              <div><label class="block text-xs text-gray-600 mb-1">Into bank</label>
+                <select id="bi-bank" class="w-full border rounded-2xl px-4 py-3 bg-white"><option value="bank">PNC Bank — Checking</option><option value="bank2" selected>River City Bank — Checking</option><option value="bank3">Rivercity - Mortgage</option></select></div>
+              <div><label class="block text-xs text-gray-600 mb-1">Income type</label>
+                <select id="bi-cat" class="w-full border rounded-2xl px-4 py-3 bg-white"></select></div>
+            </div>
+            <label class="block text-xs text-gray-600 mb-1">Note (optional)</label>
+            <input id="bi-note" class="w-full border rounded-2xl px-4 py-3 mb-4" placeholder="e.g. October interest">
+            <div class="flex gap-2">
+              <button id="bi-save-btn" onclick="saveBankIncome()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-semibold">Save income</button>
+              <button id="bi-cancel-btn" onclick="cancelBankIncomeEdit()" class="hidden px-5 bg-gray-200 hover:bg-gray-300 rounded-2xl font-semibold">Cancel</button>
+            </div>
+            <p id="bi-edit-banner" class="hidden text-center text-sm font-semibold text-indigo-600 mt-2">Editing an income entry</p>
           </div>
-          <p id="exp-payee-flash" class="text-xs text-emerald-600 font-semibold mb-4" style="visibility:hidden">Added to payee list ✓</p>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Note (optional)</label>
-          <input id="exp-note" class="w-full border rounded-2xl px-4 py-3 mb-5">
-          <div class="flex gap-2">
-            <button id="exp-save-btn" onclick="saveExpense()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-semibold">Save Expense</button>
-            <button id="exp-cancel-btn" onclick="cancelExpenseEdit()" class="hidden px-5 bg-gray-200 hover:bg-gray-300 rounded-2xl font-semibold">Cancel</button>
-          </div>
-          <p id="exp-edit-banner" class="hidden text-center text-sm font-semibold text-indigo-600 mt-2"></p>
         </div>
         <div id="exp-recent-card" class="bg-white rounded-3xl shadow overflow-hidden">
-          <div class="px-6 py-3 border-b font-semibold text-gray-700">Recent expenses <span class="text-xs font-normal text-gray-400">· newest date first</span></div>
-          <div style="max-height:560px;overflow-y:auto"><table class="w-full text-sm"><tbody id="exp-recent" class="divide-y"></tbody></table></div>
+          <div class="px-6 py-3 border-b font-semibold text-gray-700">Recent transactions <span class="text-xs font-normal text-gray-400">· newest date first</span></div>
+          <div style="max-height:620px;overflow-y:auto"><table class="w-full text-sm"><tbody id="exp-recent" class="divide-y"></tbody></table></div>
         </div>
       </div>
     </section>
@@ -433,66 +497,10 @@
           </div>
         </div>
         <div class="bg-white rounded-3xl shadow p-6">
-          <h3 class="font-semibold text-gray-700 mb-1">Deposit / transfer</h3>
-          <p class="text-xs text-gray-400 mb-4">Move money between funds — e.g. Cash on Hand → a bank (a deposit), or one bank → another (a bank transfer). It reduces the <b>From</b> account and increases the <b>To</b> account. It isn't income or expense — it just moves money you already have.</p>
-          <div id="tr-lock-bar" class="flex flex-wrap items-center gap-2 mb-3 text-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-            <label class="flex items-center gap-2 cursor-pointer"><input id="tr-lock" type="checkbox" onchange="trToggleDateLock()"> <span class="font-medium text-amber-700"><i class="fa-solid fa-lock"></i> Lock month/year</span></label>
-            <select id="tr-lock-month" class="border rounded-lg px-2 py-1 hidden bg-white" onchange="trApplyDateLock()"></select>
-            <input id="tr-lock-year" type="number" class="border rounded-lg px-2 py-1 w-24 hidden bg-white" placeholder="Year" onchange="trApplyDateLock()">
-            <span id="tr-lock-label" class="text-xs text-amber-700 font-semibold"></span>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div><label id="tr-date-label" class="block text-xs text-gray-600 mb-1">Date</label>
-              <input id="tr-date" type="date" class="w-full border rounded-xl px-3 py-2">
-              <input id="tr-day" type="number" min="1" max="31" oninput="clampDay(this)" class="w-full border rounded-xl px-3 py-2 hidden" placeholder="Day (1–31)"></div>
-            <div><label class="block text-xs text-gray-600 mb-1">Amount ($)</label><input id="tr-amount" type="number" class="w-full border rounded-xl px-3 py-2"></div>
-          </div>
-          <div class="grid grid-cols-2 gap-4 mt-3">
-            <div><label class="block text-xs text-gray-600 mb-1">From account</label>
-              <select id="tr-from" class="w-full border rounded-xl px-3 py-2 bg-white"><option value="cash" selected>Cash on Hand</option><option value="bank">PNC Bank</option><option value="bank2">River City Bank</option><option value="bank3">Rivercity - Mortgage</option><option value="undeposited">Checks (undeposited)</option></select></div>
-            <div><label class="block text-xs text-gray-600 mb-1">To account</label>
-              <select id="tr-to" class="w-full border rounded-xl px-3 py-2 bg-white"><option value="bank" selected>PNC Bank</option><option value="bank2">River City Bank</option><option value="bank3">Rivercity - Mortgage</option><option value="cash">Cash on Hand</option><option value="undeposited">Checks (undeposited)</option></select></div>
-          </div>
-          <div class="grid grid-cols-2 gap-4 mt-3 mb-3">
-            <div><label class="block text-xs text-gray-600 mb-1">Type</label>
-              <select id="tr-method" class="w-full border rounded-xl px-3 py-2 bg-white"><option>Cash</option><option>Check</option><option>Square</option><option>Other</option></select></div>
-            <div></div>
-          </div>
-          <label class="block text-xs text-gray-600 mb-1">Note (optional)</label>
-          <input id="tr-note" class="w-full border rounded-xl px-3 py-2 mb-4" placeholder="e.g. deposited Sunday cash">
-          <div class="flex gap-2">
-            <button id="tr-save-btn" onclick="saveTransfer()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm">Save deposit</button>
-            <button id="tr-cancel-btn" onclick="cancelTransferEdit()" class="hidden bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm">Cancel</button>
-            <span id="tr-edit-banner" class="hidden text-sm font-semibold text-indigo-600 self-center">Editing a deposit</span>
-          </div>
+          <h3 class="font-semibold text-gray-700 mb-1">Deposits, transfers &amp; bank income</h3>
+          <p class="text-xs text-gray-400 mb-4">Deposits, transfers between accounts and bank interest are now entered on the <b>Transactions</b> screen, together with expenses. Use the menu on the left to open it.</p>
+          <button onclick="showPage('expenses')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm"><i class="fa-solid fa-money-bill-transfer"></i> Go to Transactions</button>
         </div>
-        <div class="bg-white rounded-3xl shadow p-6">
-          <h3 class="font-semibold text-gray-700 mb-1">Bank interest / income</h3>
-          <p class="text-xs text-gray-400 mb-4">Record income paid straight into a bank — e.g. monthly interest. This increases the bank you pick <b>and</b> your income (no cash involved). It posts to the income account you choose.</p>
-          <div class="grid grid-cols-2 gap-4">
-            <div><label class="block text-xs text-gray-600 mb-1">Date</label>
-              <input id="bi-date" type="date" class="w-full border rounded-xl px-3 py-2"></div>
-            <div><label class="block text-xs text-gray-600 mb-1">Amount ($)</label>
-              <input id="bi-amount" type="number" step="0.01" class="w-full border rounded-xl px-3 py-2"></div>
-          </div>
-          <div class="grid grid-cols-2 gap-4 mt-3 mb-3">
-            <div><label class="block text-xs text-gray-600 mb-1">Into bank</label>
-              <select id="bi-bank" class="w-full border rounded-xl px-3 py-2 bg-white"><option value="bank">PNC Bank</option><option value="bank2">River City Bank</option><option value="bank3">Rivercity - Mortgage</option></select></div>
-            <div><label class="block text-xs text-gray-600 mb-1">Income type</label>
-              <select id="bi-cat" class="w-full border rounded-xl px-3 py-2 bg-white"></select></div>
-          </div>
-          <label class="block text-xs text-gray-600 mb-1">Note (optional)</label>
-          <input id="bi-note" class="w-full border rounded-xl px-3 py-2 mb-4" placeholder="e.g. October interest">
-          <div class="flex gap-2">
-            <button id="bi-save-btn" onclick="saveBankIncome()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm">Save income</button>
-            <button id="bi-cancel-btn" onclick="cancelBankIncomeEdit()" class="hidden bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm">Cancel</button>
-            <span id="bi-edit-banner" class="hidden text-sm font-semibold text-indigo-600 self-center">Editing an income entry</span>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-2xl shadow overflow-hidden mt-6">
-        <div class="px-6 py-3 border-b font-semibold text-gray-700">Recent deposits, transfers &amp; bank income</div>
-        <table class="w-full text-sm"><tbody id="tr-recent" class="divide-y"></tbody></table>
       </div>
     </section>
 
@@ -582,10 +590,11 @@
     <section id="ledger-page" class="p-8 hidden">
       <div class="flex flex-wrap gap-3 mb-5 items-center">
         <select id="led-acct" onchange="renderLedger()" class="border rounded-xl px-4 py-2"></select>
-        <select id="led-type" onchange="renderLedger()" class="border rounded-xl px-4 py-2"><option value="">All entry types</option><option value="fee">Fees</option><option value="collection">Collections</option><option value="expense">Expenses</option><option value="transfer">Transfers</option></select>
+        <select id="led-type" onchange="renderLedger()" class="border rounded-xl px-4 py-2"><option value="">All entry types</option><option value="fee">Fees</option><option value="collection">Collections</option><option value="expense">Expenses</option><option value="receivable">Receivables</option><option value="transfer">Transfers</option><option value="income">Bank income</option></select>
         <select id="led-year" onchange="renderLedger()" class="border rounded-xl px-4 py-2"></select>
         <select id="led-month" onchange="renderLedger()" class="border rounded-xl px-4 py-2"></select>
         <input id="led-search" oninput="renderLedger()" placeholder="Search…" class="border rounded-xl px-4 py-2 flex-1 min-w-[160px]">
+        <button onclick="exportLedgerXLSX()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm whitespace-nowrap"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
         <button onclick="printLedger()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm whitespace-nowrap"><i class="fa-solid fa-print"></i> Print</button>
         <button onclick="openBulkDate()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm whitespace-nowrap"><i class="fa-solid fa-calendar-day"></i> Fix dates</button>
         <span id="led-summary" class="text-sm text-gray-600 ml-auto"></span>
@@ -617,6 +626,7 @@
           <select id="rep-member" onchange="renderReports()" class="border rounded-xl px-3 py-2"></select></div>
         <button onclick="clearRepFilters()" class="px-3 py-2 rounded-xl text-sm bg-gray-100 hover:bg-gray-200 text-gray-600">Clear</button>
         <div class="flex gap-2" style="margin-left:auto">
+          <button onclick="exportWordStatement()" class="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2 rounded-xl text-sm"><i class="fa-solid fa-file-word"></i> Word statement</button>
           <button onclick="exportXLSX()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
           <button onclick="printReports()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl text-sm"><i class="fa-solid fa-print"></i> Print</button>
         </div>
@@ -627,7 +637,8 @@
         <div class="bg-white rounded-2xl shadow p-5"><p class="text-xs text-gray-500">Net</p><p id="rep-net" class="text-2xl font-bold"></p></div>
       </div>
       <div class="bg-white rounded-2xl shadow p-6 mb-5">
-        <p class="font-semibold text-gray-700 mb-4">Monthly income vs. expense</p>
+        <p class="font-semibold text-gray-700 mb-1">Monthly income vs. expense</p>
+        <p class="text-xs text-gray-400 mb-4">Click a month, or an income/expense bar, to see the transactions behind it.</p>
         <div id="rep-chart" class="space-y-2"></div>
         <div class="flex gap-5 mt-4 text-xs text-gray-500">
           <span><span class="inline-block w-3 h-3 rounded-sm align-middle" style="background:#059669"></span> Income</span>
@@ -649,6 +660,16 @@
             <table class="w-full text-sm"><tbody id="rep-expcat" class="divide-y"></tbody></table>
           </div>
         </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow overflow-hidden mt-5">
+        <div class="px-6 py-3 border-b">
+          <p class="font-semibold text-gray-700">Cash deposit reconciliation</p>
+          <p class="text-xs text-gray-400 mt-0.5">Did the cash you collected get deposited? Each month compares collections (cash in) with Cash on Hand → bank deposits. “Cash on hand” is the running till balance — if it keeps climbing, cash is piling up undeposited.</p>
+        </div>
+        <div style="overflow-x:auto"><table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500"><tr><th class="text-left px-5 py-2">Month</th><th class="text-right px-5 py-2">Collections (cash in)</th><th class="text-right px-5 py-2">Deposited to bank</th><th class="text-right px-5 py-2">Difference</th><th class="text-right px-5 py-2">Cash on hand (month end)</th></tr></thead>
+          <tbody id="rep-cashrec" class="divide-y"></tbody>
+        </table></div>
       </div>
     </section>
 
@@ -862,7 +883,7 @@ const IE_SEED = [
   ['4310','Wedding','income',''],['4320','Funeral / Memorial (ተዝካር)','income',''],['4330','Gift shop','income',''],
   ['4400','Building maintenance fund','income',''],['4410','Holiday Preparation Fund','income',''],['4420','Fundraising','income',''],['4500','Holy Water Service','income',''],['4510','Interest Income','income',''],['4900','Other Income','income',''],
   ['6100','Clergy Stipend','expense',''],['6110','Salaries & Wages','expense',''],['6120','Bonus','expense',''],['6200','Rent / Mortgage','expense',''],['6210','Utilities','expense',''],
-  ['6220','Maintenance & Repairs','expense',''],['6230','Construction','expense',''],['6300','Supplies','expense',''],['6310','Liturgical Supplies','expense',''],['6400','Events & Hospitality','expense',''],
+  ['6220','Maintenance & Repairs','expense',''],['6230','Construction','expense',''],['6240','Insurance','expense',''],['6300','Supplies','expense',''],['6310','Liturgical Supplies','expense',''],['6400','Events & Hospitality','expense',''],
   ['6500','Charity / Outreach','expense',''],['6600','Bank & Admin Fees','expense',''],['6900','Other Expense','expense','']
 ];
 function seedAccounts(){ accounts = BS_SEED.concat(IE_SEED).map((a,i)=>({id:1000+i, code:a[0], name:a[1], type:a[2], link:a[3]||'', balance:0})); }
@@ -928,6 +949,25 @@ function expReceivableToggle(){
   const cw=document.getElementById('exp-checkno-wrap'); if(cw) cw.classList.toggle('hidden', !rec);
   const btn=document.getElementById('exp-save-btn'); if(btn && !editExpId){ btn.textContent = rec ? 'Save Receivable' : 'Save Expense'; }
   if(rec && receivableAccounts().length===0){ const sel2=document.getElementById('exp-cat'); if(sel2){ sel2.innerHTML='<option value="">No receivable accounts — add an asset account first</option>'; } }
+}
+// ---- Transactions screen: one screen for expense / receivable / transfer / bank income ----
+let txMode='expense';
+function setTxMode(m){
+  if(!['expense','receivable','transfer','interest'].includes(m)) m='expense';
+  txMode=m;
+  const showExpense=(m==='expense'||m==='receivable');
+  const fe=document.getElementById('txform-expense'), ft=document.getElementById('txform-transfer'), fi=document.getElementById('txform-interest');
+  if(fe) fe.classList.toggle('hidden', !showExpense);
+  if(ft) ft.classList.toggle('hidden', m!=='transfer');
+  if(fi) fi.classList.toggle('hidden', m!=='interest');
+  document.querySelectorAll('#tx-picker .tx-tab').forEach(b=>b.classList.toggle('tx-tab-on', b.dataset.mode===m));
+  if(showExpense){
+    const c=document.getElementById('exp-receivable'); if(c) c.checked=(m==='receivable');
+    expReceivableToggle();
+    const t=document.getElementById('exp-form-title'); if(t) t.textContent = (m==='receivable') ? 'Record a Receivable (advance / loan)' : 'Record an Expense (money out)';
+  }
+  if(m==='transfer' && document.getElementById('tr-date') && !document.getElementById('tr-date').value) document.getElementById('tr-date').value=todayISO();
+  if(m==='interest'){ fillBankIncomeCat(); if(document.getElementById('bi-date') && !document.getElementById('bi-date').value) document.getElementById('bi-date').value=todayISO(); }
 }
 function balances(asOf){
   let cash=+settings.openingCash||0, bank=+settings.openingBank||0, bank2=+settings.openingBank2||0, bank3=+settings.openingBank3||0, undep=0; const od=settings.openingDate||'';
@@ -1042,7 +1082,7 @@ function showPage(page){
   document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));
   $(page+'-page').classList.remove('hidden');
   document.querySelectorAll('.nav-link').forEach(a=>a.classList.toggle('active', a.dataset.page===page));
-  const titles={dashboard:'Dashboard',families:'Families',collections:'Collections',expenses:'Expenses',cashbank:'Cash & Bank',accounts:'Chart of Accounts',ledger:'Ledger',reports:'Reports',trial:'Trial Balance',balancesheet:'Balance Sheet',data:'Data & Backup'};
+  const titles={dashboard:'Dashboard',families:'Families',collections:'Collections',expenses:'Transactions',cashbank:'Cash & Bank',accounts:'Chart of Accounts',ledger:'Ledger',reports:'Reports',trial:'Trial Balance',balancesheet:'Balance Sheet',data:'Data & Backup'};
   $('page-title').textContent = titles[page];
   if(page==='dashboard') renderDashboard();
   if(page==='families') renderFamilies();
@@ -1060,7 +1100,10 @@ function showPage(page){
     }
     const mr=$('col-mem-row'); if(mr) mr.classList.toggle('hidden', cashier);   // member picked at top; this dropdown is redundant for cashier
   }
-  if(page==='expenses'){ fillAccountSelect($('exp-cat'),'expense'); fillPayeeList(); renderRecentExpenses(); applyExpRecentLayout(); }
+  if(page==='expenses'){ fillPayeeList(); fillBankIncomeCat();
+    if($('tr-date')&&!$('tr-date').value) $('tr-date').value=todayISO();
+    if($('bi-date')&&!$('bi-date').value) $('bi-date').value=todayISO();
+    setTxMode(txMode||'expense'); if(txLock.on) txApplyLock(); renderRecentExpenses(); applyExpRecentLayout(); }
   if(page==='cashbank') renderCashBank();
   if(page==='accounts') renderAccounts();
   if(page==='ledger') renderLedger();
@@ -1553,14 +1596,45 @@ function expApplyDateLock(){
   const dim=daysInMonth(y,m), dEl=$('exp-day');   // restrict the day to this month's day count
   if(dEl){ dEl.max=dim; dEl.placeholder='Day (1–'+dim+')'; if(+dEl.value>dim) dEl.value=dim; }
 }
-function expenseDate(){
-  if(expLockedYM && $('exp-lock') && $('exp-lock').checked){
-    const dim=daysInMonth(expLockedYM.year, expLockedYM.month);
-    let d=parseInt($('exp-day').value)||1; d=Math.min(dim, Math.max(1,d));
-    return `${expLockedYM.year}-${String(expLockedYM.month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+// ---- Shared month/year lock for the whole Transactions screen (expense · receivable · transfer · interest) ----
+let txLock={on:false,year:null,month:null};
+const TX_DATE_FIELDS=[['exp-day','exp-date','exp-date-label'],['tr-day','tr-date','tr-date-label'],['bi-day','bi-date','bi-date-label']];
+function txToggleLock(){
+  const on=$('tx-lock') && $('tx-lock').checked;
+  if($('tx-lock-month')) $('tx-lock-month').classList.toggle('hidden', !on);
+  if($('tx-lock-year')) $('tx-lock-year').classList.toggle('hidden', !on);
+  const s=$('tx-lock-month'); if(on && s && !s.options.length){ MONTHS.forEach((m,i)=>s.appendChild(new Option(m,i))); s.value=0; }
+  if(on){ if($('tx-lock-year') && !$('tx-lock-year').value) $('tx-lock-year').value=(settings.openingDate? settings.openingDate.slice(0,4) : curYear()); txApplyLock(); }
+  else {
+    txLock={on:false,year:null,month:null};
+    if($('tx-lock-label')) $('tx-lock-label').textContent='';
+    TX_DATE_FIELDS.forEach(([dy,dt,lb])=>{ if($(dy)) $(dy).classList.add('hidden'); if($(dt)) $(dt).classList.remove('hidden'); if($(lb)) $(lb).textContent='Date'; });
   }
-  return $('exp-date').value||todayISO();
 }
+function txApplyLock(){
+  const y=parseInt(($('tx-lock-year')||{}).value), m=parseInt(($('tx-lock-month')||{}).value);
+  if(isNaN(y)||isNaN(m)) return;
+  txLock={on:true,year:y,month:m};
+  if($('tx-lock-label')) $('tx-lock-label').textContent='Locked to '+MONTHS[m]+' '+y+' — type the day only on each entry';
+  const dim=daysInMonth(y,m);
+  TX_DATE_FIELDS.forEach(([dy,dt,lb])=>{
+    if($(dt)) $(dt).classList.add('hidden');
+    if($(dy)){ $(dy).classList.remove('hidden'); $(dy).max=dim; $(dy).placeholder='Day (1–'+dim+')'; if(+$(dy).value>dim) $(dy).value=dim; }
+    if($(lb)) $(lb).textContent='Day of month';
+  });
+}
+// Resolve the date for a form: the shared lock + its day input, else its own date picker
+function txDate(dayId, dateId){
+  if(txLock.on){
+    const dim=daysInMonth(txLock.year, txLock.month);
+    let d=parseInt(($(dayId)||{}).value)||1; d=Math.min(dim, Math.max(1,d));
+    return `${txLock.year}-${String(txLock.month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+  return ($(dateId)&&$(dateId).value)||todayISO();
+}
+// When editing one entry, drop the lock so its full date shows
+function txUnlockForEdit(){ if($('tx-lock')) $('tx-lock').checked=false; txToggleLock(); }
+function expenseDate(){ return txDate('exp-day','exp-date'); }
 // ---- Add a member without leaving the Collections page ----
 function addMemberFromCollection(){ openFamilyModal(null, 'collections'); }
 function selectNewMemberInCollections(id){
@@ -1656,18 +1730,6 @@ function renderCashBank(){
   if($('cb-bank3')) $('cb-bank3').textContent=money(b.bank3);
   const u=$('cb-undep'); if(u) u.textContent=money(b.undeposited);
   $('op-cash').value=settings.openingCash||0; $('op-bank').value=settings.openingBank||0; if($('op-bank2')) $('op-bank2').value=settings.openingBank2||0; if($('op-bank3')) $('op-bank3').value=settings.openingBank3||0; $('op-date').value=settings.openingDate||'';
-  if(!$('tr-date').value) $('tr-date').value=todayISO();
-  if($('bi-date') && !$('bi-date').value) $('bi-date').value=todayISO();
-  fillBankIncomeCat();
-  const tb=$('tr-recent'); tb.innerHTML='';
-  transactions.filter(t=>t.kind==='transfer'||t.kind==='income').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,15).forEach(t=>{
-    const isInc=t.kind==='income';
-    const desc = isInc ? `${esc(txDesc(t))}` : `${xferLabel(t)}${t.note?' · '+esc(t.note):''}`;
-    const amtCls = isInc ? 'text-emerald-700' : '';
-    const editFn = isInc ? `startEditBankIncome(${t.id})` : `startEditTransfer(${t.id})`;
-    tb.innerHTML+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-6 py-2">${desc}</td><td class="px-6 py-2 text-right font-semibold ${amtCls}">${isInc?'+':''}${money(t.amount)}</td><td class="px-6 py-2 text-center whitespace-nowrap"><button onclick="${editFn}" class="text-indigo-400 hover:text-indigo-600 mr-2" title="Edit"><i class="fa-solid fa-pen"></i></button><button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button></td></tr>`;
-  });
-  if(!tb.innerHTML) tb.innerHTML='<tr><td class="px-6 py-6 text-center text-gray-400">No transfers yet.</td></tr>';
 }
 function saveOpening(){ settings.openingCash=parseFloat($('op-cash').value)||0; settings.openingBank=parseFloat($('op-bank').value)||0; settings.openingBank2=parseFloat($('op-bank2').value)||0; settings.openingBank3=parseFloat(($('op-bank3')||{}).value)||0; settings.openingDate=$('op-date').value||''; save(); renderCashBank(); if(typeof renderAccounts==='function') renderAccounts(); if(typeof renderBalanceSheet==='function') renderBalanceSheet(); alert('Opening balances saved.'); }
 // One-click: load the April 30, 2013 statement's opening balance sheet
@@ -1704,14 +1766,7 @@ function trApplyDateLock(){
   $('tr-date').classList.add('hidden'); $('tr-day').classList.remove('hidden'); $('tr-date-label').textContent='Day of month';
   const dim=daysInMonth(y,m), dEl=$('tr-day'); if(dEl){ dEl.max=dim; dEl.placeholder='Day (1–'+dim+')'; if(+dEl.value>dim) dEl.value=dim; }
 }
-function depositDate(){
-  if(trLockedYM && $('tr-lock') && $('tr-lock').checked){
-    const dim=daysInMonth(trLockedYM.year, trLockedYM.month);
-    let d=parseInt($('tr-day').value)||1; d=Math.min(dim, Math.max(1,d));
-    return `${trLockedYM.year}-${String(trLockedYM.month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-  }
-  return $('tr-date').value||todayISO();
-}
+function depositDate(){ return txDate('tr-day','tr-date'); }
 let editTrId=null;
 async function saveTransfer(){
   const amt=parseFloat($('tr-amount').value); if(!(amt>0)) return alert('Amount must be greater than 0.');
@@ -1720,19 +1775,19 @@ async function saveTransfer(){
   const fields={date:depositDate(),amount:amt,fromFund:from,toFund:to,category:'Transfer',method:($('tr-method')?$('tr-method').value:''),note:$('tr-note').value.trim()};
   if(editTrId){
     const t=transactions.find(x=>x.id===editTrId); if(t) Object.assign(t,fields);
-    save(); cancelTransferEdit(); renderCashBank(); if($('ledger-tbody')) renderLedger();
+    save(); cancelTransferEdit(); renderRecentExpenses(); renderCashBank(); if($('ledger-tbody')) renderLedger();
     return;
   }
   const t={id:Date.now(),kind:'transfer',dir:'xfer',...fields};
   transactions.push(t); save(); $('tr-amount').value=''; $('tr-note').value='';
   if($('tr-day')) $('tr-day').value='';   // clear the day for the next deposit, keep the locked month/year
-  renderCashBank(); if($('ledger-tbody')) renderLedger(); await gsSend('addTransfer',t);
+  renderRecentExpenses(); renderCashBank(); if($('ledger-tbody')) renderLedger(); await gsSend('addTransfer',t);
 }
 function startEditTransfer(id){
   if(currentRole!=='accountant'){ alert('Editing is done from the accountant login.'); return; }
   const t=transactions.find(x=>x.id===id); if(!t||t.kind!=='transfer'){ alert('Deposit not found.'); return; }
-  showPage('cashbank'); editTrId=id;
-  if($('tr-lock')){ $('tr-lock').checked=false; trToggleDateLock(); }
+  showPage('expenses'); setTxMode('transfer'); editTrId=id;
+  txUnlockForEdit();
   if($('tr-date')) $('tr-date').value=t.date;
   $('tr-amount').value=(Number(t.amount)||0).toFixed(2);
   if($('tr-from')) $('tr-from').value=t.fromFund||'cash';
@@ -1765,21 +1820,22 @@ async function saveBankIncome(){
   const amt=parseFloat($('bi-amount').value); if(!(amt>0)) return alert('Amount must be greater than 0.');
   const a=acctById(+$('bi-cat').value);
   const fund=$('bi-bank').value;
-  const date=$('bi-date').value||todayISO();
+  const date=txDate('bi-day','bi-date');
   const fields={date,amount:amt,acctId:a?a.id:null,acct:a?a.code:'',category:a?a.name:'Interest Income',fund,method:'',note:$('bi-note').value.trim()};
   if(editBiId){
     const t=transactions.find(x=>x.id===editBiId); if(t) Object.assign(t,fields);
-    save(); cancelBankIncomeEdit(); renderCashBank(); if($('ledger-tbody')) renderLedger(); returnToDrill(); returnToLedger();
+    save(); cancelBankIncomeEdit(); renderRecentExpenses(); renderCashBank(); if($('ledger-tbody')) renderLedger(); returnToDrill(); returnToLedger();
     return;
   }
   const t={id:Date.now(),kind:'income',dir:'in',...fields};
   transactions.push(t); save(); $('bi-amount').value=''; $('bi-note').value='';
-  renderCashBank(); if($('ledger-tbody')) renderLedger(); await gsSend('addIncome',t);
+  renderRecentExpenses(); renderCashBank(); if($('ledger-tbody')) renderLedger(); await gsSend('addIncome',t);
 }
 function startEditBankIncome(id){
   if(currentRole!=='accountant'){ alert('Editing is done from the accountant login.'); return; }
   const t=transactions.find(x=>x.id===id); if(!t||t.kind!=='income'){ alert('Income entry not found.'); return; }
-  showPage('cashbank'); editBiId=id; fillBankIncomeCat();
+  showPage('expenses'); setTxMode('interest'); editBiId=id; fillBankIncomeCat();
+  txUnlockForEdit();
   if($('bi-date')) $('bi-date').value=t.date;
   $('bi-amount').value=(Number(t.amount)||0).toFixed(2);
   const ac=(t.acctId!=null && acctById(t.acctId))?acctById(t.acctId):acctByCode(t.acct);
@@ -2588,7 +2644,7 @@ function applyExpRecentLayout(){
   const grid=$('exp-grid'), btn=$('exp-recent-toggle'), card=$('exp-recent-card'); const hide=wantExpRecentHidden();
   if(grid) grid.style.gridTemplateColumns = hide ? 'minmax(0,1fr)' : '';   // '' reverts to the md:grid-cols-2 class
   if(card) card.classList.toggle('hidden', hide);
-  if(btn) btn.innerHTML = hide ? '<i class="fa-solid fa-eye"></i> Show recent expenses' : '<i class="fa-solid fa-eye-slash"></i> Hide recent expenses';
+  if(btn) btn.innerHTML = hide ? '<i class="fa-solid fa-eye"></i> Show recent' : '<i class="fa-solid fa-eye-slash"></i> Hide recent';
 }
 function toggleExpRecent(){
   try{ localStorage.setItem('hideRecentExp', wantExpRecentHidden()?'0':'1'); }catch(e){}
@@ -2670,9 +2726,9 @@ function startEditExpense(id){
   if(currentRole!=='accountant'){ alert('Editing is done from the accountant login.'); return; }
   const t=transactions.find(x=>x.id===id); if(!t||(t.kind!=='expense'&&t.kind!=='receivable')){ alert('Expense not found.'); return; }
   showPage('expenses'); editExpId=id;
-  if($('exp-lock')){ $('exp-lock').checked=false; expToggleDateLock&&expToggleDateLock(); }
+  setTxMode(t.kind==='receivable'?'receivable':'expense');
+  txUnlockForEdit();
   if($('exp-date')) $('exp-date').value=t.date;
-  if($('exp-receivable')) $('exp-receivable').checked=(t.kind==='receivable'); expReceivableToggle();
   if($('exp-cat')){ const a=(t.acctId!=null&&acctById(t.acctId))?acctById(t.acctId):acctByCode(t.acct); if(a) $('exp-cat').value=a.id; }
   $('exp-amount').value=(Number(t.amount)||0).toFixed(2);
   if($('exp-bank')){ const fv=fundOf(t); $('exp-bank').value=(fv==='bank2'||fv==='bank3')?fv:'bank'; }
@@ -2692,19 +2748,22 @@ function cancelExpenseEdit(){
   const bn=$('exp-edit-banner'); if(bn) bn.classList.add('hidden');
   returnToDrill(); returnToLedger();
 }
+// Combined "Recent transactions" list for the Transactions screen: expense · receivable · transfer · bank income
 function renderRecentExpenses(){
-  if(!$('exp-date').value) $('exp-date').value=todayISO();
-  const tb=$('exp-recent');
-  // Newest date first (stable across workbook reloads); all expenses shown in the scroll panel
+  if($('exp-date') && !$('exp-date').value) $('exp-date').value=todayISO();
+  const tb=$('exp-recent'); if(!tb) return;
+  const pill=(txt,bg,fg)=>` <span style="font-size:11px;background:${bg};color:${fg};border-radius:6px;padding:1px 6px;font-weight:600">${txt}</span>`;
   let h='';
-  transactions.filter(t=>t.kind==='expense'||t.kind==='receivable').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).forEach(t=>{
-    const act = currentRole==='accountant' ? `<button onclick="startEditExpense(${t.id})" class="text-indigo-400 hover:text-indigo-600 mr-2" title="Edit"><i class="fa-solid fa-pen"></i></button><button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button>` : '';
-    const rec=t.kind==='receivable';
-    const tag = rec ? ` <span class="text-xs bg-amber-100 text-amber-700 rounded px-1.5 py-0.5 font-medium">receivable</span>` : '';
-    const ck = (rec && t.checkNo) ? ` · ck#${esc(t.checkNo)}` : '';
-    h+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500">${fmtDate(t.date)}</td><td class="px-6 py-2">${esc(t.category)}${tag}${t.payee?' · '+esc(t.payee):''}${ck}</td><td class="px-6 py-2 text-right font-semibold ${rec?'text-amber-600':'text-red-600'}">${money(t.amount)}</td><td class="px-6 py-2 text-center whitespace-nowrap">${act}</td></tr>`;
+  transactions.filter(t=>['expense','receivable','transfer','income'].includes(t.kind)).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).forEach(t=>{
+    let editFn='', desc='', amtHtml='';
+    if(t.kind==='expense'){ editFn=`startEditExpense(${t.id})`; desc=esc(t.category)+(t.payee?' · '+esc(t.payee):''); amtHtml=`<span class="text-red-600">−${money(t.amount)}</span>`; }
+    else if(t.kind==='receivable'){ editFn=`startEditExpense(${t.id})`; const ck=(t.checkNo)?' · ck#'+esc(t.checkNo):''; desc=esc(t.category)+pill('receivable','#fef3c7','#b45309')+(t.payee?' · '+esc(t.payee):'')+ck; amtHtml=`<span class="text-amber-600">−${money(t.amount)}</span>`; }
+    else if(t.kind==='transfer'){ editFn=`startEditTransfer(${t.id})`; desc=esc(xferLabel(t))+pill('transfer','#e0f2fe','#0369a1')+(t.note?' · '+esc(t.note):''); amtHtml=`<span class="text-gray-500">${money(t.amount)}</span>`; }
+    else { editFn=`startEditBankIncome(${t.id})`; desc=esc(txDesc(t))+pill('bank income','#d1fae5','#047857'); amtHtml=`<span class="text-emerald-700">+${money(t.amount)}</span>`; }
+    const act = currentRole==='accountant' ? `<button onclick="${editFn}" class="text-indigo-400 hover:text-indigo-600 mr-2" title="Edit"><i class="fa-solid fa-pen"></i></button><button onclick="deleteTx(${t.id})" class="text-red-400" title="Delete"><i class="fa-solid fa-trash"></i></button>` : '';
+    h+=`<tr class="hover:bg-gray-50"><td class="px-6 py-2 text-gray-500 whitespace-nowrap">${fmtDate(t.date)}</td><td class="px-6 py-2">${desc}</td><td class="px-6 py-2 text-right font-semibold whitespace-nowrap">${amtHtml}</td><td class="px-6 py-2 text-center whitespace-nowrap">${act}</td></tr>`;
   });
-  tb.innerHTML = h || '<tr><td colspan="4" class="px-6 py-6 text-center text-gray-400">No expenses yet.</td></tr>';
+  tb.innerHTML = h || '<tr><td colspan="4" class="px-6 py-6 text-center text-gray-400">No transactions yet.</td></tr>';
 }
 
 // ================= LEDGER =================
@@ -2737,7 +2796,7 @@ function renderLedger(){
     // ---- Running-balance statement for one account (oldest first) ----
     const isIE = selAcct.type==='income'||selAcct.type==='expense';
     const belongs=t=> fundLink ? fundDelta(t,fundLink)!==0 : (String(t.acctId)===acct);
-    const delta=t=> fundLink ? fundDelta(t,fundLink) : (isIE ? t.amount : (t.dir==='in'?t.amount:t.dir==='out'?-t.amount:0));
+    const delta=t=> fundLink ? fundDelta(t,fundLink) : (isIE ? t.amount : (selAcct.type==='asset' ? (t.dir==='out'?t.amount:t.dir==='in'?-t.amount:0) : (t.dir==='in'?t.amount:t.dir==='out'?-t.amount:0)));
     let opening=0;
     if(fundLink==='cash') opening=+settings.openingCash||0;
     else if(fundLink==='bank') opening=+settings.openingBank||0;
@@ -2795,7 +2854,7 @@ function renderLedger(){
   }
   if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">No matching transactions.</td></tr>';
 }
-function deleteTx(id){ const t=transactions.find(x=>x.id===id); if(!confirm(`Delete this ${t.kind} of ${money(t.amount)} on ${fmtDate(t.date)}?`)) return; transactions=transactions.filter(x=>x.id!==id); save(); renderLedger(); }
+function deleteTx(id){ const t=transactions.find(x=>x.id===id); if(!confirm(`Delete this ${t.kind} of ${money(t.amount)} on ${fmtDate(t.date)}?`)) return; transactions=transactions.filter(x=>x.id!==id); save(); if($('exp-recent')) renderRecentExpenses(); if($('cb-cash')) renderCashBank(); renderLedger(); }
 // ---- Bulk date fix: move every entry from one date to another ----
 function openBulkDate(){
   if(currentRole!=='accountant'){ alert('This is done from the accountant login.'); return; }
@@ -3127,14 +3186,14 @@ function renderReports(){
   const year = +($('rep-year').value||curYear());
   const lo=Math.min(+$('rep-m1').value||1, +$('rep-m2').value||12);
   const hi=Math.max(+$('rep-m1').value||1, +$('rep-m2').value||12);
-  const yr = transactions.filter(t=>{ if((+t.date.slice(0,4))!==year) return false; if(t.kind==='receivable') return false; const m=+t.date.slice(5,7); return m>=lo && m<=hi && repMatch(t); });
+  const yr = transactions.filter(t=>{ if((+t.date.slice(0,4))!==year) return false; if(t.kind==='receivable'||t.kind==='transfer') return false; const m=+t.date.slice(5,7); return m>=lo && m<=hi && repMatch(t); });
   const inc=yr.filter(t=>t.dir==='in').reduce((a,t)=>a+t.amount,0);
   const exp=yr.filter(t=>t.dir==='out').reduce((a,t)=>a+t.amount,0);
   $('rep-income').textContent=money(inc); $('rep-expense').textContent=money(exp);
   const net=$('rep-net'); net.textContent=money(inc-exp); net.className='text-2xl font-bold '+((inc-exp)>=0?'text-emerald-600':'text-red-600');
   // monthly (only the selected month range)
   const mi=Array(12).fill(0), me=Array(12).fill(0);
-  yr.forEach(t=>{ const m=(+t.date.slice(5,7))-1; if(t.dir==='in')mi[m]+=t.amount; else me[m]+=t.amount; });
+  yr.forEach(t=>{ const m=(+t.date.slice(5,7))-1; if(t.dir==='in')mi[m]+=t.amount; else if(t.dir==='out')me[m]+=t.amount; });
   const mtb=$('rep-monthly'); mtb.innerHTML='';
   for(let m=lo-1;m<=hi-1;m++){ const n=mi[m]-me[m];
     mtb.innerHTML+=`<tr><td class="px-5 py-2">${MONTHS[m].slice(0,3)}</td><td class="px-5 py-2 text-right text-emerald-600">${mi[m]?money(mi[m]):'—'}</td><td class="px-5 py-2 text-right text-red-600">${me[m]?money(me[m]):'—'}</td><td class="px-5 py-2 text-right font-medium ${n>=0?'text-gray-700':'text-red-600'}">${(mi[m]||me[m])?money(n):'—'}</td></tr>`;
@@ -3144,13 +3203,45 @@ function renderReports(){
   const max=Math.max(1,...mi,...me);
   const ch=$('rep-chart'); ch.innerHTML='';
   for(let m=lo-1;m<=hi-1;m++){
-    ch.innerHTML+=`<div class="flex items-center gap-2 text-xs"><div class="w-8 text-gray-500">${MONTHS[m].slice(0,3)}</div>
-      <div class="flex-1"><div class="bar h-3 rounded-sm" style="width:${(mi[m]/max*100)||0}%;background:#059669;min-width:${mi[m]?'2px':'0'}"></div>
-      <div class="bar h-3 rounded-sm mt-0.5" style="width:${(me[m]/max*100)||0}%;background:#dc2626;min-width:${me[m]?'2px':'0'}"></div></div>
-      <div class="w-28 text-right text-gray-400">${mi[m]?money0(mi[m]):''}${me[m]?' / '+money0(me[m]):''}</div></div>`;
+    const hasI=mi[m]>0, hasE=me[m]>0, any=hasI||hasE;
+    const mLabel = any ? `cursor-pointer hover:text-indigo-600` : '';
+    const mClick = any ? `onclick="openDrill(${year},${m+1},'both')" title="See all ${MONTHS[m]} ${year} transactions"` : '';
+    const iClick = hasI ? `onclick="openDrill(${year},${m+1},'income')" title="See ${MONTHS[m]} income"` : '';
+    const eClick = hasE ? `onclick="openDrill(${year},${m+1},'expense')" title="See ${MONTHS[m]} expenses"` : '';
+    ch.innerHTML+=`<div class="flex items-center gap-2 text-xs"><div class="w-8 text-gray-500 ${mLabel}" ${mClick}>${MONTHS[m].slice(0,3)}</div>
+      <div class="flex-1"><div class="bar h-3 rounded-sm" ${iClick} style="width:${(mi[m]/max*100)||0}%;background:#059669;min-width:${mi[m]?'6px':'0'};${hasI?'cursor:pointer':''}"></div>
+      <div class="bar h-3 rounded-sm mt-0.5" ${eClick} style="width:${(me[m]/max*100)||0}%;background:#dc2626;min-width:${me[m]?'6px':'0'};${hasE?'cursor:pointer':''}"></div></div>
+      <div class="w-28 text-right text-gray-400 ${mLabel}" ${mClick}>${mi[m]?money0(mi[m]):''}${me[m]?' / '+money0(me[m]):''}</div></div>`;
   }
   catTable('rep-inccat', yr.filter(t=>t.dir==='in'), 'text-emerald-600');
   catTable('rep-expcat', yr.filter(t=>t.dir==='out'), 'text-red-600');
+  renderCashRecon(year);
+}
+// Cash reconciliation: per month, collections (cash in) vs Cash-on-Hand → bank deposits, plus running cash on hand
+function renderCashRecon(year){
+  const tb=$('rep-cashrec'); if(!tb) return;
+  const coll=Array(12).fill(0), dep=Array(12).fill(0);
+  transactions.forEach(t=>{
+    if((+String(t.date).slice(0,4))!==year) return;
+    const m=(+String(t.date).slice(5,7))-1; if(m<0||m>11) return;
+    if(t.kind==='collection'||t.kind==='fee') coll[m]+=(+t.amount||0);
+    else if(t.kind==='transfer' && t.fromFund==='cash' && ['bank','bank2','bank3'].includes(t.toFund)) dep[m]+=(+t.amount||0);
+  });
+  let totC=0, totD=0, h='', any=false;
+  for(let m=0;m<12;m++){
+    if(!(coll[m]||dep[m])) continue; any=true;
+    const diff=coll[m]-dep[m]; totC+=coll[m]; totD+=dep[m];
+    const coh=balances(asOfCutoff(year,m+1)).cash;
+    const zero=Math.abs(diff)<0.005;
+    const diffCls = zero?'text-gray-400':(diff>0?'text-amber-600':'text-sky-600');
+    const diffTxt = zero?money(0):(diff>0?'+'+money(diff):'−'+money(-diff));
+    h+=`<tr class="hover:bg-gray-50"><td class="px-5 py-2">${MONTHS[m]} ${year}</td><td class="px-5 py-2 text-right text-emerald-600">${coll[m]?money(coll[m]):'—'}</td><td class="px-5 py-2 text-right text-sky-700">${dep[m]?money(dep[m]):'—'}</td><td class="px-5 py-2 text-right font-medium ${diffCls}">${diffTxt}</td><td class="px-5 py-2 text-right font-semibold ${coh>0.005?'text-gray-700':'text-gray-400'}">${money(coh)}</td></tr>`;
+  }
+  if(!any){ tb.innerHTML=`<tr><td colspan="5" class="px-5 py-6 text-center text-gray-400">No cash collections or deposits recorded for ${year}.</td></tr>`; return; }
+  const totDiff=totC-totD, tz=Math.abs(totDiff)<0.005;
+  const totDiffTxt = tz?money(0):(totDiff>0?'+'+money(totDiff):'−'+money(-totDiff));
+  h+=`<tr class="bg-gray-50 font-semibold"><td class="px-5 py-2">Total ${year}</td><td class="px-5 py-2 text-right text-emerald-700">${money(totC)}</td><td class="px-5 py-2 text-right text-sky-800">${money(totD)}</td><td class="px-5 py-2 text-right ${tz?'':(totDiff>0?'text-amber-700':'text-sky-700')}">${totDiffTxt}</td><td class="px-5 py-2 text-right">${money(balances(asOfCutoff(year,12)).cash)}</td></tr>`;
+  tb.innerHTML=h;
 }
 function catTable(id, rows, cls){
   const map={}; rows.forEach(t=>{ const k=acctLabel(t); map[k]=(map[k]||0)+t.amount; });
@@ -3166,8 +3257,8 @@ function exportCSV(what){
     rows=[['Husband','Wife','Address','Phone','#Children','Children (name : birthday)','Last Payment','Paid Through']];
     families.forEach(f=>rows.push([f.husband||'',f.wife||'',f.address||'',f.phone||'',(f.children||[]).length,(f.children||[]).map(c=>`${c.name}: ${c.birthday||'?'}`).join('; '),f.lastPayment||'',f.paidThrough||'']));
   } else {
-    rows=[['Date','Receipt','Kind','In/Out','Amount','Category','Family','Donor','Period','Payee','Method','Note']];
-    [...transactions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>rows.push([t.date,t.receiptNo||'',t.kind,t.dir,t.amount,t.category||'',t.family||'',t.donor||'',t.period||'',t.payee||'',t.method||'',t.note||'']));
+    rows=[['Date','Receipt','Kind','In/Out','Amount','Category','Family','Donor','Period','Payee','Method','Check #','Note']];
+    [...transactions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>rows.push([t.date,t.receiptNo||'',t.kind,t.dir,t.amount,t.category||'',t.family||'',t.donor||'',t.period||'',t.payee||'',t.method||'',t.checkNo||'',t.note||'']));
   }
   const csv=rows.map(r=>r.map(c=>{const s=String(c==null?'':c); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(',')).join('\n');
   download(`${what}_${todayISO()}.csv`, new Blob([csv],{type:'text/csv'}));
@@ -3177,8 +3268,8 @@ function buildWorkbook(){
   const fam=[['Husband','Wife','Address','Phone','#Children','Children','Last Payment','Paid Through']];
   families.forEach(f=>fam.push([f.husband||'',f.wife||'',f.address||'',f.phone||'',(f.children||[]).length,(f.children||[]).map(c=>`${c.name}: ${c.birthday||'?'}`).join('; '),f.lastPayment||'',f.paidThrough||'']));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fam), 'Families');
-  const tx=[['Date','Kind','In/Out','Acct','Account','Amount','Fund','Family','Donor','Period','Payee','Method','Note','TransferFrom','TransferTo','Receipt']];
-  [...transactions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{ const a=acctById(t.acctId); tx.push([t.date,t.kind,t.dir,(a?a.code:(t.acct||'')),(a?a.name:(t.category||'')),t.amount,(t.kind==='transfer'?'':fundOf(t)),t.family||'',t.donor||'',t.period||'',t.payee||'',t.method||'',t.note||'',t.fromFund||'',t.toFund||'',t.receiptNo||'']); });
+  const tx=[['Date','Kind','In/Out','Acct','Account','Amount','Fund','Family','Donor','Period','Payee','Method','Check #','Note','TransferFrom','TransferTo','Receipt']];
+  [...transactions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{ const a=acctById(t.acctId); tx.push([t.date,t.kind,t.dir,(a?a.code:(t.acct||'')),(a?a.name:(t.category||'')),t.amount,(t.kind==='transfer'?'':fundOf(t)),t.family||'',t.donor||'',t.period||'',t.payee||'',t.method||'',t.checkNo||'',t.note||'',t.fromFund||'',t.toFund||'',t.receiptNo||'']); });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tx), 'Transactions');
   const coa=[['Code','Name','Type','Balance','Link']];
   accounts.slice().sort((a,b)=>String(a.code).localeCompare(String(b.code))).forEach(a=>coa.push([a.code,a.name,a.type,(a.link?'':(a.balance||0)),a.link||'']));
@@ -3204,6 +3295,152 @@ function buildWorkbook(){
   return wb;
 }
 function exportXLSX(){ if(typeof XLSX==='undefined') return alert('Excel library not loaded (needs internet). Use CSV export instead.'); XLSX.writeFile(buildWorkbook(), `church_accounting_${todayISO()}.xlsx`); }
+// ---- Export the Ledger exactly as filtered on screen (incl. Check # and Note) ----
+function ledgerExportRows(){
+  const ty=$('led-type').value, acct=$('led-acct')?$('led-acct').value:'', yr=$('led-year').value, mo=$('led-month').value, q=($('led-search').value||'').toLowerCase();
+  const selAcct = acct ? acctById(+acct) : null;
+  const fundLink = (selAcct && ['cash','bank','bank2','bank3','undeposited'].includes(selAcct.link)) ? selAcct.link : '';
+  const od=settings.openingDate||'';
+  const matchQ=t=> !q || (txDesc(t).toLowerCase().includes(q)||(t.category||'').toLowerCase().includes(q));
+  const header=['Date','Type','Description','Account','Payee / Member / Donor','Period','Check #','Note','Debit','Credit'];
+  const rows=[];
+  if(selAcct){
+    header.push('Balance');
+    const isIE = selAcct.type==='income'||selAcct.type==='expense';
+    const belongs=t=> fundLink ? fundDelta(t,fundLink)!==0 : (String(t.acctId)===acct);
+    const delta=t=> fundLink ? fundDelta(t,fundLink) : (isIE ? t.amount : (selAcct.type==='asset' ? (t.dir==='out'?t.amount:t.dir==='in'?-t.amount:0) : (t.dir==='in'?t.amount:t.dir==='out'?-t.amount:0)));
+    let opening=0;
+    if(fundLink==='cash') opening=+settings.openingCash||0; else if(fundLink==='bank') opening=+settings.openingBank||0; else if(fundLink==='bank2') opening=+settings.openingBank2||0; else if(fundLink==='bank3') opening=+settings.openingBank3||0; else if(!selAcct.link && !isIE) opening=+selAcct.balance||0;
+    const periodStart = yr ? (mo ? `${yr}-${String(mo).padStart(2,'0')}-01` : `${yr}-01-01`) : '';
+    const inPeriod=t=>{ if(mo&&yr) return t.date.slice(0,7)===`${yr}-${String(mo).padStart(2,'0')}`; if(yr) return t.date.slice(0,4)===yr; return true; };
+    const all = transactions.filter(t=> belongs(t) && (!ty||t.kind===ty) && (!od || t.date>=od)).sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+    let bf=opening; all.forEach(t=>{ if(periodStart && t.date<periodStart) bf+=delta(t); });
+    const disp=all.filter(t=> inPeriod(t) && matchQ(t));
+    const debitNormal=(selAcct.type==='asset'||selAcct.type==='expense');
+    let run=bf;
+    rows.push([(periodStart||od||''), '', (periodStart?'Balance brought forward':'Opening balance'), selAcct.code+' — '+selAcct.name, '', '', '', '', '', '', run]);
+    disp.forEach(t=>{ const eff=delta(t); run+=eff; let deb=0,cre=0; if(debitNormal){ if(eff>0)deb=eff; else cre=-eff; } else { if(eff>0)cre=eff; else deb=-eff; } rows.push([t.date, t.kind, txDesc(t), acctLabel(t), (t.payee||t.donor||t.family||''), (t.period||''), (t.checkNo||''), (t.note||''), (deb||''), (cre||''), run]); });
+  } else {
+    const list=transactions.filter(t=>{ if(ty&&t.kind!==ty) return false; if(yr&&t.date.slice(0,4)!==yr) return false; if(mo&&(+t.date.slice(5,7))!==(+mo)) return false; if(!matchQ(t)) return false; return true; }).sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+    list.forEach(t=>{ let deb=0,cre=0; if(t.kind==='expense'||t.kind==='receivable') deb=t.amount; else if(t.kind==='collection'||t.kind==='fee') cre=t.amount; else if(t.kind==='transfer') deb=t.amount; else { if(t.dir==='in')cre=t.amount; else deb=t.amount; } rows.push([t.date, t.kind, txDesc(t), acctLabel(t), (t.payee||t.donor||t.family||''), (t.period||''), (t.checkNo||''), (t.note||''), (deb||''), (cre||'')]); });
+  }
+  return [header, ...rows];
+}
+function exportLedgerXLSX(){
+  if(typeof XLSX==='undefined') return alert('Excel library not loaded (needs internet). Use the CSV export on Data & Backup instead.');
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ledgerExportRows()), 'Ledger');
+  const sa = ($('led-acct')&&$('led-acct').value) ? acctById(+$('led-acct').value) : null;
+  const tag = sa ? ('_'+String(sa.code)) : '';
+  XLSX.writeFile(wb, `ledger${tag}_${todayISO()}.xlsx`);
+}
+// ---- Financial statement for the selected Reports period, as an editable Word (.doc) document ----
+function exportWordStatement(){
+  const year=+(($('rep-year')&&$('rep-year').value)||curYear());
+  const lo=Math.min(+($('rep-m1')&&$('rep-m1').value||1), +($('rep-m2')&&$('rep-m2').value||12));
+  const hi=Math.max(+($('rep-m1')&&$('rep-m1').value||1), +($('rep-m2')&&$('rep-m2').value||12));
+  const asOf=asOfCutoff(year,hi);
+  const full=(lo===1&&hi===12);
+  const periodLabel = full ? `Year ${year}` : `${MONTHS[lo-1]} – ${MONTHS[hi-1]} ${year}`;
+  const inPer=t=>{ const y=+String(t.date).slice(0,4); if(y!==year) return false; const m=+String(t.date).slice(5,7); return m>=lo && m<=hi; };
+  // --- Statement of Activities (income/expense by account for the period) ---
+  const inByAcct={}, outByAcct={};
+  transactions.forEach(t=>{ if(!inPer(t)) return; if(t.kind==='receivable'||t.kind==='transfer') return; const a=acctById(t.acctId)||accounts.find(x=>x.code===t.acct); if(!a) return; if(t.dir==='in') inByAcct[a.id]=(inByAcct[a.id]||0)+t.amount; else if(t.dir==='out') outByAcct[a.id]=(outByAcct[a.id]||0)+t.amount; });
+  const incRows=incomeAccounts().map(a=>({code:a.code,name:a.name,v:inByAcct[a.id]||0})).filter(r=>r.v>0.005).sort((a,b)=>b.v-a.v);
+  const expRows=expenseAccounts().map(a=>({code:a.code,name:a.name,v:outByAcct[a.id]||0})).filter(r=>r.v>0.005).sort((a,b)=>b.v-a.v);
+  const totInc=incRows.reduce((s,r)=>s+r.v,0), totExp=expRows.reduce((s,r)=>s+r.v,0), net=totInc-totExp;
+  // --- Statement of Financial Position (as of period end) ---
+  const b=balances(asOf); const liveByLink={cash:b.cash,bank:b.bank,bank2:b.bank2,bank3:b.bank3,undeposited:b.undeposited};
+  const recNetAsOf=id=>{ let d=0; transactions.forEach(t=>{ if(t.kind==='receivable'&&t.acctId===id&&t.date<=asOf) d+=(t.dir==='out'?t.amount:t.dir==='in'?-t.amount:0); }); return d; };
+  const byCode=(a,b2)=>String(a.code).localeCompare(String(b2.code));
+  const assetRows=accounts.filter(a=>a.type==='asset').sort(byCode).map(a=>({code:a.code,name:a.name,v:(a.link&&a.link in liveByLink)?liveByLink[a.link]:((+a.balance||0)+recNetAsOf(a.id))})).filter(r=>Math.abs(r.v)>0.005);
+  const totAssets=assetRows.reduce((s,r)=>s+r.v,0);
+  const liabRows=accounts.filter(a=>a.type==='liability').sort(byCode).map(a=>({code:a.code,name:a.name,v:(+a.balance||0)})).filter(r=>Math.abs(r.v)>0.005);
+  const totLiab=liabRows.reduce((s,r)=>s+r.v,0);
+  const netAssets=totAssets-totLiab;
+  // --- Cash & deposit position ---
+  let cashIn=0, cashDep=0;
+  transactions.forEach(t=>{ if(!inPer(t)) return; if(t.kind==='collection'||t.kind==='fee') cashIn+=t.amount; else if(t.kind==='transfer'&&t.fromFund==='cash'&&['bank','bank2','bank3'].includes(t.toFund)) cashDep+=t.amount; });
+  const heldCash=cashIn-cashDep;
+  // --- Membership participation ---
+  let memFees=0; const paidFams=new Set();
+  transactions.forEach(t=>{ if(!inPer(t)) return; if(t.kind==='fee'){ memFees+=t.amount; if(t.familyId) paidFams.add(t.familyId); } });
+  const totalFams=families.length;
+  // --- Written analysis ---
+  const money2=n=>money(n);
+  const pct=(a,b2)=> b2>0 ? Math.round(a/b2*100) : 0;
+  const notes=[];
+  notes.push(net>=0
+    ? `The church recorded a <b>surplus of ${money2(net)}</b> for ${periodLabel}, with total income of ${money2(totInc)} against total expenses of ${money2(totExp)}.`
+    : `The church recorded a <b>deficit of ${money2(-net)}</b> for ${periodLabel}: total expenses of ${money2(totExp)} exceeded total income of ${money2(totInc)}.`);
+  if(incRows.length) notes.push(`The largest source of income was <b>${esc(incRows[0].name)}</b> at ${money2(incRows[0].v)} (${pct(incRows[0].v,totInc)}% of all income).`);
+  if(expRows.length) notes.push(`The largest expense was <b>${esc(expRows[0].name)}</b> at ${money2(expRows[0].v)} (${pct(expRows[0].v,totExp)}% of all spending).`);
+  if(totInc>0) notes.push(`Expenses were ${pct(totExp,totInc)}% of income for the period${totExp<=totInc?`, leaving ${money2(net)} added to reserves`:''}.`);
+  notes.push(`At ${fmtDate(asOf)}, total funds on hand were <b>${money2(b.total)}</b> (cash ${money2(b.cash)}; PNC ${money2(b.bank)}; River City ${money2(b.bank2)}; Mortgage ${money2(b.bank3)}).`);
+  notes.push(heldCash>0.005
+    ? `Of ${money2(cashIn)} collected in cash this period, ${money2(cashDep)} was deposited to the bank, leaving ${money2(heldCash)} of cash on hand not yet deposited — this should match the cash counted in the till.`
+    : `All cash collected this period (${money2(cashIn)}) was deposited to the bank (${money2(cashDep)}), indicating cash receipts were fully banked.`);
+  if(totalFams) notes.push(`${paidFams.size} of ${totalFams} families on record contributed membership fees during the period, totalling ${money2(memFees)}.`);
+  notes.push(`Total net assets (fund balance) stood at <b>${money2(netAssets)}</b> as of ${fmtDate(asOf)} (assets ${money2(totAssets)} less liabilities ${money2(totLiab)}).`);
+  // --- Build the document ---
+  const row=(l,r,bold)=>`<tr><td style="padding:3px 8px;${bold?'font-weight:bold;':''}">${l}</td><td style="padding:3px 8px;text-align:right;${bold?'font-weight:bold;':''}">${r}</td></tr>`;
+  const want=(id)=>true; // all chosen sections included
+  let body='';
+  body+=`<p style="font-size:18pt;font-weight:bold;margin:0">${esc(settings.name||'Church')}</p>`;
+  if(settings.address) body+=`<p style="margin:2px 0;color:#555">${esc(settings.address)}</p>`;
+  body+=`<p style="font-size:14pt;font-weight:bold;margin:10px 0 0">Financial Statement</p>`;
+  body+=`<p style="margin:2px 0 16px;color:#555">Period: ${periodLabel} &nbsp;•&nbsp; Prepared ${fmtDate(todayISO())}</p>`;
+  // Statement of Activities
+  body+=`<p style="font-size:13pt;font-weight:bold;border-bottom:2px solid #333;padding-bottom:3px">Statement of Activities</p>`;
+  body+=`<table style="width:100%;border-collapse:collapse;font-size:11pt"><tr><td style="font-weight:bold;padding:4px 8px" colspan="2">Income</td></tr>`;
+  body+= incRows.length? incRows.map(r=>row(`${r.code} — ${esc(r.name)}`, money2(r.v))).join('') : row('<i>No income recorded</i>','');
+  body+= row('Total income', money2(totInc), true);
+  body+=`<tr><td colspan="2" style="height:8px"></td></tr><tr><td style="font-weight:bold;padding:4px 8px" colspan="2">Expenses</td></tr>`;
+  body+= expRows.length? expRows.map(r=>row(`${r.code} — ${esc(r.name)}`, money2(r.v))).join('') : row('<i>No expenses recorded</i>','');
+  body+= row('Total expenses', money2(totExp), true);
+  body+=`<tr><td colspan="2" style="height:8px"></td></tr>`;
+  body+= row(net>=0?'Net surplus':'Net deficit', money2(net), true);
+  body+=`</table>`;
+  // Statement of Financial Position
+  body+=`<p style="font-size:13pt;font-weight:bold;border-bottom:2px solid #333;padding-bottom:3px;margin-top:22px">Statement of Financial Position <span style="font-weight:normal;font-size:10pt;color:#555">(as of ${fmtDate(asOf)})</span></p>`;
+  body+=`<table style="width:100%;border-collapse:collapse;font-size:11pt"><tr><td style="font-weight:bold;padding:4px 8px" colspan="2">Assets</td></tr>`;
+  body+= assetRows.map(r=>row(`${r.code} — ${esc(r.name)}`, money2(r.v))).join('');
+  body+= row('Total assets', money2(totAssets), true);
+  body+=`<tr><td colspan="2" style="height:8px"></td></tr><tr><td style="font-weight:bold;padding:4px 8px" colspan="2">Liabilities</td></tr>`;
+  body+= liabRows.length? liabRows.map(r=>row(`${r.code} — ${esc(r.name)}`, money2(r.v))).join('') : row('<i>None</i>','');
+  body+= row('Total liabilities', money2(totLiab), true);
+  body+=`<tr><td colspan="2" style="height:8px"></td></tr>`;
+  body+= row('Net assets (fund balance)', money2(netAssets), true);
+  body+=`</table>`;
+  // Cash & deposit position
+  body+=`<p style="font-size:13pt;font-weight:bold;border-bottom:2px solid #333;padding-bottom:3px;margin-top:22px">Cash &amp; Deposit Position</p>`;
+  body+=`<table style="width:100%;border-collapse:collapse;font-size:11pt">`;
+  body+= row('Cash on hand', money2(b.cash));
+  body+= row('PNC Bank — Checking', money2(b.bank));
+  body+= row('River City Bank — Checking', money2(b.bank2));
+  body+= row('Rivercity - Mortgage', money2(b.bank3));
+  if(b.undeposited) body+= row('Undeposited checks', money2(b.undeposited));
+  body+= row('Total funds', money2(b.total), true);
+  body+=`<tr><td colspan="2" style="height:8px"></td></tr>`;
+  body+= row('Cash collected this period', money2(cashIn));
+  body+= row('Cash deposited to bank this period', money2(cashDep));
+  body+= row('Cash collected but not yet deposited', money2(heldCash), true);
+  body+=`</table>`;
+  // Membership participation
+  body+=`<p style="font-size:13pt;font-weight:bold;border-bottom:2px solid #333;padding-bottom:3px;margin-top:22px">Membership Participation</p>`;
+  body+=`<table style="width:100%;border-collapse:collapse;font-size:11pt">`;
+  body+= row('Families on record', String(totalFams));
+  body+= row('Families who contributed this period', String(paidFams.size));
+  body+= row('Membership fees collected this period', money2(memFees), true);
+  body+=`</table>`;
+  // Analysis
+  body+=`<p style="font-size:13pt;font-weight:bold;border-bottom:2px solid #333;padding-bottom:3px;margin-top:22px">Analysis &amp; Highlights</p>`;
+  body+= notes.map(n=>`<p style="font-size:11pt;margin:6px 0">• ${n}</p>`).join('');
+  body+=`<p style="font-size:9pt;color:#888;margin-top:24px">Generated by the church accounting app on ${fmtDate(todayISO())}. Figures are drawn from recorded transactions for the selected period; please review against bank statements before distribution.</p>`;
+  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Financial Statement ${periodLabel}</title></head><body style="font-family:Calibri,Arial,sans-serif;color:#1f2937">${body}</body></html>`;
+  const tag = full ? String(year) : `${year}_${String(lo).padStart(2,'0')}-${String(hi).padStart(2,'0')}`;
+  download(`Financial_Statement_${tag}.doc`, new Blob(['﻿'+html], {type:'application/msword'}));
+}
 
 // ---- read an .xlsx workbook back into the data model ----
 function normDate(v){
@@ -3226,10 +3463,18 @@ function parseWorkbookData(wb){
   }); }
   const findByCode=code=> out.accounts.find(a=>a.code===String(code).trim());
   const ts=wb.Sheets['Transactions'];
-  if(ts){ XLSX.utils.sheet_to_json(ts,{header:1}).slice(1).forEach((r,i)=>{ if(!r||r[0]==null||r[0]==='') return;
-    const kind=(r[1]||'collection'); const dir=r[2]|| (kind==='expense'?'out':kind==='transfer'?'xfer':'in'); const acct=r[3]!=null?String(r[3]).trim():''; const a=findByCode(acct);
-    out.transactions.push({id:Date.now()+i+Math.floor(Math.random()*1e6),date:normDate(r[0]),kind,dir,acctId:a?a.id:null,acct,category:(a?a.name:(r[4]||(kind==='transfer'?'Transfer':''))),amount:+r[5]||0,fund:r[6]||'',family:r[7]||'',donor:r[8]||'',period:r[9]||'',payee:r[10]||'',method:r[11]||'',note:r[12]||'',fromFund:r[13]||'',toFund:r[14]||'',receiptNo:(r[15]!=null?String(r[15]).trim():'')});
-  }); }
+  if(ts){ const trows=XLSX.utils.sheet_to_json(ts,{header:1});
+    const hdr=(trows[0]||[]).map(h=>String(h||'').trim().toLowerCase());
+    const col=(...names)=>{ for(const n of names){ const i=hdr.indexOf(n); if(i>=0) return i; } return -1; };
+    // Map by header name so the order can change (e.g. the added Check # column) without breaking the read
+    const ci={ date:col('date'), kind:col('kind'), dir:col('in/out'), acct:col('acct'), account:col('account'), amount:col('amount'), fund:col('fund'), family:col('family'), donor:col('donor'), period:col('period'), payee:col('payee'), method:col('method'), check:col('check #','check','check no','checkno'), note:col('note'), from:col('transferfrom','from'), to:col('transferto','to'), receipt:col('receipt') };
+    const usedHdr = ci.date>=0;   // true when a header row is present
+    const g=(r,k,fallbackIdx)=>{ const idx = ci[k]>=0 ? ci[k] : (usedHdr?-1:(fallbackIdx==null?-1:fallbackIdx)); return (idx>=0 && r[idx]!=null) ? r[idx] : ''; };
+    trows.slice(1).forEach((r,i)=>{ if(!r) return; const dcell=g(r,'date',0); if(dcell==null||dcell==='') return;
+      const kind=(g(r,'kind',1)||'collection'); const dir=g(r,'dir',2)|| (kind==='expense'?'out':kind==='transfer'?'xfer':'in'); const acct=String(g(r,'acct',3)||'').trim(); const a=findByCode(acct);
+      out.transactions.push({id:Date.now()+i+Math.floor(Math.random()*1e6),date:normDate(dcell),kind,dir,acctId:a?a.id:null,acct,category:(a?a.name:(g(r,'account',4)||(kind==='transfer'?'Transfer':''))),amount:+g(r,'amount',5)||0,fund:g(r,'fund',6)||'',family:g(r,'family',7)||'',donor:g(r,'donor',8)||'',period:g(r,'period',9)||'',payee:g(r,'payee',10)||'',method:g(r,'method',11)||'',checkNo:String(g(r,'check')||'').trim(),note:g(r,'note',12)||'',fromFund:g(r,'from',13)||'',toFund:g(r,'to',14)||'',receiptNo:String(g(r,'receipt',15)||'').trim()});
+    });
+  }
   const ss=wb.Sheets['Settings'];
   if(ss){ XLSX.utils.sheet_to_json(ss,{header:1}).slice(1).forEach(r=>{ if(r[0]) out.settings[r[0]]=r[1]; }); }
   return out;
@@ -3239,7 +3484,7 @@ function applyLoaded(d){
   families=d.families||[]; transactions=d.transactions||[];
   if(d.accounts && d.accounts.length) accounts=d.accounts;
   if(!accounts || !accounts.length) seedAccounts();
-  ensureBS(); ensureTwoBanks(); ensureAccount('6120','Bonus','expense'); ensureAccount('6230','Construction','expense'); ensureAccount('1110','Other receivables','asset'); migrateCOA();
+  ensureBS(); ensureTwoBanks(); ensureAccount('6120','Bonus','expense'); ensureAccount('6230','Construction','expense'); ensureAccount('6240','Insurance','expense'); ensureAccount('1110','Other receivables','asset'); migrateCOA();
   if(d.settings){ if(d.settings.name) settings.name=d.settings.name; if(d.settings.address) settings.address=d.settings.address;
     if('openingCash' in d.settings) settings.openingCash=+d.settings.openingCash||0;
     if('openingBank' in d.settings) settings.openingBank=+d.settings.openingBank||0;
